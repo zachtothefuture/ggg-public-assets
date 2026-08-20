@@ -7,7 +7,6 @@ console.log("👻 GGG Manufacturing Loaded");
 
 document.documentElement.classList.add("ggg-loaded");
 
-<script>
 (function () {
 
   /* ========================================================
@@ -2422,4 +2421,3 @@ document.body.insertAdjacentHTML(
     'working';
 
 })();
-</script>
