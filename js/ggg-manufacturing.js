@@ -1,3 +1,7 @@
-/* GGG Manufacturing Engine */
+/* ==========================================================
+   GGG Manufacturing Engine
+========================================================== */
 
-console.log("GGG JS loaded.");
+console.log("👻 GGG Manufacturing Loaded");
+
+document.documentElement.classList.add("ggg-loaded");
