@@ -1,10 +1,10 @@
-/* GGG PIPELINE DIAGNOSTIC */
+/* ==========================================================
+   GGG DESIGN SYSTEM
+   PUBLIC PRODUCTION STYLESHEET
 
-#ggg-pipeline-test{
-  position: fixed;
-  inset: 0;
-  z-index: 2147483647;
-  pointer-events: none;
-  box-sizing: border-box;
-  border: 6px solid #00ff66 !important;
-}
+   Source:
+   ggg-design-system (private)
+
+   Published:
+   ggg-public-assets (public)
+========================================================== */
