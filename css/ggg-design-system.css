@@ -8,3 +8,351 @@
    Published:
    ggg-public-assets (public)
 ========================================================== */
+/* ==========================================================
+   GGG DESIGN SYSTEM
+   MATERIALS — MANUFACTURING
+   Version 0.1
+
+   PURPOSE
+   Defines manufacturing-process treatments.
+
+   SVG filters provide microscopic process deformation.
+   CSS provides:
+   - process color
+   - blend mode
+   - opacity
+   - restrained finishing
+   - paper-aware tuning
+
+   No duplicate pseudo-element print stacks belong here.
+========================================================== */
+
+
+/* ==========================================================
+   DEFAULT MANUFACTURING VARIABLES
+========================================================== */
+
+body{
+  --mfg-ink:
+    var(--print-ink, var(--ink, #2E241B));
+
+  --mfg-letterpress-opacity:
+    1;
+
+  --mfg-offset-opacity:
+    .97;
+
+  --mfg-typewriter-opacity:
+    .94;
+
+  --mfg-stamp-opacity:
+    .90;
+}
+
+
+/* ==========================================================
+   BASE PROCESS
+========================================================== */
+
+.ggg-process{
+  color:
+    var(--mfg-ink);
+
+  -webkit-text-fill-color:
+    currentColor;
+
+  transform-origin:
+    center;
+
+  -webkit-font-smoothing:
+    antialiased;
+
+  backface-visibility:
+    hidden;
+}
+
+
+/* ==========================================================
+   LETTERPRESS
+========================================================== */
+
+.ggg-process-letterpress{
+  color:
+    var(--mfg-ink);
+
+  opacity:
+    var(--mfg-letterpress-opacity);
+
+  filter:
+    url("#ggg-process-letterpress");
+
+  mix-blend-mode:
+    multiply;
+
+  text-shadow:
+    .08px 0 0 rgba(46,36,27,.07);
+}
+
+
+/* ==========================================================
+   OFFSET
+========================================================== */
+
+.ggg-process-offset{
+  color:
+    var(--mfg-ink);
+
+  opacity:
+    var(--mfg-offset-opacity);
+
+  filter:
+    url("#ggg-process-offset");
+
+  mix-blend-mode:
+    multiply;
+
+  text-shadow:
+    .10px .02px .05px rgba(46,36,27,.05);
+}
+
+
+/* ==========================================================
+   TYPEWRITER
+========================================================== */
+
+.ggg-process-typewriter{
+  color:
+    var(--mfg-ink);
+
+  opacity:
+    var(--mfg-typewriter-opacity);
+
+  filter:
+    url("#ggg-process-typewriter");
+
+  mix-blend-mode:
+    multiply;
+
+  text-shadow:
+    .16px .04px .08px rgba(46,36,27,.07);
+}
+
+
+/* ==========================================================
+   RUBBER STAMP
+========================================================== */
+
+.ggg-process-stamp{
+  color:
+    var(--mfg-ink);
+
+  opacity:
+    var(--mfg-stamp-opacity);
+
+  filter:
+    url("#ggg-process-stamp");
+
+  mix-blend-mode:
+    multiply;
+
+  transform:
+    rotate(-.40deg);
+
+  text-shadow:
+    .20px .04px .10px rgba(46,36,27,.10);
+}
+
+
+/* ==========================================================
+   PAPER-AWARE MANUFACTURING TUNING
+========================================================== */
+
+body.paper-archive{
+  --mfg-letterpress-opacity:
+    1;
+
+  --mfg-offset-opacity:
+    .985;
+
+  --mfg-typewriter-opacity:
+    .955;
+
+  --mfg-stamp-opacity:
+    .91;
+}
+
+
+body.paper-archive .ggg-process-stamp{
+  transform:
+    rotate(-.34deg);
+}
+
+
+body.paper-journal{
+  --mfg-letterpress-opacity:
+    .975;
+
+  --mfg-offset-opacity:
+    .955;
+
+  --mfg-typewriter-opacity:
+    .93;
+
+  --mfg-stamp-opacity:
+    .86;
+}
+
+
+body.paper-newsprint{
+  --mfg-letterpress-opacity:
+    .94;
+
+  --mfg-offset-opacity:
+    .92;
+
+  --mfg-typewriter-opacity:
+    .90;
+
+  --mfg-stamp-opacity:
+    .80;
+}
+
+
+body.paper-government{
+  --mfg-letterpress-opacity:
+    .97;
+
+  --mfg-offset-opacity:
+    .96;
+
+  --mfg-typewriter-opacity:
+    .92;
+
+  --mfg-stamp-opacity:
+    .85;
+}
+
+
+body.paper-evidence{
+  --mfg-letterpress-opacity:
+    .995;
+
+  --mfg-offset-opacity:
+    .985;
+
+  --mfg-typewriter-opacity:
+    .96;
+
+  --mfg-stamp-opacity:
+    .92;
+}
+
+
+body.paper-field{
+  --mfg-letterpress-opacity:
+    .955;
+
+  --mfg-offset-opacity:
+    .94;
+
+  --mfg-typewriter-opacity:
+    .90;
+
+  --mfg-stamp-opacity:
+    .82;
+}
+
+
+body.paper-blueprint{
+  --mfg-letterpress-opacity:
+    .98;
+
+  --mfg-offset-opacity:
+    .98;
+
+  --mfg-typewriter-opacity:
+    .95;
+
+  --mfg-stamp-opacity:
+    .87;
+}
+
+
+body.paper-telegram{
+  --mfg-letterpress-opacity:
+    .95;
+
+  --mfg-offset-opacity:
+    .935;
+
+  --mfg-typewriter-opacity:
+    .88;
+
+  --mfg-stamp-opacity:
+    .78;
+}
+
+
+/* ==========================================================
+   DARK PAPER
+========================================================== */
+
+body.paper-black{
+  --mfg-ink:
+    var(--ink);
+}
+
+
+body.paper-black .ggg-process{
+  mix-blend-mode:
+    screen;
+}
+
+
+/* ==========================================================
+   OPTIONAL PROCESS UTILITIES
+========================================================== */
+
+.manufacture-carbon{
+  color:
+    rgba(35,42,63,.68);
+
+  opacity:
+    .74;
+
+  filter:
+    url("#ggg-press-carbon");
+
+  mix-blend-mode:
+    multiply;
+}
+
+
+.manufacture-mimeograph{
+  color:
+    #594770;
+
+  opacity:
+    .88;
+
+  filter:
+    url("#ggg-press-mimeograph");
+
+  mix-blend-mode:
+    multiply;
+}
+
+
+.manufacture-pencil{
+  color:
+    rgba(54,50,45,.72);
+
+  opacity:
+    .82;
+
+  filter:
+    url("#ggg-press-pencil");
+
+  mix-blend-mode:
+    multiply;
+}
