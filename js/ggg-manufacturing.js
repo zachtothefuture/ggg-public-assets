@@ -407,9 +407,9 @@ document.documentElement.classList.add("ggg-loaded");
   }
 
 })();
-</script>
 
-<script>
+
+
 document.addEventListener('DOMContentLoaded', function () {
 
   /* ========================================================
@@ -841,9 +841,9 @@ document.addEventListener('DOMContentLoaded', function () {
   runQueue(results);
 
 });
-</script>
 
-<script>
+
+
 document.addEventListener('DOMContentLoaded', function () {
 
   /* ========================================================
@@ -1452,9 +1452,9 @@ document.addEventListener('DOMContentLoaded', function () {
   runQueue(records);
 
 });
-</script>
 
-<script>
+
+
 window.addEventListener("load", function () {
 
   if (
@@ -1466,7 +1466,7 @@ window.addEventListener("load", function () {
   }
 
 });
-<script>
+
 document.addEventListener('DOMContentLoaded', function () {
 
   /* ========================================================
@@ -1492,7 +1492,7 @@ document.addEventListener('DOMContentLoaded', function () {
   /* ========================================================
      SVG FILTER LIBRARY
   ======================================================== */
-<script>
+
 (function () {
 
   /* ========================================================
@@ -1629,7 +1629,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
 })();
-</script>
+
   /*  const svgMarkup = `
 <svg
   aria-hidden="true"
@@ -2412,7 +2412,7 @@ document.body.insertAdjacentHTML(
   
   
 
-<script>
+
 (function () {
 
   console.log('GGG MANUFACTURING TEST: script executed');
