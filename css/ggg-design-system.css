@@ -1,9 +1,10 @@
-/* GGG PUBLIC PIPELINE TEST */
+/* GGG PIPELINE DIAGNOSTIC */
 
-body.paper-archive .entry-title{
-  outline: 4px solid red !important;
-}
-
-html.ggg-loaded{
-    outline:6px solid #00ff66 !important;
+#ggg-pipeline-test{
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  pointer-events: none;
+  box-sizing: border-box;
+  border: 6px solid #00ff66 !important;
 }
