@@ -1,5 +1,25 @@
 [
   {
+    "id": "GGG-MAN-004",
+    "title": "Editorial Style Guide",
+    "slug": "ggg-man-004",
+    "url": "/guild-archive-manual/ggg-man-004",
+    "section": "Editorial",
+    "status": "Current",
+    "version": "1.0",
+    "author": "",
+    "updated": "",
+    "summary": "Defines how Guild Archive entries should be written.",
+    "keywords": [
+      "editorial",
+      "writing",
+      "style",
+      "voice",
+      "copy"
+    ],
+    "relationships": []
+  },
+  {
     "id": "GGG-MAN-005",
     "title": "Accessibility Standards",
     "slug": "ggg-man-005",
@@ -31,26 +51,6 @@
         "id": "GGG-MAN-026"
       }
     ]
-  },
-  {
-    "id": "GGG-MAN-004",
-    "title": "Editorial Style Guide",
-    "slug": "ggg-man-004",
-    "url": "/guild-archive-manual/ggg-man-004",
-    "section": "Editorial",
-    "status": "Current",
-    "version": "1.0",
-    "author": "",
-    "updated": "",
-    "summary": "Defines how Guild Archive entries should be written.",
-    "keywords": [
-      "editorial",
-      "writing",
-      "style",
-      "voice",
-      "copy"
-    ],
-    "relationships": []
   },
   {
     "id": "GGG-MAN-025",
