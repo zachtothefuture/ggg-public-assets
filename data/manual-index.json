@@ -1,0 +1,66 @@
+[
+  {
+    "id": "GGG-MAN-005",
+    "title": "Accessibility Standards",
+    "section": "Publishing",
+    "status": "Current",
+    "version": "1.0",
+    "summary": "Defines accessibility requirements for Guild Archive content and components.",
+    "url": "/guild-archive-manual/ggg-man-005",
+    "keywords": [
+      "accessibility",
+      "wcag",
+      "alt text",
+      "captions",
+      "screen reader"
+    ]
+  },
+  {
+    "id": "GGG-MAN-004",
+    "title": "Editorial Style Guide",
+    "section": "Editorial",
+    "status": "Current",
+    "version": "1.0",
+    "summary": "Defines how Guild Archive entries should be written.",
+    "url": "/guild-archive-manual/ggg-man-004",
+    "keywords": [
+      "editorial",
+      "writing",
+      "style",
+      "voice",
+      "copy"
+    ]
+  },
+  {
+    "id": "GGG-MAN-025",
+    "title": "Image Mount",
+    "section": "Components",
+    "status": "Current",
+    "version": "1.0",
+    "summary": "Presents a visual artifact with descriptive and accessibility information.",
+    "url": "/guild-archive-manual/ggg-man-025",
+    "keywords": [
+      "image",
+      "photo",
+      "artifact",
+      "alt text",
+      "mount"
+    ]
+  },
+  {
+    "id": "GGG-MAN-026",
+    "title": "Audio Mount",
+    "section": "Components",
+    "status": "Current",
+    "version": "1.0",
+    "summary": "Presents a recorded artifact with descriptive and historical context.",
+    "url": "/guild-archive-manual/ggg-man-026",
+    "keywords": [
+      "audio",
+      "recording",
+      "transcript",
+      "interview",
+      "mount"
+    ]
+  }
+]
