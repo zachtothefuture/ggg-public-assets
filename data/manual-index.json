@@ -2,65 +2,94 @@
   {
     "id": "GGG-MAN-005",
     "title": "Accessibility Standards",
+    "slug": "ggg-man-005",
+    "url": "/guild-archive-manual/ggg-man-005",
     "section": "Publishing",
     "status": "Current",
     "version": "1.0",
+    "author": "Zach Kennedy",
+    "updated": "2026-08-17",
     "summary": "Defines accessibility requirements for Guild Archive content and components.",
-    "url": "/guild-archive-manual/ggg-man-005",
     "keywords": [
       "accessibility",
       "wcag",
       "alt text",
       "captions",
       "screen reader"
+    ],
+    "relationships": [
+      {
+        "type": "Defines",
+        "id": "GGG-MAN-004"
+      },
+      {
+        "type": "Defines",
+        "id": "GGG-MAN-025"
+      },
+      {
+        "type": "Uses",
+        "id": "GGG-MAN-026"
+      }
     ]
   },
   {
     "id": "GGG-MAN-004",
     "title": "Editorial Style Guide",
+    "slug": "ggg-man-004",
+    "url": "/guild-archive-manual/ggg-man-004",
     "section": "Editorial",
     "status": "Current",
     "version": "1.0",
+    "author": "",
+    "updated": "",
     "summary": "Defines how Guild Archive entries should be written.",
-    "url": "/guild-archive-manual/ggg-man-004",
     "keywords": [
       "editorial",
       "writing",
       "style",
       "voice",
       "copy"
-    ]
+    ],
+    "relationships": []
   },
   {
     "id": "GGG-MAN-025",
     "title": "Image Mount",
+    "slug": "ggg-man-025",
+    "url": "/guild-archive-manual/ggg-man-025",
     "section": "Components",
     "status": "Current",
     "version": "1.0",
+    "author": "",
+    "updated": "",
     "summary": "Presents a visual artifact with descriptive and accessibility information.",
-    "url": "/guild-archive-manual/ggg-man-025",
     "keywords": [
       "image",
       "photo",
       "artifact",
       "alt text",
       "mount"
-    ]
+    ],
+    "relationships": []
   },
   {
     "id": "GGG-MAN-026",
     "title": "Audio Mount",
+    "slug": "ggg-man-026",
+    "url": "/guild-archive-manual/ggg-man-026",
     "section": "Components",
     "status": "Current",
     "version": "1.0",
+    "author": "",
+    "updated": "",
     "summary": "Presents a recorded artifact with descriptive and historical context.",
-    "url": "/guild-archive-manual/ggg-man-026",
     "keywords": [
       "audio",
       "recording",
       "transcript",
       "interview",
       "mount"
-    ]
+    ],
+    "relationships": []
   }
 ]
