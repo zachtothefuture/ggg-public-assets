@@ -164,10 +164,8 @@ img{border:0;border-radius:0;display:block;height:100%;width:100%}@media screen 
 .ggg-evidence-card
 .ggg-attachment,article.h-entry
 .ggg-evidence-card
-.image-block{margin-bottom:0!important;margin-top:0!important}article.h-entry .ggg-evidence-tray__track{scrollbar-color:var(--ggg-muted) transparent;scrollbar-width:thin}article.h-entry
-.ggg-evidence-tray__track::-webkit-scrollbar{height:6px}article.h-entry
-.ggg-evidence-tray__track::-webkit-scrollbar-track{background:transparent}article.h-entry
-.ggg-evidence-tray__track::-webkit-scrollbar-thumb{background:var(--ggg-muted);border-radius:999px}@media screen and (max-width:767px){article.h-entry .ggg-evidence-tray{margin:var(--ggg-component-gap-mobile) 0}article.h-entry .ggg-evidence-tray__track{gap:18px;padding-bottom:22px;padding-top:8px}article.h-entry .ggg-evidence-card{flex:0 0 82vw;max-width:82vw;min-width:82vw;width:82vw}article.h-entry .ggg-evidence-card .ggg-attachment .ggg-evidence-card__meta{margin-top:28px!important;padding-top:12px}}article.h-entry
+.image-block{margin-bottom:0!important;margin-top:0!important}article.h-entry .ggg-evidence-tray__track{scrollbar-width:none;-ms-overflow-style:none}article.h-entry
+.ggg-evidence-tray__track::-webkit-scrollbar{display:none;height:0;width:0}@media screen and (max-width:767px){article.h-entry .ggg-evidence-tray{margin:var(--ggg-component-gap-mobile) 0}article.h-entry .ggg-evidence-tray__track{gap:18px;padding-bottom:22px;padding-top:8px}article.h-entry .ggg-evidence-card{flex:0 0 82vw;max-width:82vw;min-width:82vw;width:82vw}article.h-entry .ggg-evidence-card .ggg-attachment .ggg-evidence-card__meta{margin-top:28px!important;padding-top:12px}}article.h-entry
 .ggg-evidence-audio{background:var(--paper,#f5f2e8);border:1px solid var(--ggg-border-light);box-shadow:0 10px 24px rgba(33,31,27,.13);box-sizing:border-box;color:var(--ggg-ink);padding:24px 26px 22px;position:relative;width:100%}article.h-entry
 .ggg-evidence-audio__header{align-items:baseline;border-bottom:1px solid var(--ggg-border-light);color:var(--ggg-muted);display:flex;font-size:var(--ggg-type-micro);gap:16px;justify-content:space-between;letter-spacing:var(--ggg-tracking-admin);line-height:var(--ggg-leading-tight);margin-bottom:22px;padding-bottom:10px;text-transform:uppercase}article.h-entry
 .ggg-evidence-audio__player{box-sizing:border-box;margin:0;padding:18px 0 8px;width:100%}article.h-entry
