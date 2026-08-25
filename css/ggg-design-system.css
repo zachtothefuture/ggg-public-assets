@@ -101,7 +101,7 @@
 .ggg-recovery-disclosure:before{background:var(--ggg-rule);bottom:0;content:"";left:5px;pointer-events:none;position:absolute;top:0;width:1px}article.h-entry
 .ggg-recovery-record
 .ggg-recovery-disclosure
-.ggg-progressive-disclosure__control{background:var(--ggg-mat);border-bottom:1px solid var(--ggg-rule);border-top:1px solid var(--ggg-rule);box-sizing:border-box;padding:14px 0 14px 34px;position:relative;z-index:1}article.h-entry
+.ggg-progressive-disclosure__control{border-bottom:1px solid var(--ggg-rule);border-top:1px solid var(--ggg-rule);box-sizing:border-box;padding:12px 0 12px 34px;position:relative;z-index:1}article.h-entry
 .ggg-recovery-record
 .ggg-recovery-disclosure
 .ggg-progressive-disclosure__control:after{margin-left:auto}article.h-entry
