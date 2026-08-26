@@ -1,0 +1,21 @@
+{
+  "version": "1.0",
+
+  "records": {
+    "GGG-ART-2026-7K3M": {
+      "title": "Cannon Model 6030 Safe",
+      "type": "Artifact",
+      "collection": "Kennedy Family Collection",
+      "status": "Catalogued",
+      "url": "/archive/ggg-art-2026-7k3m"
+    },
+
+    "GGG-PER-2026-0001": {
+      "title": "Ronald William Kennedy",
+      "type": "Person",
+      "collection": "Kennedy Family",
+      "status": "Under Investigation",
+      "url": "/archive/ggg-per-2026-0001"
+    }
+  }
+}

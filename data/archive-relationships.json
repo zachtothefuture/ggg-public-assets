@@ -1,0 +1,68 @@
+{
+  "version": "1.0",
+
+  "types": {
+    "owned": {
+      "label": "OWNED",
+      "inverse": "former-owner"
+    },
+
+    "former-owner": {
+      "label": "FORMER OWNER",
+      "inverse": "owned"
+    },
+
+    "contained": {
+      "label": "CONTAINED",
+      "inverse": "contained-in"
+    },
+
+    "contained-in": {
+      "label": "CONTAINED IN",
+      "inverse": "contained"
+    },
+
+    "discovered": {
+      "label": "DISCOVERED",
+      "inverse": "discovered-in"
+    },
+
+    "discovered-in": {
+      "label": "DISCOVERED IN",
+      "inverse": "discovered"
+    },
+
+    "supporting": {
+      "label": "SUPPORTING",
+      "inverse": "supports"
+    },
+
+    "supports": {
+      "label": "SUPPORTS",
+      "inverse": "supporting"
+    },
+
+    "recovery-location": {
+      "label": "RECOVERY LOCATION",
+      "inverse": "recovered-here"
+    },
+
+    "recovered-here": {
+      "label": "RECOVERED HERE",
+      "inverse": "recovery-location"
+    },
+
+    "related": {
+      "label": "RELATED",
+      "inverse": "related"
+    }
+  },
+
+  "relationships": [
+    {
+      "source": "GGG-PER-2026-0001",
+      "type": "owned",
+      "target": "GGG-ART-2026-7K3M"
+    }
+  ]
+}
