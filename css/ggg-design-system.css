@@ -64,7 +64,7 @@ a{color:inherit;text-decoration-line:underline;text-decoration-thickness:1px;tex
 .ggg-question__number{color:var(--ggg-muted);font-size:var(--ggg-type-label);letter-spacing:var(--ggg-tracking-meta);line-height:var(--ggg-leading-tight);opacity:.82;padding-top:3px}article.h-entry
 .ggg-question__text{font-size:var(--ggg-type-body);line-height:1.5;min-width:0}article.h-entry
 .ggg-question__content{min-width:0}article.h-entry
-.ggg-question__annotation{display:block;margin-top:8px;transform:rotate(-1deg);width:-moz-fit-content;width:fit-content}article.h-entry
+.ggg-question__annotation{display:block;margin-left:12px;margin-top:6px;transform:rotate(-1.5deg);width:-moz-fit-content;width:fit-content}article.h-entry
 .ggg-question__annotation--red{color:var(
       --ggg-author-red-pen,var(--ggg-red-pen)
     )}@media screen and (max-width:767px){article.h-entry .ggg-open-questions-sheet{padding:20px 18px 22px}article.h-entry .ggg-question{gap:10px;grid-template-columns:28px minmax(0,1fr);padding:15px 0}article.h-entry .ggg-question__number{padding-top:2px}article.h-entry .ggg-question__text{line-height:1.45}}article.h-entry .ggg-chronology__entry{padding:26px 0;position:relative}article.h-entry
