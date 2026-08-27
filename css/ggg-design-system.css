@@ -31,7 +31,8 @@
 .ggg-archivist-assessment__status{flex:0 0 auto;text-align:right;white-space:nowrap}article.h-entry
 .ggg-archivist-assessment__body{box-sizing:border-box;color:var(--ggg-ink);font-size:var(--ggg-type-reading);line-height:1.75;position:relative;width:100%}article.h-entry
 .ggg-archivist-assessment__body>p{margin:0;max-width:none;width:100%}article.h-entry
-.ggg-archivist-assessment__body>.ggg-archivist-assessment__annotated-paragraph{margin-top:28px}article.h-entry
+.ggg-archivist-assessment__body>.ggg-archivist-assessment__annotated-paragraph,article.h-entry
+.ggg-archivist-assessment__body>p+p{margin-top:28px}article.h-entry
 .ggg-archivist-assessment
 .ggg-pencil-anchor--assessment{display:inline-block;position:relative}article.h-entry
 .ggg-archivist-assessment
