@@ -2,12 +2,13 @@
   "version": "1.0",
 
   "records": {
-    "GGG-ART-2026-7K3M": {
+
+    "GGG-ART-2026-0001": {
       "title": "Cannon Model 6030 Safe",
       "type": "Artifact",
       "collection": "Kennedy Family Collection",
-      "status": "Catalogued",
-      "url": "/archive/ggg-art-2026-7k3m"
+      "status": "Under Investigation",
+      "url": "/archive/ggg-art-2026-0001"
     },
 
     "GGG-PER-2026-0001": {
@@ -17,5 +18,6 @@
       "status": "Under Investigation",
       "url": "/archive/ggg-per-2026-0001"
     }
+
   }
 }
