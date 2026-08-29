@@ -43,8 +43,8 @@
     headerSelector:
       '.ggg-site-header, #header, header.Header',
 
-    headerRevealStart: .78,
-    headerRevealEnd: .18,
+    headerHoldDistance: 24,
+    headerFadeDistance: 180,
 
     footerSelector:
       '.ggg-site-footer',
@@ -93,6 +93,7 @@
           '(hover: none), (pointer: coarse)'
         ).matches;
 
+
       this.reducedMotion =
         window.matchMedia(
           '(prefers-reduced-motion: reduce)'
@@ -101,6 +102,7 @@
 
       this.targetX =
         window.innerWidth / 2;
+
 
       this.targetY =
         this.mobile
@@ -111,17 +113,22 @@
       this.lightX =
         this.targetX;
 
+
       this.lightY =
         this.targetY;
+
 
       this.previousX =
         this.targetX;
 
+
       this.previousY =
         this.targetY;
 
+
       this.velocityX =
         0;
+
 
       this.velocityY =
         0;
@@ -130,8 +137,10 @@
       this.lastScrollY =
         window.scrollY;
 
+
       this.scrollVelocity =
         0;
+
 
       this.mobileOffsetY =
         0;
@@ -144,8 +153,10 @@
       this.headerReveal =
         0;
 
+
       this.footerReveal =
         0;
+
 
       this.exposureReveal =
         0;
@@ -154,41 +165,27 @@
       this.materials =
         [];
 
+
       this.materialElements =
         new WeakSet();
+
 
       this.dust =
         [];
 
+
       this.running =
         false;
+
 
       this.batteryTimer =
         null;
 
 
-      /* ======================================================
-         PAGE EXPOSURE BOUNDARIES
-      ====================================================== */
-
       this.header =
         document.querySelector(
           CONFIG.headerSelector
         );
-
-
-      /*
-        Store the header's original document position.
-
-        This means the exposure handoff continues to work even
-        if Squarespace makes the visible header sticky or fixed.
-      */
-
-      this.headerDocumentBottom =
-        this.header
-          ? this.header.getBoundingClientRect().bottom +
-            window.scrollY
-          : 0;
 
 
       this.footer =
@@ -216,6 +213,7 @@
       this.running =
         true;
 
+
       requestAnimationFrame(
         this.animate.bind(this)
       );
@@ -228,7 +226,8 @@
       document.querySelectorAll(
         '.ggg-light, .ggg-metal-bloom, .ggg-metal-bevel, .ggg-photo-sheen'
       ).forEach(
-        element => element.remove()
+        element =>
+          element.remove()
       );
 
     }
@@ -241,13 +240,16 @@
           'div'
         );
 
+
       this.light.className =
         'ggg-light';
+
 
       this.light.setAttribute(
         'aria-hidden',
         'true'
       );
+
 
       document.body.appendChild(
         this.light
@@ -259,8 +261,10 @@
           'div'
         );
 
+
       coarse.className =
         'ggg-light__noise ggg-light__noise--coarse';
+
 
       this.light.appendChild(
         coarse
@@ -272,8 +276,10 @@
           'div'
         );
 
+
       fine.className =
         'ggg-light__noise ggg-light__noise--fine';
+
 
       this.light.appendChild(
         fine
@@ -285,15 +291,19 @@
           'div'
         );
 
+
       this.dustLayer.className =
         'ggg-light__dust';
+
 
       this.light.appendChild(
         this.dustLayer
       );
 
 
-      if (this.mobile) {
+      if (
+        this.mobile
+      ) {
 
         this.light.classList.add(
           'is-active'
@@ -355,8 +365,12 @@
 
       if (
         !element ||
-        this.materialElements.has(element) ||
-        !VALID_TYPES.has(type)
+        this.materialElements.has(
+          element
+        ) ||
+        !VALID_TYPES.has(
+          type
+        )
       ) {
 
         return;
@@ -372,6 +386,7 @@
       element.classList.add(
         'ggg-light-material'
       );
+
 
       element.setAttribute(
         'data-ggg-light-type',
@@ -416,9 +431,14 @@
                           entry.target
                       );
 
-                    if (found) {
+
+                    if (
+                      found
+                    ) {
+
                       found.visible =
                         entry.isIntersecting;
+
                     }
 
                   }
@@ -477,6 +497,7 @@
             material.hovered = true
         );
 
+
         element.addEventListener(
           'pointerleave',
           () =>
@@ -502,19 +523,36 @@
         const element =
           material.element;
 
+
         const image =
           element.matches('img')
             ? element
-            : element.querySelector('img');
+            : element.querySelector(
+                'img'
+              );
 
-        if (!image) return;
+
+        if (
+          !image
+        ) {
+
+          return;
+
+        }
 
 
         const url =
           image.currentSrc ||
           image.src;
 
-        if (!url) return;
+
+        if (
+          !url
+        ) {
+
+          return;
+
+        }
 
 
         const mask =
@@ -527,6 +565,7 @@
           '--ggg-metal-mask',
           mask
         );
+
 
         material.bevel.style.setProperty(
           '--ggg-metal-mask',
@@ -541,8 +580,10 @@
           'div'
         );
 
+
       material.bloom.className =
         'ggg-metal-bloom';
+
 
       document.body.appendChild(
         material.bloom
@@ -554,8 +595,10 @@
           'div'
         );
 
+
       material.bevel.className =
         'ggg-metal-bevel';
+
 
       document.body.appendChild(
         material.bevel
@@ -566,9 +609,13 @@
 
 
       const image =
-        material.element.matches('img')
+        material.element.matches(
+          'img'
+        )
           ? material.element
-          : material.element.querySelector('img');
+          : material.element.querySelector(
+              'img'
+            );
 
 
       if (
@@ -598,8 +645,10 @@
           'div'
         );
 
+
       material.sheen.className =
         'ggg-photo-sheen';
+
 
       document.body.appendChild(
         material.sheen
@@ -631,6 +680,7 @@
             this.targetX =
               event.clientX;
 
+
             this.targetY =
               event.clientY;
 
@@ -654,10 +704,12 @@
               'is-active'
             );
 
+
             this.materials.forEach(
               material =>
                 material.hovered = false
             );
+
 
             this.setBatteryStrength(
               1
@@ -680,12 +732,15 @@
             const current =
               window.scrollY;
 
+
             const delta =
               current -
               this.lastScrollY;
 
+
             this.lastScrollY =
               current;
+
 
             this.scrollVelocity +=
               (
@@ -707,26 +762,6 @@
         'resize',
         () => {
 
-          /*
-            Recalculate the header's document position after
-            layout changes or orientation changes.
-          */
-
-          if (
-            this.header
-          ) {
-
-            const rect =
-              this.header.getBoundingClientRect();
-
-
-            this.headerDocumentBottom =
-              rect.bottom +
-              window.scrollY;
-
-          }
-
-
           if (
             this.mobile
           ) {
@@ -734,6 +769,7 @@
             this.targetX =
               window.innerWidth *
               .5;
+
 
             this.targetY =
               window.innerHeight *
@@ -833,6 +869,7 @@
         window.innerWidth /
         2;
 
+
       const centerY =
         window.innerHeight /
         2;
@@ -848,6 +885,7 @@
           -1,
           1
         );
+
 
       const normalizedY =
         this.clamp(
@@ -867,6 +905,7 @@
         normalizedX *
         CONFIG.maxConeX;
 
+
       const y =
         normalizedY *
         CONFIG.maxConeY;
@@ -884,56 +923,74 @@
 
     /* ========================================================
        HEADER EXPOSURE HANDOFF
+
+       Top of page:
+         normal exposure
+
+       Begin scrolling:
+         briefly hold normal exposure
+
+       Continue scrolling:
+         flashlight fades in
+
+       Past transition:
+         full flashlight mode
     ======================================================== */
 
     getHeaderReveal() {
 
+      const scrollY =
+        Math.max(
+          window.scrollY,
+          0
+        );
+
+
+      const headerHeight =
+        this.header
+          ? this.header
+              .getBoundingClientRect()
+              .height
+          : 0;
+
+
+      const holdDistance =
+        Math.max(
+          CONFIG.headerHoldDistance,
+          headerHeight *
+          .20
+        );
+
+
+      const fadeDistance =
+        Math.max(
+          CONFIG.headerFadeDistance,
+          headerHeight *
+          1.25
+        );
+
+
       if (
-        !this.header ||
-        !this.headerDocumentBottom
+        scrollY <=
+        holdDistance
       ) {
 
-        return 0;
+        return 1;
 
       }
 
 
-      /*
-        Reconstruct where the original bottom edge of the
-        header currently sits in viewport coordinates.
-
-        We intentionally do NOT read the live sticky/fixed
-        header position here.
-      */
-
-      const headerBottom =
-        this.headerDocumentBottom -
-        window.scrollY;
-
-
-      const viewport =
-        window.innerHeight;
-
-
-      const start =
-        viewport *
-        CONFIG.headerRevealStart;
-
-
-      const finish =
-        viewport *
-        CONFIG.headerRevealEnd;
+      const progress =
+        (
+          scrollY -
+          holdDistance
+        ) /
+        fadeDistance;
 
 
       return this.clamp(
-        (
-          headerBottom -
-          finish
-        ) /
-        (
-          start -
-          finish
-        ),
+        1 -
+        progress,
         0,
         1
       );
@@ -957,7 +1014,8 @@
 
 
       const rect =
-        this.footer.getBoundingClientRect();
+        this.footer
+          .getBoundingClientRect();
 
 
       const viewport =
@@ -1023,6 +1081,7 @@
         rect.width /
         2;
 
+
       const centerY =
         rect.top +
         rect.height /
@@ -1032,6 +1091,7 @@
       const dx =
         centerX -
         this.lightX;
+
 
       const dy =
         centerY -
@@ -1055,6 +1115,7 @@
       const directionX =
         dx /
         safeDistance;
+
 
       const directionY =
         dy /
@@ -1267,6 +1328,7 @@
         rect.width /
         2;
 
+
       const centerY =
         rect.top +
         rect.height /
@@ -1276,6 +1338,7 @@
       const dx =
         this.lightX -
         centerX;
+
 
       const dy =
         this.lightY -
@@ -1292,6 +1355,7 @@
       const directionX =
         dx /
         safeDistance;
+
 
       const directionY =
         dy /
@@ -1367,6 +1431,7 @@
       [
         material.bloom,
         material.bevel
+
       ].forEach(
         layer => {
 
@@ -1376,17 +1441,20 @@
             'px'
           );
 
+
           layer.style.setProperty(
             '--ggg-metal-top',
             rect.top +
             'px'
           );
 
+
           layer.style.setProperty(
             '--ggg-metal-width',
             rect.width +
             'px'
           );
+
 
           layer.style.setProperty(
             '--ggg-metal-height',
@@ -1862,6 +1930,7 @@
         this.lightX +
         cone.x;
 
+
       const beamY =
         this.lightY +
         cone.y;
@@ -1870,6 +1939,7 @@
       const radiusX =
         beamWidth *
         .52;
+
 
       const radiusY =
         beamHeight *
@@ -1894,6 +1964,7 @@
 
           particle.x +=
             particle.driftX;
+
 
           particle.y +=
             particle.driftY;
@@ -2156,7 +2227,9 @@
           1
         );
 
+
         this.scheduleBatteryEvent();
+
 
         return;
 
@@ -2176,9 +2249,11 @@
           .68
         );
 
+
         await this.wait(
           55
         );
+
 
         this.setBatteryStrength(
           1
@@ -2194,25 +2269,31 @@
           .48
         );
 
+
         await this.wait(
           48
         );
+
 
         this.setBatteryStrength(
           .92
         );
 
+
         await this.wait(
           60
         );
+
 
         this.setBatteryStrength(
           .38
         );
 
+
         await this.wait(
           70
         );
+
 
         this.setBatteryStrength(
           1
@@ -2228,33 +2309,41 @@
           .32
         );
 
+
         await this.wait(
           100
         );
+
 
         this.setBatteryStrength(
           .58
         );
 
+
         await this.wait(
           75
         );
+
 
         this.setBatteryStrength(
           .24
         );
 
+
         await this.wait(
           115
         );
+
 
         this.setBatteryStrength(
           .78
         );
 
+
         await this.wait(
           80
         );
+
 
         this.setBatteryStrength(
           1
@@ -2267,33 +2356,41 @@
           .18
         );
 
+
         await this.wait(
           180
         );
+
 
         this.setBatteryStrength(
           .04
         );
 
+
         await this.wait(
           120
         );
+
 
         this.setBatteryStrength(
           .32
         );
 
+
         await this.wait(
           110
         );
+
 
         this.setBatteryStrength(
           .82
         );
 
+
         await this.wait(
           85
         );
+
 
         this.setBatteryStrength(
           1
@@ -2342,8 +2439,10 @@
       let opticalX =
         0;
 
+
       let opticalY =
         0;
+
 
       let stretch =
         0;
@@ -2360,6 +2459,7 @@
         const rawVX =
           this.targetX -
           this.previousX;
+
 
         const rawVY =
           this.targetY -
@@ -2384,6 +2484,7 @@
 
         this.previousX =
           this.targetX;
+
 
         this.previousY =
           this.targetY;
