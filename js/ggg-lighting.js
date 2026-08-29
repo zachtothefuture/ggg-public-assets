@@ -73,7 +73,7 @@
     headerSelector:
       '.ggg-site-header, #header, header.Header',
 
-    headerTopReveal: .68,
+    headerTopReveal: 0,
 
     headerLightStartY: .10,
 
