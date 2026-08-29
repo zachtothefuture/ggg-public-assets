@@ -40,14 +40,19 @@
     mobileBaseY: .43,
     mobileMaxLag: 12,
 
-    headerSelector: '.ggg-site-header',
+    headerSelector:
+      '.ggg-site-header, #header, header.Header',
+
     headerRevealStart: .78,
     headerRevealEnd: .18,
 
-    footerSelector: '.ggg-site-footer',
+    footerSelector:
+      '.ggg-site-footer',
+
     footerRevealStart: .95,
     footerRevealEnd: .62
   };
+
 
   const PROFILES = {
     metal: { depth: 1,     maxOpacity: .62, blurScale: 1 },
@@ -58,9 +63,12 @@
     ink:   { depth: .025,  maxOpacity: .09, blurScale: .34 }
   };
 
-  const VALID_TYPES = new Set(
-    Object.keys(PROFILES)
-  );
+
+  const VALID_TYPES =
+    new Set(
+      Object.keys(PROFILES)
+    );
+
 
   const CLASS_RULES = [
     ['.ggg-material-metal', 'metal'],
@@ -74,6 +82,7 @@
     ['.ggg-attachment', 'paper'],
     ['.ggg-evidence-photo img', 'photo']
   ];
+
 
   class GGGLightingEngine {
 
@@ -158,10 +167,29 @@
         null;
 
 
+      /* ======================================================
+         PAGE EXPOSURE BOUNDARIES
+      ====================================================== */
+
       this.header =
         document.querySelector(
           CONFIG.headerSelector
         );
+
+
+      /*
+        Store the header's original document position.
+
+        This means the exposure handoff continues to work even
+        if Squarespace makes the visible header sticky or fixed.
+      */
+
+      this.headerDocumentBottom =
+        this.header
+          ? this.header.getBoundingClientRect().bottom +
+            window.scrollY
+          : 0;
+
 
       this.footer =
         document.querySelector(
@@ -200,8 +228,7 @@
       document.querySelectorAll(
         '.ggg-light, .ggg-metal-bloom, .ggg-metal-bevel, .ggg-photo-sheen'
       ).forEach(
-        element =>
-          element.remove()
+        element => element.remove()
       );
 
     }
@@ -328,12 +355,8 @@
 
       if (
         !element ||
-        this.materialElements.has(
-          element
-        ) ||
-        !VALID_TYPES.has(
-          type
-        )
+        this.materialElements.has(element) ||
+        !VALID_TYPES.has(type)
       ) {
 
         return;
@@ -357,34 +380,16 @@
 
 
       const material = {
-
         element,
         type,
-
-        profile:
-          PROFILES[type],
-
-        visible:
-          true,
-
-        strength:
-          0,
-
-        bevelStrength:
-          0,
-
-        hovered:
-          false,
-
-        bloom:
-          null,
-
-        bevel:
-          null,
-
-        sheen:
-          null
-
+        profile: PROFILES[type],
+        visible: true,
+        strength: 0,
+        bevelStrength: 0,
+        hovered: false,
+        bloom: null,
+        bevel: null,
+        sheen: null
       };
 
 
@@ -411,13 +416,9 @@
                           entry.target
                       );
 
-                    if (
-                      found
-                    ) {
-
+                    if (found) {
                       found.visible =
                         entry.isIntersecting;
-
                     }
 
                   }
@@ -504,30 +505,16 @@
         const image =
           element.matches('img')
             ? element
-            : element.querySelector(
-                'img'
-              );
+            : element.querySelector('img');
 
-        if (
-          !image
-        ) {
-
-          return;
-
-        }
+        if (!image) return;
 
 
         const url =
           image.currentSrc ||
           image.src;
 
-        if (
-          !url
-        ) {
-
-          return;
-
-        }
+        if (!url) return;
 
 
         const mask =
@@ -579,13 +566,9 @@
 
 
       const image =
-        material.element.matches(
-          'img'
-        )
+        material.element.matches('img')
           ? material.element
-          : material.element.querySelector(
-              'img'
-            );
+          : material.element.querySelector('img');
 
 
       if (
@@ -723,6 +706,26 @@
       window.addEventListener(
         'resize',
         () => {
+
+          /*
+            Recalculate the header's document position after
+            layout changes or orientation changes.
+          */
+
+          if (
+            this.header
+          ) {
+
+            const rect =
+              this.header.getBoundingClientRect();
+
+
+            this.headerDocumentBottom =
+              rect.bottom +
+              window.scrollY;
+
+          }
+
 
           if (
             this.mobile
@@ -879,10 +882,15 @@
     }
 
 
+    /* ========================================================
+       HEADER EXPOSURE HANDOFF
+    ======================================================== */
+
     getHeaderReveal() {
 
       if (
-        !this.header
+        !this.header ||
+        !this.headerDocumentBottom
       ) {
 
         return 0;
@@ -890,15 +898,27 @@
       }
 
 
-      const rect =
-        this.header.getBoundingClientRect();
+      /*
+        Reconstruct where the original bottom edge of the
+        header currently sits in viewport coordinates.
+
+        We intentionally do NOT read the live sticky/fixed
+        header position here.
+      */
+
+      const headerBottom =
+        this.headerDocumentBottom -
+        window.scrollY;
+
 
       const viewport =
         window.innerHeight;
 
+
       const start =
         viewport *
         CONFIG.headerRevealStart;
+
 
       const finish =
         viewport *
@@ -907,7 +927,7 @@
 
       return this.clamp(
         (
-          rect.bottom -
+          headerBottom -
           finish
         ) /
         (
@@ -920,6 +940,10 @@
 
     }
 
+
+    /* ========================================================
+       FOOTER EXPOSURE HANDOFF
+    ======================================================== */
 
     getFooterReveal() {
 
@@ -935,12 +959,15 @@
       const rect =
         this.footer.getBoundingClientRect();
 
+
       const viewport =
         window.innerHeight;
+
 
       const start =
         viewport *
         CONFIG.footerRevealStart;
+
 
       const finish =
         viewport *
@@ -1010,17 +1037,20 @@
         centerY -
         this.lightY;
 
+
       const distance =
         Math.sqrt(
           dx * dx +
           dy * dy
         );
 
+
       const safeDistance =
         Math.max(
           distance,
           1
         );
+
 
       const directionX =
         dx /
@@ -1076,17 +1106,13 @@
 
       const opacity =
         this.clamp(
-
           proximity *
           this.batteryStrength *
           material.profile.maxOpacity *
           active *
           exposure,
-
           0,
-
           material.profile.maxOpacity
-
         );
 
 
@@ -1100,6 +1126,7 @@
           0,
           1
         );
+
 
       const localY =
         this.clamp(
@@ -1245,6 +1272,7 @@
         rect.height /
         2;
 
+
       const dx =
         this.lightX -
         centerX;
@@ -1253,11 +1281,13 @@
         this.lightY -
         centerY;
 
+
       const safeDistance =
         Math.max(
           distance,
           1
         );
+
 
       const directionX =
         dx /
@@ -1321,6 +1351,7 @@
           1
         );
 
+
       const localY =
         this.clamp(
           (
@@ -1336,7 +1367,6 @@
       [
         material.bloom,
         material.bevel
-
       ].forEach(
         layer => {
 
@@ -1542,6 +1572,7 @@
           0,
           1
         );
+
 
       const localY =
         this.clamp(
@@ -1762,7 +1793,6 @@
 
 
         this.dust.push({
-
           element,
 
           x:
@@ -1805,7 +1835,6 @@
               .16,
               .78
             )
-
         });
 
       }
@@ -1836,6 +1865,7 @@
       const beamY =
         this.lightY +
         cone.y;
+
 
       const radiusX =
         beamWidth *
@@ -1980,25 +2010,18 @@
 
 
           let opacity =
-
             Math.pow(
               intensity,
               1.7
             ) *
-
             particle.brightness *
-
             Math.pow(
               particle.depth,
               1.25
             ) *
-
             shimmer *
-
             this.batteryStrength *
-
             exposure *
-
             active;
 
 
@@ -2432,6 +2455,10 @@
             stretch *
             .16;
 
+
+      /* ======================================================
+         COMBINED PAGE EXPOSURE
+      ====================================================== */
 
       this.headerReveal =
         this.getHeaderReveal();
