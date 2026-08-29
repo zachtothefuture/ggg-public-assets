@@ -1,6 +1,6 @@
 /* ==========================================================
    GGG LIGHTING SYSTEM
-   v1.0.0
+   v1.0.1
 
    Enable per page with:
 
@@ -26,7 +26,15 @@
     return;
   }
 
+
+  /* ========================================================
+     CONFIG
+  ======================================================== */
+
   const CONFIG = {
+
+    /* Desktop optics */
+
     followSpeed: .28,
     velocitySmoothing: .18,
     maxOpticalOffset: 8,
@@ -34,33 +42,99 @@
     maxConeX: 145,
     maxConeY: 105,
 
+
+    /* Dust */
+
     desktopDustCount: 42,
     mobileDustCount: 20,
+
+
+    /* Mobile resting behavior */
 
     mobileBaseY: .43,
     mobileMaxLag: 12,
 
+
+    /* ======================================================
+       HEADER ENTRANCE
+
+       At the very top:
+       - flashlight is already partially present
+       - mobile flashlight begins high in viewport
+
+       During initial scroll:
+       - ambient darkness increases
+       - mobile flashlight descends
+
+       After travel distance:
+       - full examination mode
+    ====================================================== */
+
     headerSelector:
       '.ggg-site-header, #header, header.Header',
 
-    headerHoldDistance: 24,
-    headerFadeDistance: 180,
+    headerTopReveal: .68,
+
+    headerLightStartY: .10,
+
+    headerTravelDistance: 220,
+
+
+    /* ======================================================
+       FOOTER EXIT
+    ====================================================== */
 
     footerSelector:
       '.ggg-site-footer',
 
     footerRevealStart: .95,
     footerRevealEnd: .62
+
   };
 
 
+  /* ========================================================
+     MATERIAL DEPTH PROFILES
+  ======================================================== */
+
   const PROFILES = {
-    metal: { depth: 1,     maxOpacity: .62, blurScale: 1 },
-    glass: { depth: .48,   maxOpacity: .46, blurScale: .90 },
-    paper: { depth: .28,   maxOpacity: .36, blurScale: .85 },
-    photo: { depth: .34,   maxOpacity: .40, blurScale: .88 },
-    print: { depth: .14,   maxOpacity: .24, blurScale: .65 },
-    ink:   { depth: .025,  maxOpacity: .09, blurScale: .34 }
+
+    metal: {
+      depth: 1,
+      maxOpacity: .62,
+      blurScale: 1
+    },
+
+    glass: {
+      depth: .48,
+      maxOpacity: .46,
+      blurScale: .90
+    },
+
+    paper: {
+      depth: .28,
+      maxOpacity: .36,
+      blurScale: .85
+    },
+
+    photo: {
+      depth: .34,
+      maxOpacity: .40,
+      blurScale: .88
+    },
+
+    print: {
+      depth: .14,
+      maxOpacity: .24,
+      blurScale: .65
+    },
+
+    ink: {
+      depth: .025,
+      maxOpacity: .09,
+      blurScale: .34
+    }
+
   };
 
 
@@ -70,7 +144,12 @@
     );
 
 
+  /* ========================================================
+     AUTOMATIC MATERIAL DISCOVERY
+  ======================================================== */
+
   const CLASS_RULES = [
+
     ['.ggg-material-metal', 'metal'],
     ['.ggg-material-paper', 'paper'],
     ['.ggg-material-photo', 'photo'],
@@ -79,10 +158,16 @@
     ['.ggg-material-ink', 'ink'],
 
     /* Existing reusable GGG components */
+
     ['.ggg-attachment', 'paper'],
     ['.ggg-evidence-photo img', 'photo']
+
   ];
 
+
+  /* ========================================================
+     ENGINE
+  ======================================================== */
 
   class GGGLightingEngine {
 
@@ -106,7 +191,8 @@
 
       this.targetY =
         this.mobile
-          ? window.innerHeight * CONFIG.mobileBaseY
+          ? window.innerHeight *
+            CONFIG.headerLightStartY
           : window.innerHeight / 2;
 
 
@@ -148,6 +234,10 @@
 
       this.batteryStrength =
         1;
+
+
+      this.headerProgress =
+        0;
 
 
       this.headerReveal =
@@ -196,6 +286,10 @@
     }
 
 
+    /* ======================================================
+       INITIALIZATION
+    ====================================================== */
+
     init() {
 
       this.cleanupGenerated();
@@ -232,6 +326,10 @@
 
     }
 
+
+    /* ======================================================
+       LIGHT DOM
+    ====================================================== */
 
     createLight() {
 
@@ -314,6 +412,10 @@
     }
 
 
+    /* ======================================================
+       MATERIAL DISCOVERY
+    ====================================================== */
+
     discoverMaterials() {
 
       document
@@ -395,16 +497,34 @@
 
 
       const material = {
+
         element,
         type,
-        profile: PROFILES[type],
-        visible: true,
-        strength: 0,
-        bevelStrength: 0,
-        hovered: false,
-        bloom: null,
-        bevel: null,
-        sheen: null
+
+        profile:
+          PROFILES[type],
+
+        visible:
+          true,
+
+        strength:
+          0,
+
+        bevelStrength:
+          0,
+
+        hovered:
+          false,
+
+        bloom:
+          null,
+
+        bevel:
+          null,
+
+        sheen:
+          null
+
       };
 
 
@@ -419,6 +539,7 @@
 
           this.intersectionObserver =
             new IntersectionObserver(
+
               entries => {
 
                 entries.forEach(
@@ -445,10 +566,12 @@
                 );
 
               },
+
               {
                 rootMargin:
                   '300px'
               }
+
             );
 
         }
@@ -513,6 +636,10 @@
 
     }
 
+
+    /* ======================================================
+       METAL PREPARATION
+    ====================================================== */
 
     prepareMetal(
       material
@@ -636,6 +763,10 @@
     }
 
 
+    /* ======================================================
+       PHOTO PREPARATION
+    ====================================================== */
+
     preparePhoto(
       material
     ) {
@@ -657,6 +788,10 @@
     }
 
 
+    /* ======================================================
+       EVENTS
+    ====================================================== */
+
     bindEvents() {
 
       if (
@@ -665,6 +800,7 @@
 
         window.addEventListener(
           'pointermove',
+
           event => {
 
             if (
@@ -690,14 +826,17 @@
             );
 
           },
+
           {
             passive: true
           }
+
         );
 
 
         document.documentElement.addEventListener(
           'mouseleave',
+
           () => {
 
             this.light.classList.remove(
@@ -716,6 +855,7 @@
             );
 
           }
+
         );
 
       }
@@ -727,6 +867,7 @@
 
         window.addEventListener(
           'scroll',
+
           () => {
 
             const current =
@@ -750,9 +891,11 @@
               .18;
 
           },
+
           {
             passive: true
           }
+
         );
 
       }
@@ -760,6 +903,7 @@
 
       window.addEventListener(
         'resize',
+
         () => {
 
           if (
@@ -770,21 +914,22 @@
               window.innerWidth *
               .5;
 
-
-            this.targetY =
-              window.innerHeight *
-              CONFIG.mobileBaseY;
-
           }
 
         },
+
         {
           passive: true
         }
+
       );
 
     }
 
+
+    /* ======================================================
+       UTILITIES
+    ====================================================== */
 
     clamp(
       value,
@@ -849,6 +994,10 @@
     }
 
 
+    /* ======================================================
+       CONE PROJECTION
+    ====================================================== */
+
     getConeProjection() {
 
       if (
@@ -899,7 +1048,9 @@
         );
 
 
-      /* Preserve the approved 21B direction exactly. */
+      /*
+        Preserve approved 21B direction exactly.
+      */
 
       const x =
         normalizedX *
@@ -912,32 +1063,29 @@
 
 
       return {
+
         x,
         y,
-        midX: x * .48,
-        midY: y * .48
+
+        midX:
+          x * .48,
+
+        midY:
+          y * .48
+
       };
 
     }
 
 
-    /* ========================================================
-       HEADER EXPOSURE HANDOFF
+    /* ======================================================
+       HEADER ENTRANCE PROGRESS
 
-       Top of page:
-         normal exposure
+       0 = absolute top of page
+       1 = full examination mode
+    ====================================================== */
 
-       Begin scrolling:
-         briefly hold normal exposure
-
-       Continue scrolling:
-         flashlight fades in
-
-       Past transition:
-         full flashlight mode
-    ======================================================== */
-
-    getHeaderReveal() {
+    getHeaderProgress() {
 
       const scrollY =
         Math.max(
@@ -946,51 +1094,9 @@
         );
 
 
-      const headerHeight =
-        this.header
-          ? this.header
-              .getBoundingClientRect()
-              .height
-          : 0;
-
-
-      const holdDistance =
-        Math.max(
-          CONFIG.headerHoldDistance,
-          headerHeight *
-          .20
-        );
-
-
-      const fadeDistance =
-        Math.max(
-          CONFIG.headerFadeDistance,
-          headerHeight *
-          1.25
-        );
-
-
-      if (
-        scrollY <=
-        holdDistance
-      ) {
-
-        return 1;
-
-      }
-
-
-      const progress =
-        (
-          scrollY -
-          holdDistance
-        ) /
-        fadeDistance;
-
-
       return this.clamp(
-        1 -
-        progress,
+        scrollY /
+        CONFIG.headerTravelDistance,
         0,
         1
       );
@@ -998,9 +1104,37 @@
     }
 
 
-    /* ========================================================
+    /* ======================================================
+       HEADER EXPOSURE
+
+       At top:
+         partially suppressed lighting
+
+       As page enters:
+         suppression fades away
+
+       After entrance:
+         full lighting environment
+    ====================================================== */
+
+    getHeaderReveal(
+      progress
+    ) {
+
+      return (
+        CONFIG.headerTopReveal *
+        (
+          1 -
+          progress
+        )
+      );
+
+    }
+
+
+    /* ======================================================
        FOOTER EXPOSURE HANDOFF
-    ======================================================== */
+    ====================================================== */
 
     getFooterReveal() {
 
@@ -1047,6 +1181,10 @@
 
     }
 
+
+    /* ======================================================
+       MATERIAL BASE RESPONSE
+    ====================================================== */
 
     updateMaterialBase(
       material
@@ -1167,13 +1305,17 @@
 
       const opacity =
         this.clamp(
+
           proximity *
           this.batteryStrength *
           material.profile.maxOpacity *
           active *
           exposure,
+
           0,
+
           material.profile.maxOpacity
+
         );
 
 
@@ -1306,6 +1448,10 @@
 
     }
 
+
+    /* ======================================================
+       METAL RESPONSE
+    ====================================================== */
 
     updateMetal(
       material,
@@ -1543,6 +1689,10 @@
         .18;
 
 
+      /*
+        Approved directional rim position.
+      */
+
       material.bevel.style.setProperty(
         '--ggg-metal-bevel-x',
         (
@@ -1572,6 +1722,10 @@
 
     }
 
+
+    /* ======================================================
+       PHOTO RESPONSE
+    ====================================================== */
 
     updatePhoto(
       material,
@@ -1710,6 +1864,10 @@
     }
 
 
+    /* ======================================================
+       GLASS RESPONSE
+    ====================================================== */
+
     updateGlass(
       material,
       rect,
@@ -1723,6 +1881,7 @@
 
       const proximity =
         Math.pow(
+
           this.clamp(
             1 -
             distance /
@@ -1730,7 +1889,9 @@
             0,
             1
           ),
+
           1.18
+
         );
 
 
@@ -1785,6 +1946,10 @@
 
     }
 
+
+    /* ======================================================
+       DUST CREATION
+    ====================================================== */
 
     createDust() {
 
@@ -1861,6 +2026,7 @@
 
 
         this.dust.push({
+
           element,
 
           x:
@@ -1903,12 +2069,17 @@
               .16,
               .78
             )
+
         });
 
       }
 
     }
 
+
+    /* ======================================================
+       DUST UPDATE
+    ====================================================== */
 
     updateDust(
       cone,
@@ -2081,18 +2252,25 @@
 
 
           let opacity =
+
             Math.pow(
               intensity,
               1.7
             ) *
+
             particle.brightness *
+
             Math.pow(
               particle.depth,
               1.25
             ) *
+
             shimmer *
+
             this.batteryStrength *
+
             exposure *
+
             active;
 
 
@@ -2131,7 +2309,49 @@
     }
 
 
-    updateMobileLight() {
+    /* ======================================================
+       MOBILE LIGHT
+
+       HEADER PHASE:
+       light moves from 10vh → 43vh with scroll.
+
+       EXAMINATION PHASE:
+       light remains at 43vh with the approved subtle
+       inertial scroll lag.
+    ====================================================== */
+
+    updateMobileLight(
+      headerProgress
+    ) {
+
+      const startY =
+        window.innerHeight *
+        CONFIG.headerLightStartY;
+
+
+      const restY =
+        window.innerHeight *
+        CONFIG.mobileBaseY;
+
+
+      /*
+        Entrance position is directly tied to page scroll.
+      */
+
+      const entranceY =
+        startY +
+        (
+          restY -
+          startY
+        ) *
+        headerProgress;
+
+
+      /*
+        Preserve the subtle M1 inertial lag, but gradually
+        introduce it as the flashlight reaches its resting
+        position so it does not fight the entrance movement.
+      */
 
       const targetOffset =
         this.clamp(
@@ -2140,6 +2360,10 @@
           -CONFIG.mobileMaxLag,
           CONFIG.mobileMaxLag
         );
+
+
+      const lagInfluence =
+        headerProgress;
 
 
       this.mobileOffsetY +=
@@ -2164,13 +2388,26 @@
 
 
       this.targetY =
-        window.innerHeight *
-        CONFIG.mobileBaseY +
-        this.mobileOffsetY;
+        entranceY +
+        this.mobileOffsetY *
+        lagInfluence;
 
 
       this.lightX =
         this.targetX;
+
+
+      /*
+        During entrance, follow more closely so the beam feels
+        attached to scrolling.
+
+        Once settled, return to approved M1 inertia.
+      */
+
+      const follow =
+        .42 -
+        headerProgress *
+        .20;
 
 
       this.lightY +=
@@ -2178,10 +2415,14 @@
           this.targetY -
           this.lightY
         ) *
-        .22;
+        follow;
 
     }
 
+
+    /* ======================================================
+       BATTERY
+    ====================================================== */
 
     setBatteryStrength(
       strength
@@ -2413,15 +2654,22 @@
 
       this.batteryTimer =
         setTimeout(
+
           () =>
             this.batteryEvent(),
+
           2500 +
           Math.random() *
           5500
+
         );
 
     }
 
+
+    /* ======================================================
+       ANIMATION LOOP
+    ====================================================== */
 
     animate(
       timestamp
@@ -2448,11 +2696,31 @@
         0;
 
 
+      /* ====================================================
+         HEADER STATE
+      ==================================================== */
+
+      this.headerProgress =
+        this.getHeaderProgress();
+
+
+      this.headerReveal =
+        this.getHeaderReveal(
+          this.headerProgress
+        );
+
+
+      /* ====================================================
+         LIGHT POSITION
+      ==================================================== */
+
       if (
         this.mobile
       ) {
 
-        this.updateMobileLight();
+        this.updateMobileLight(
+          this.headerProgress
+        );
 
       } else {
 
@@ -2538,6 +2806,10 @@
       }
 
 
+      /* ====================================================
+         CONE + BEAM SIZE
+      ==================================================== */
+
       const cone =
         this.getConeProjection();
 
@@ -2557,17 +2829,19 @@
             .16;
 
 
-      /* ======================================================
-         COMBINED PAGE EXPOSURE
-      ====================================================== */
-
-      this.headerReveal =
-        this.getHeaderReveal();
-
+      /* ====================================================
+         FOOTER STATE
+      ==================================================== */
 
       this.footerReveal =
         this.getFooterReveal();
 
+
+      /* ====================================================
+         MASTER EXPOSURE
+
+         Whichever edge needs normal exposure most wins.
+      ==================================================== */
 
       this.exposureReveal =
         Math.max(
@@ -2575,6 +2849,10 @@
           this.footerReveal
         );
 
+
+      /* ====================================================
+         CSS VARIABLES
+      ==================================================== */
 
       this.light.style.setProperty(
         '--ggg-light-x',
@@ -2664,6 +2942,10 @@
       );
 
 
+      /* ====================================================
+         MATERIALS
+      ==================================================== */
+
       this.materials.forEach(
         material =>
           this.updateMaterialBase(
@@ -2671,6 +2953,10 @@
           )
       );
 
+
+      /* ====================================================
+         DUST
+      ==================================================== */
 
       this.updateDust(
         cone,
@@ -2689,6 +2975,10 @@
 
   }
 
+
+  /* ========================================================
+     BOOT
+  ======================================================== */
 
   function boot() {
 
