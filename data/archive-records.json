@@ -1,5 +1,5 @@
 {
-  "version": "1.0",
+  "version": "1.1",
 
   "records": {
 
@@ -8,7 +8,39 @@
       "type": "Artifact",
       "collection": "Kennedy Family Collection",
       "status": "Under Investigation",
-      "url": "/archive/ggg-art-2026-0001"
+      "url": "/archive/ggg-art-2026-0001",
+
+      "summary": "Recovered from Kennedy family storage after its whereabouts became uncertain, the safe contained a concealed compartment and materials whose full history remains under investigation.",
+
+      "featured": true,
+      "openInvestigation": true,
+
+      "keywords": [
+        "Cannon",
+        "Model 6030",
+        "safe",
+        "Kennedy family",
+        "concealed compartment"
+      ]
+    },
+
+    "GGG-ART-2026-0002": {
+      "title": "J.H. Mattson's Coin Box",
+      "type": "Artifact",
+      "collection": "Mattson Family Collection",
+      "status": "Under Investigation",
+      "url": "/archive/ggg-art-2026-0002",
+
+      "featured": false,
+      "openInvestigation": true,
+
+      "keywords": [
+        "J.H. Mattson",
+        "coin box",
+        "coins",
+        "tokens",
+        "Mattson"
+      ]
     },
 
     "GGG-PER-2026-0001": {
@@ -16,7 +48,15 @@
       "type": "Person",
       "collection": "Kennedy Family",
       "status": "Under Investigation",
-      "url": "/archive/ggg-per-2026-0001"
+      "url": "/archive/ggg-per-2026-0001",
+
+      "featured": false,
+      "openInvestigation": true,
+
+      "keywords": [
+        "Ronald William Kennedy",
+        "Kennedy family"
+      ]
     }
 
   }
