@@ -141,6 +141,12 @@
                 d="M4 5h2l2.1 9h9.8l2-6H7.2M10 19a1 1 0 1 1-2 0 1 1 0 0 1 2 0Zm9 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"
               />
             </svg>
+
+            <span
+              class="ggg-site-header__cart-count"
+              aria-hidden="true"
+              hidden
+            ></span>
           </a>
 
 
@@ -393,6 +399,261 @@
 
 
   /* ========================================================
+     CART QUANTITY SYNC
+  ======================================================== */
+
+  function setupCartQuantity(
+    header
+  ) {
+
+    const customCart =
+      header.querySelector(
+        '.ggg-site-header__cart'
+      );
+
+
+    const countElement =
+      header.querySelector(
+        '.ggg-site-header__cart-count'
+      );
+
+
+    if (
+      !customCart ||
+      !countElement
+    ) {
+      return;
+    }
+
+
+    function parseCount(
+      label
+    ) {
+
+      if (!label) {
+        return 0;
+      }
+
+
+      const normalized =
+        label
+          .trim()
+          .toLowerCase();
+
+
+      if (
+        normalized.includes(
+          'no items'
+        )
+      ) {
+        return 0;
+      }
+
+
+      if (
+        normalized.includes(
+          'one item'
+        )
+      ) {
+        return 1;
+      }
+
+
+      const match =
+        normalized.match(
+          /(\d+)\s+items?/
+        );
+
+
+      if (
+        match &&
+        match[1]
+      ) {
+
+        return parseInt(
+          match[1],
+          10
+        );
+
+      }
+
+
+      return 0;
+
+    }
+
+
+    function updateCart(
+      nativeCart
+    ) {
+
+      if (!nativeCart) {
+        return;
+      }
+
+
+      const label =
+        nativeCart.getAttribute(
+          'aria-label'
+        ) ||
+        '';
+
+
+      const count =
+        parseCount(
+          label
+        );
+
+
+      if (
+        count > 0
+      ) {
+
+        countElement.hidden =
+          false;
+
+
+        countElement.textContent =
+          String(
+            count
+          );
+
+
+        customCart.setAttribute(
+          'aria-label',
+          count === 1
+            ? 'Open cart — 1 item'
+            : 'Open cart — ' +
+              count +
+              ' items'
+        );
+
+      } else {
+
+        countElement.hidden =
+          true;
+
+
+        countElement.textContent =
+          '';
+
+
+        customCart.setAttribute(
+          'aria-label',
+          'Open cart'
+        );
+
+      }
+
+    }
+
+
+    function connect(
+      nativeCart
+    ) {
+
+      updateCart(
+        nativeCart
+      );
+
+
+      const observer =
+        new MutationObserver(
+          function () {
+
+            updateCart(
+              nativeCart
+            );
+
+          }
+        );
+
+
+      observer.observe(
+        nativeCart,
+        {
+          attributes:
+            true,
+
+          attributeFilter: [
+            'aria-label',
+            'class'
+          ],
+
+          childList:
+            true,
+
+          subtree:
+            true
+        }
+      );
+
+    }
+
+
+    const existing =
+      document.querySelector(
+        '.sqs-custom-cart'
+      );
+
+
+    if (existing) {
+
+      connect(
+        existing
+      );
+
+      return;
+
+    }
+
+
+    /*
+      Squarespace may initialize its native cart slightly
+      after our header. Watch briefly for the component.
+    */
+
+    const bodyObserver =
+      new MutationObserver(
+        function () {
+
+          const nativeCart =
+            document.querySelector(
+              '.sqs-custom-cart'
+            );
+
+
+          if (!nativeCart) {
+            return;
+          }
+
+
+          bodyObserver.disconnect();
+
+
+          connect(
+            nativeCart
+          );
+
+        }
+      );
+
+
+    bodyObserver.observe(
+      document.body,
+      {
+        childList:
+          true,
+
+        subtree:
+          true
+      }
+    );
+
+  }
+
+
+  /* ========================================================
      MOBILE MENU
   ======================================================== */
 
@@ -587,20 +848,30 @@
       return;
     }
 
+
     const header =
       createHeader();
+
 
     if (!header) {
       return;
     }
 
+
     setActiveNavigation(
       header
     );
 
+
     setupLightingToggle(
       header
     );
+
+
+    setupCartQuantity(
+      header
+    );
+
 
     setupMobileMenu(
       header
