@@ -114,17 +114,10 @@
             aria-label="Turn flashlight off"
             aria-pressed="true"
           >
-            <svg
-              viewBox="0 0 24 24"
+            <span
+              class="ggg-site-header__icon ggg-site-header__light-icon"
               aria-hidden="true"
-            >
-              <path
-                d="M9 3h6l1 5-2 2v9H10v-9L8 8l1-5Z"
-              />
-              <path
-                d="M10 8h4"
-              />
-            </svg>
+            ></span>
           </button>
 
 
@@ -133,14 +126,10 @@
             href="/cart"
             aria-label="Open cart"
           >
-            <svg
-              viewBox="0 0 24 24"
+            <span
+              class="ggg-site-header__icon ggg-site-header__cart-icon"
               aria-hidden="true"
-            >
-              <path
-                d="M4 5h2l2.1 9h9.8l2-6H7.2M10 19a1 1 0 1 1-2 0 1 1 0 0 1 2 0Zm9 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"
-              />
-            </svg>
+            ></span>
 
             <span
               class="ggg-site-header__cart-count"
@@ -157,8 +146,10 @@
             aria-expanded="false"
             aria-controls="ggg-mobile-menu"
           >
-            <span></span>
-            <span></span>
+            <span
+              class="ggg-site-header__icon ggg-site-header__menu-icon"
+              aria-hidden="true"
+            ></span>
           </button>
 
         </div>
@@ -505,8 +496,24 @@
         );
 
 
+      const hasItems =
+        count > 0;
+
+
+      customCart.classList.toggle(
+        'has-items',
+        hasItems
+      );
+
+
+      customCart.classList.toggle(
+        'has-multi-digit-count',
+        count >= 10
+      );
+
+
       if (
-        count > 0
+        hasItems
       ) {
 
         countElement.hidden =
@@ -607,11 +614,6 @@
 
     }
 
-
-    /*
-      Squarespace may initialize its native cart slightly
-      after our header. Watch briefly for the component.
-    */
 
     const bodyObserver =
       new MutationObserver(
