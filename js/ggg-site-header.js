@@ -655,190 +655,381 @@
   }
 
 
-  /* ========================================================
-     MOBILE MENU
-  ======================================================== */
-
   function setupMobileMenu(
-    header
+  header
+) {
+
+  const button =
+    header.querySelector(
+      '.ggg-site-header__menu'
+    );
+
+  const menu =
+    header.querySelector(
+      '.ggg-site-header__mobile-menu'
+    );
+
+  if (
+    !button ||
+    !menu
   ) {
+    return;
+  }
 
-    const button =
-      header.querySelector(
-        '.ggg-site-header__menu'
+
+  let openedWithKeyboard =
+    false;
+
+
+  function getFocusableElements() {
+
+    return Array.from(
+      menu.querySelectorAll(
+        [
+          'a[href]',
+          'button:not([disabled])',
+          '[tabindex]:not([tabindex="-1"])'
+        ].join(',')
+      )
+    ).filter(function (element) {
+
+      return !element.hasAttribute(
+        'hidden'
       );
 
-    const menu =
-      header.querySelector(
-        '.ggg-site-header__mobile-menu'
-      );
+    });
+
+  }
+
+
+  function openMenu() {
+
+    menu.hidden =
+      false;
+
+    header.classList.add(
+      'is-menu-open'
+    );
+
+    button.setAttribute(
+      'aria-expanded',
+      'true'
+    );
+
+    button.setAttribute(
+      'aria-label',
+      'Close menu'
+    );
+
+    document.body.classList.add(
+      'ggg-mobile-menu-open'
+    );
+
 
     if (
-      !button ||
-      !menu
+      openedWithKeyboard
     ) {
-      return;
+
+      const focusable =
+        getFocusableElements();
+
+
+      if (
+        focusable.length
+      ) {
+
+        requestAnimationFrame(
+          function () {
+
+            focusable[0].focus();
+
+          }
+        );
+
+      }
+
+    }
+
+  }
+
+
+  function closeMenu(
+    restoreFocus
+  ) {
+
+    const wasOpen =
+      button.getAttribute(
+        'aria-expanded'
+      ) === 'true';
+
+
+    menu.hidden =
+      true;
+
+    header.classList.remove(
+      'is-menu-open'
+    );
+
+    button.setAttribute(
+      'aria-expanded',
+      'false'
+    );
+
+    button.setAttribute(
+      'aria-label',
+      'Open menu'
+    );
+
+    document.body.classList.remove(
+      'ggg-mobile-menu-open'
+    );
+
+
+    if (
+      wasOpen &&
+      restoreFocus
+    ) {
+
+      requestAnimationFrame(
+        function () {
+
+          button.focus();
+
+        }
+      );
+
     }
 
 
-    function openMenu() {
+    openedWithKeyboard =
+      false;
 
-      menu.hidden =
+  }
+
+
+  function toggleMenu() {
+
+    const isOpen =
+      button.getAttribute(
+        'aria-expanded'
+      ) === 'true';
+
+
+    if (isOpen) {
+
+      closeMenu(
+        openedWithKeyboard
+      );
+
+    } else {
+
+      openMenu();
+
+    }
+
+  }
+
+
+  button.addEventListener(
+    'keydown',
+    function (event) {
+
+      if (
+        event.key ===
+        'Enter' ||
+        event.key ===
+        ' '
+      ) {
+
+        openedWithKeyboard =
+          true;
+
+      }
+
+    }
+  );
+
+
+  button.addEventListener(
+    'pointerdown',
+    function () {
+
+      openedWithKeyboard =
         false;
 
-      header.classList.add(
-        'is-menu-open'
-      );
+    }
+  );
 
-      button.setAttribute(
-        'aria-expanded',
-        'true'
-      );
 
-      button.setAttribute(
-        'aria-label',
-        'Close menu'
-      );
+  button.addEventListener(
+    'click',
+    toggleMenu
+  );
 
-      document.body.classList.add(
-        'ggg-mobile-menu-open'
-      );
+
+  menu.addEventListener(
+    'click',
+    function (event) {
+
+      if (
+        event.target.closest(
+          'a'
+        )
+      ) {
+
+        closeMenu(
+          false
+        );
+
+      }
 
     }
+  );
 
 
-    function closeMenu() {
-
-      menu.hidden =
-        true;
-
-      header.classList.remove(
-        'is-menu-open'
-      );
-
-      button.setAttribute(
-        'aria-expanded',
-        'false'
-      );
-
-      button.setAttribute(
-        'aria-label',
-        'Open menu'
-      );
-
-      document.body.classList.remove(
-        'ggg-mobile-menu-open'
-      );
-
-    }
-
-
-    function toggleMenu() {
+  document.addEventListener(
+    'keydown',
+    function (event) {
 
       const isOpen =
         button.getAttribute(
           'aria-expanded'
         ) === 'true';
 
-      if (isOpen) {
 
-        closeMenu();
+      if (
+        !isOpen
+      ) {
+        return;
+      }
 
-      } else {
 
-        openMenu();
+      if (
+        event.key ===
+        'Escape'
+      ) {
+
+        event.preventDefault();
+
+        closeMenu(
+          true
+        );
+
+        return;
+      }
+
+
+      if (
+        event.key !==
+        'Tab'
+      ) {
+        return;
+      }
+
+
+      const focusable =
+        getFocusableElements();
+
+
+      if (
+        !focusable.length
+      ) {
+        return;
+      }
+
+
+      const first =
+        focusable[0];
+
+      const last =
+        focusable[
+          focusable.length - 1
+        ];
+
+
+      if (
+        event.shiftKey &&
+        document.activeElement ===
+        first
+      ) {
+
+        event.preventDefault();
+
+        last.focus();
+
+        return;
+      }
+
+
+      if (
+        !event.shiftKey &&
+        document.activeElement ===
+        last
+      ) {
+
+        event.preventDefault();
+
+        first.focus();
 
       }
 
     }
+  );
 
 
-    button.addEventListener(
-      'click',
-      toggleMenu
-    );
+  document.addEventListener(
+    'click',
+    function (event) {
+
+      const isOpen =
+        button.getAttribute(
+          'aria-expanded'
+        ) === 'true';
 
 
-    menu.addEventListener(
-      'click',
-      function (event) {
+      if (
+        !isOpen
+      ) {
+        return;
+      }
 
-        if (
-          event.target.closest(
-            'a'
-          )
-        ) {
 
-          closeMenu();
+      if (
+        header.contains(
+          event.target
+        )
+      ) {
+        return;
+      }
 
-        }
+
+      closeMenu(
+        false
+      );
+
+    }
+  );
+
+
+  window.addEventListener(
+    'resize',
+    function () {
+
+      if (
+        window.innerWidth >=
+        768
+      ) {
+
+        closeMenu(
+          false
+        );
 
       }
-    );
 
+    }
+  );
 
-    document.addEventListener(
-      'keydown',
-      function (event) {
-
-        if (
-          event.key ===
-          'Escape'
-        ) {
-
-          closeMenu();
-
-        }
-
-      }
-    );
-
-
-    document.addEventListener(
-      'click',
-      function (event) {
-
-        const isOpen =
-          button.getAttribute(
-            'aria-expanded'
-          ) === 'true';
-
-        if (!isOpen) {
-          return;
-        }
-
-        if (
-          header.contains(
-            event.target
-          )
-        ) {
-          return;
-        }
-
-        closeMenu();
-
-      }
-    );
-
-
-    window.addEventListener(
-      'resize',
-      function () {
-
-        if (
-          window.innerWidth >=
-          768
-        ) {
-
-          closeMenu();
-
-        }
-
-      }
-    );
-
-  }
-
+}
 
   /* ========================================================
      BOOT
