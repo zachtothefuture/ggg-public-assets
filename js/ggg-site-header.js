@@ -93,6 +93,26 @@
         <div class="ggg-site-header__actions">
 
           <button
+            class="ggg-site-header__light-toggle"
+            type="button"
+            aria-label="Turn flashlight off"
+            aria-pressed="true"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                d="M9 3h6l1 5-2 2v9H10v-9L8 8l1-5Z"
+              />
+              <path
+                d="M10 8h4"
+              />
+            </svg>
+          </button>
+
+
+          <button
             class="ggg-site-header__cart"
             type="button"
             aria-label="Open cart"
@@ -249,6 +269,113 @@
       }
 
     });
+
+  }
+
+
+  /* ========================================================
+     FLASHLIGHT TOGGLE
+  ======================================================== */
+
+  function setupLightingToggle(
+    header
+  ) {
+
+    const button =
+      header.querySelector(
+        '.ggg-site-header__light-toggle'
+      );
+
+    if (!button) {
+      return;
+    }
+
+
+    function updateState(
+      enabled
+    ) {
+
+      button.setAttribute(
+        'aria-pressed',
+        enabled
+          ? 'true'
+          : 'false'
+      );
+
+
+      button.setAttribute(
+        'aria-label',
+        enabled
+          ? 'Turn flashlight off'
+          : 'Turn flashlight on'
+      );
+
+
+      button.classList.toggle(
+        'is-active',
+        enabled
+      );
+
+    }
+
+
+    button.addEventListener(
+      'click',
+      function () {
+
+        window.dispatchEvent(
+          new CustomEvent(
+            'ggg:lighting-toggle'
+          )
+        );
+
+      }
+    );
+
+
+    window.addEventListener(
+      'ggg:lighting-state',
+      function (event) {
+
+        if (
+          !event.detail ||
+          typeof event.detail.enabled !==
+          'boolean'
+        ) {
+          return;
+        }
+
+
+        updateState(
+          event.detail.enabled
+        );
+
+      }
+    );
+
+
+    /*
+      If the lighting engine has already initialized before
+      the header, synchronize immediately.
+    */
+
+    if (
+      window.GGG_LIGHTING_ENGINE &&
+      typeof window.GGG_LIGHTING_ENGINE.enabled ===
+      'boolean'
+    ) {
+
+      updateState(
+        window.GGG_LIGHTING_ENGINE.enabled
+      );
+
+    } else {
+
+      updateState(
+        true
+      );
+
+    }
 
   }
 
@@ -456,6 +583,10 @@
     }
 
     setActiveNavigation(
+      header
+    );
+
+    setupLightingToggle(
       header
     );
 
