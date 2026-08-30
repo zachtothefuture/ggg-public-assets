@@ -1,26 +1,21 @@
 (function () {
 
   'use strict';
+
+
   /* ========================================================
-
      PAGE OPT-OUT
-
   ======================================================== */
 
   const PAGE =
-
     window.GGG_SITE_HEADER_PAGE;
 
+
   if (
-
     PAGE &&
-
     PAGE.enabled === false
-
   ) {
-
     return;
-
   }
 
 
@@ -133,9 +128,9 @@
           </button>
 
 
-          <button
+          <a
             class="ggg-site-header__cart"
-            type="button"
+            href="/cart"
             aria-label="Open cart"
           >
             <svg
@@ -146,7 +141,8 @@
                 d="M4 5h2l2.1 9h9.8l2-6H7.2M10 19a1 1 0 1 1-2 0 1 1 0 0 1 2 0Zm9 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"
               />
             </svg>
-          </button>
+          </a>
+
 
           <button
             class="ggg-site-header__menu"
@@ -374,11 +370,6 @@
       }
     );
 
-
-    /*
-      If the lighting engine has already initialized before
-      the header, synchronize immediately.
-    */
 
     if (
       window.GGG_LIGHTING_ENGINE &&
