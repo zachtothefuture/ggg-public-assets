@@ -87,14 +87,6 @@
             Emporium
           </a>
 
-          <a
-            class="ggg-site-header__nav-link"
-            href="/account/login"
-            data-ggg-nav="login"
-          >
-            Login
-          </a>
-
         </nav>
 
 
