@@ -1,6 +1,6 @@
 /* ==========================================================
    GGG LIGHTING SYSTEM
-   v1.0.1
+   v1.0.2
 
    Enable per page with:
 
@@ -11,6 +11,12 @@
    data-ggg-material="metal|paper|photo|glass|print|ink"
 
    or canonical GGG material classes.
+
+   Runtime control:
+
+   window.dispatchEvent(
+     new CustomEvent('ggg:lighting-toggle')
+   );
 ========================================================== */
 
 (function () {
@@ -57,17 +63,6 @@
 
     /* ======================================================
        HEADER ENTRANCE
-
-       At the very top:
-       - flashlight is already partially present
-       - mobile flashlight begins high in viewport
-
-       During initial scroll:
-       - ambient darkness increases
-       - mobile flashlight descends
-
-       After travel distance:
-       - full examination mode
     ====================================================== */
 
     headerSelector:
@@ -157,8 +152,6 @@
     ['.ggg-material-print', 'print'],
     ['.ggg-material-ink', 'ink'],
 
-    /* Existing reusable GGG components */
-
     ['.ggg-attachment', 'paper'],
     ['.ggg-evidence-photo img', 'photo']
 
@@ -172,6 +165,10 @@
   class GGGLightingEngine {
 
     constructor() {
+
+      this.enabled =
+        true;
+
 
       this.mobile =
         window.matchMedia(
@@ -308,6 +305,9 @@
         true;
 
 
+      this.emitState();
+
+
       requestAnimationFrame(
         this.animate.bind(this)
       );
@@ -322,6 +322,197 @@
       ).forEach(
         element =>
           element.remove()
+      );
+
+    }
+
+
+    /* ======================================================
+       RUNTIME ENABLE / DISABLE
+    ====================================================== */
+
+    setEnabled(
+      enabled
+    ) {
+
+      const next =
+        enabled === true;
+
+
+      if (
+        this.enabled === next
+      ) {
+
+        this.emitState();
+
+        return;
+
+      }
+
+
+      this.enabled =
+        next;
+
+
+      if (
+        !this.enabled
+      ) {
+
+        clearTimeout(
+          this.batteryTimer
+        );
+
+
+        this.batteryTimer =
+          null;
+
+
+        this.batteryStrength =
+          1;
+
+
+        this.light.style.setProperty(
+          '--ggg-battery-strength',
+          1
+        );
+
+
+        this.light.classList.remove(
+          'is-active'
+        );
+
+
+        this.light.style.display =
+          'none';
+
+
+        this.resetMaterialEffects();
+
+      } else {
+
+        this.light.style.removeProperty(
+          'display'
+        );
+
+
+        this.light.classList.add(
+          'is-active'
+        );
+
+
+        this.scheduleBatteryEvent();
+
+      }
+
+
+      this.emitState();
+
+    }
+
+
+    toggleEnabled() {
+
+      this.setEnabled(
+        !this.enabled
+      );
+
+    }
+
+
+    emitState() {
+
+      window.dispatchEvent(
+        new CustomEvent(
+          'ggg:lighting-state',
+          {
+            detail: {
+              enabled:
+                this.enabled
+            }
+          }
+        )
+      );
+
+    }
+
+
+    resetMaterialEffects() {
+
+      this.materials.forEach(
+        material => {
+
+          material.strength =
+            0;
+
+
+          material.bevelStrength =
+            0;
+
+
+          material.element.style.setProperty(
+            '--ggg-light-shadow-opacity',
+            0
+          );
+
+
+          material.element.style.setProperty(
+            '--ggg-light-proximity',
+            0
+          );
+
+
+          material.element.style.setProperty(
+            '--ggg-light-glass',
+            0
+          );
+
+
+          if (
+            material.bloom
+          ) {
+
+            material.bloom.style.setProperty(
+              '--ggg-metal-opacity',
+              0
+            );
+
+          }
+
+
+          if (
+            material.bevel
+          ) {
+
+            material.bevel.style.setProperty(
+              '--ggg-metal-bevel-opacity',
+              0
+            );
+
+          }
+
+
+          if (
+            material.sheen
+          ) {
+
+            material.sheen.style.setProperty(
+              '--ggg-photo-opacity',
+              0
+            );
+
+          }
+
+        }
+      );
+
+
+      this.dust.forEach(
+        particle => {
+
+          particle.element.style.opacity =
+            0;
+
+        }
       );
 
     }
@@ -794,6 +985,17 @@
 
     bindEvents() {
 
+      window.addEventListener(
+        'ggg:lighting-toggle',
+
+        () => {
+
+          this.toggleEnabled();
+
+        }
+      );
+
+
       if (
         !this.mobile
       ) {
@@ -821,9 +1023,15 @@
               event.clientY;
 
 
-            this.light.classList.add(
-              'is-active'
-            );
+            if (
+              this.enabled
+            ) {
+
+              this.light.classList.add(
+                'is-active'
+              );
+
+            }
 
           },
 
@@ -1080,9 +1288,6 @@
 
     /* ======================================================
        HEADER ENTRANCE PROGRESS
-
-       0 = absolute top of page
-       1 = full examination mode
     ====================================================== */
 
     getHeaderProgress() {
@@ -1106,15 +1311,6 @@
 
     /* ======================================================
        HEADER EXPOSURE
-
-       At top:
-         partially suppressed lighting
-
-       As page enters:
-         suppression fades away
-
-       After entrance:
-         full lighting environment
     ====================================================== */
 
     getHeaderReveal(
@@ -1688,10 +1884,6 @@
         ) *
         .18;
 
-
-      /*
-        Approved directional rim position.
-      */
 
       material.bevel.style.setProperty(
         '--ggg-metal-bevel-x',
@@ -2311,13 +2503,6 @@
 
     /* ======================================================
        MOBILE LIGHT
-
-       HEADER PHASE:
-       light moves from 10vh → 43vh with scroll.
-
-       EXAMINATION PHASE:
-       light remains at 43vh with the approved subtle
-       inertial scroll lag.
     ====================================================== */
 
     updateMobileLight(
@@ -2334,10 +2519,6 @@
         CONFIG.mobileBaseY;
 
 
-      /*
-        Entrance position is directly tied to page scroll.
-      */
-
       const entranceY =
         startY +
         (
@@ -2346,12 +2527,6 @@
         ) *
         headerProgress;
 
-
-      /*
-        Preserve the subtle M1 inertial lag, but gradually
-        introduce it as the flashlight reaches its resting
-        position so it does not fight the entrance movement.
-      */
 
       const targetOffset =
         this.clamp(
@@ -2397,13 +2572,6 @@
         this.targetX;
 
 
-      /*
-        During entrance, follow more closely so the beam feels
-        attached to scrolling.
-
-        Once settled, return to approved M1 inertia.
-      */
-
       const follow =
         .42 -
         headerProgress *
@@ -2427,6 +2595,16 @@
     setBatteryStrength(
       strength
     ) {
+
+      if (
+        !this.enabled &&
+        strength !== 1
+      ) {
+
+        return;
+
+      }
+
 
       this.batteryStrength =
         strength;
@@ -2456,6 +2634,15 @@
 
 
     async batteryEvent() {
+
+      if (
+        !this.enabled
+      ) {
+
+        return;
+
+      }
+
 
       if (
         !this.mobile &&
@@ -2652,6 +2839,18 @@
       );
 
 
+      if (
+        !this.enabled
+      ) {
+
+        this.batteryTimer =
+          null;
+
+        return;
+
+      }
+
+
       this.batteryTimer =
         setTimeout(
 
@@ -2678,6 +2877,25 @@
       if (
         !this.running
       ) {
+
+        return;
+
+      }
+
+
+      /*
+        Keep the animation loop alive while disabled so the
+        engine can resume instantly, but perform no lighting
+        calculations until it is enabled again.
+      */
+
+      if (
+        !this.enabled
+      ) {
+
+        requestAnimationFrame(
+          this.animate.bind(this)
+        );
 
         return;
 
@@ -2839,8 +3057,6 @@
 
       /* ====================================================
          MASTER EXPOSURE
-
-         Whichever edge needs normal exposure most wins.
       ==================================================== */
 
       this.exposureReveal =
