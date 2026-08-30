@@ -49,6 +49,55 @@
           ></span>
         </a>
 
+
+        <nav
+          class="ggg-site-header__nav"
+          aria-label="Primary navigation"
+        >
+
+          <a
+            class="ggg-site-header__nav-link"
+            href="/"
+            data-ggg-nav="home"
+          >
+            Home
+          </a>
+
+          <a
+            class="ggg-site-header__nav-link"
+            href="/podcast"
+            data-ggg-nav="podcast"
+          >
+            Podcast
+          </a>
+
+          <a
+            class="ggg-site-header__nav-link"
+            href="/archive"
+            data-ggg-nav="archive"
+          >
+            Archive
+          </a>
+
+          <a
+            class="ggg-site-header__nav-link"
+            href="/emporium"
+            data-ggg-nav="emporium"
+          >
+            Emporium
+          </a>
+
+          <a
+            class="ggg-site-header__nav-link"
+            href="/account/login"
+            data-ggg-nav="login"
+          >
+            Login
+          </a>
+
+        </nav>
+
+
         <div class="ggg-site-header__actions">
 
           <button
@@ -85,6 +134,78 @@
       header
     );
 
+    return header;
+
+  }
+
+
+  /* ========================================================
+     ACTIVE NAVIGATION
+  ======================================================== */
+
+  function setActiveNavigation(
+    header
+  ) {
+
+    const pathname =
+      window.location.pathname
+        .replace(/\/+$/, '') ||
+      '/';
+
+    const links =
+      header.querySelectorAll(
+        '.ggg-site-header__nav-link'
+      );
+
+    links.forEach(function (link) {
+
+      const href =
+        link.getAttribute(
+          'href'
+        );
+
+      if (!href) {
+        return;
+      }
+
+
+      let isActive =
+        false;
+
+
+      if (href === '/') {
+
+        isActive =
+          pathname === '/';
+
+      } else {
+
+        isActive =
+          pathname === href ||
+          pathname.startsWith(
+            href + '/'
+          );
+
+      }
+
+
+      if (isActive) {
+
+        link.setAttribute(
+          'aria-current',
+          'page'
+        );
+
+      } else {
+
+        link.removeAttribute(
+          'aria-current'
+        );
+
+      }
+
+    });
+
   }
 
 
@@ -98,7 +219,16 @@
       return;
     }
 
-    createHeader();
+    const header =
+      createHeader();
+
+    if (!header) {
+      return;
+    }
+
+    setActiveNavigation(
+      header
+    );
 
   }
 
