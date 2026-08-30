@@ -43,9 +43,10 @@
           href="/"
           aria-label="The Guild of Ghostly Grounds — Home"
         >
-          <span class="ggg-site-header__brand-temp">
-            GGG
-          </span>
+          <span
+            class="ggg-site-header__brand-mark"
+            aria-hidden="true"
+          ></span>
         </a>
 
         <div class="ggg-site-header__actions">
