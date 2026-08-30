@@ -1,6 +1,6 @@
 /* ==========================================================
    GGG LIGHTING SYSTEM
-   v1.0.2
+   v1.0.3
 
    Enable per page with:
 
@@ -305,6 +305,9 @@
         true;
 
 
+      this.updateDocumentState();
+
+
       this.emitState();
 
 
@@ -342,6 +345,8 @@
       if (
         this.enabled === next
       ) {
+
+        this.updateDocumentState();
 
         this.emitState();
 
@@ -405,6 +410,9 @@
       }
 
 
+      this.updateDocumentState();
+
+
       this.emitState();
 
     }
@@ -431,6 +439,39 @@
             }
           }
         )
+      );
+
+    }
+
+
+    /* ======================================================
+       DOCUMENT STATE
+    ====================================================== */
+
+    updateDocumentState() {
+
+      if (
+        !document.body
+      ) {
+        return;
+      }
+
+
+      document.body.classList.toggle(
+        'ggg-lighting-enabled',
+        this.enabled
+      );
+
+
+      document.body.classList.toggle(
+        'ggg-lighting-disabled',
+        !this.enabled
+      );
+
+
+      document.body.classList.toggle(
+        'ggg-footer-revealed',
+        this.footerReveal >= .98
       );
 
     }
@@ -2883,12 +2924,6 @@
       }
 
 
-      /*
-        Keep the animation loop alive while disabled so the
-        engine can resume instantly, but perform no lighting
-        calculations until it is enabled again.
-      */
-
       if (
         !this.enabled
       ) {
@@ -3053,6 +3088,9 @@
 
       this.footerReveal =
         this.getFooterReveal();
+
+
+      this.updateDocumentState();
 
 
       /* ====================================================
