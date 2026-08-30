@@ -112,12 +112,61 @@
             type="button"
             aria-label="Open menu"
             aria-expanded="false"
+            aria-controls="ggg-mobile-menu"
           >
             <span></span>
             <span></span>
           </button>
 
         </div>
+
+      </div>
+
+
+      <div
+        class="ggg-site-header__mobile-menu"
+        id="ggg-mobile-menu"
+        hidden
+      >
+
+        <nav
+          class="ggg-site-header__mobile-nav"
+          aria-label="Mobile navigation"
+        >
+
+          <a
+            class="ggg-site-header__mobile-link"
+            href="/"
+            data-ggg-nav="home"
+          >
+            Home
+          </a>
+
+          <a
+            class="ggg-site-header__mobile-link"
+            href="/podcast"
+            data-ggg-nav="podcast"
+          >
+            Podcast
+          </a>
+
+          <a
+            class="ggg-site-header__mobile-link"
+            href="/archive"
+            data-ggg-nav="archive"
+          >
+            Archive
+          </a>
+
+          <a
+            class="ggg-site-header__mobile-link"
+            href="/emporium"
+            data-ggg-nav="emporium"
+          >
+            Emporium
+          </a>
+
+        </nav>
 
       </div>
     `;
@@ -146,7 +195,10 @@
 
     const links =
       header.querySelectorAll(
-        '.ggg-site-header__nav-link'
+        [
+          '.ggg-site-header__nav-link',
+          '.ggg-site-header__mobile-link'
+        ].join(',')
       );
 
     links.forEach(function (link) {
@@ -202,6 +254,191 @@
 
 
   /* ========================================================
+     MOBILE MENU
+  ======================================================== */
+
+  function setupMobileMenu(
+    header
+  ) {
+
+    const button =
+      header.querySelector(
+        '.ggg-site-header__menu'
+      );
+
+    const menu =
+      header.querySelector(
+        '.ggg-site-header__mobile-menu'
+      );
+
+    if (
+      !button ||
+      !menu
+    ) {
+      return;
+    }
+
+
+    function openMenu() {
+
+      menu.hidden =
+        false;
+
+      header.classList.add(
+        'is-menu-open'
+      );
+
+      button.setAttribute(
+        'aria-expanded',
+        'true'
+      );
+
+      button.setAttribute(
+        'aria-label',
+        'Close menu'
+      );
+
+      document.body.classList.add(
+        'ggg-mobile-menu-open'
+      );
+
+    }
+
+
+    function closeMenu() {
+
+      menu.hidden =
+        true;
+
+      header.classList.remove(
+        'is-menu-open'
+      );
+
+      button.setAttribute(
+        'aria-expanded',
+        'false'
+      );
+
+      button.setAttribute(
+        'aria-label',
+        'Open menu'
+      );
+
+      document.body.classList.remove(
+        'ggg-mobile-menu-open'
+      );
+
+    }
+
+
+    function toggleMenu() {
+
+      const isOpen =
+        button.getAttribute(
+          'aria-expanded'
+        ) === 'true';
+
+      if (isOpen) {
+
+        closeMenu();
+
+      } else {
+
+        openMenu();
+
+      }
+
+    }
+
+
+    button.addEventListener(
+      'click',
+      toggleMenu
+    );
+
+
+    menu.addEventListener(
+      'click',
+      function (event) {
+
+        if (
+          event.target.closest(
+            'a'
+          )
+        ) {
+
+          closeMenu();
+
+        }
+
+      }
+    );
+
+
+    document.addEventListener(
+      'keydown',
+      function (event) {
+
+        if (
+          event.key ===
+          'Escape'
+        ) {
+
+          closeMenu();
+
+        }
+
+      }
+    );
+
+
+    document.addEventListener(
+      'click',
+      function (event) {
+
+        const isOpen =
+          button.getAttribute(
+            'aria-expanded'
+          ) === 'true';
+
+        if (!isOpen) {
+          return;
+        }
+
+        if (
+          header.contains(
+            event.target
+          )
+        ) {
+          return;
+        }
+
+        closeMenu();
+
+      }
+    );
+
+
+    window.addEventListener(
+      'resize',
+      function () {
+
+        if (
+          window.innerWidth >=
+          768
+        ) {
+
+          closeMenu();
+
+        }
+
+      }
+    );
+
+  }
+
+
+  /* ========================================================
      BOOT
   ======================================================== */
 
@@ -219,6 +456,10 @@
     }
 
     setActiveNavigation(
+      header
+    );
+
+    setupMobileMenu(
       header
     );
 
