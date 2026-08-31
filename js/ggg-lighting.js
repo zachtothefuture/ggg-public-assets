@@ -1,6 +1,6 @@
 /* ==========================================================
    GGG LIGHTING SYSTEM
-   v1.0.4
+   v1.0.5
 
    Enable per page with:
 
@@ -47,6 +47,11 @@
     maxStretch: 18,
     maxConeX: 145,
     maxConeY: 105,
+
+
+    /* Material direction */
+
+    materialDirectionSoftness: 110,
 
 
     /* Dust */
@@ -1460,57 +1465,41 @@
         );
 
 
-      const safeDistance =
-        Math.max(
-          distance,
-          1
-        );
-
-
-      const directionX =
-        dx /
-        safeDistance;
-
-
-      const directionY =
-        dy /
-        safeDistance;
-
-
       /*
+        Continuous softened direction vector.
 
-      Directional shadow easing.
+        Unlike a normalized direction, this naturally collapses
+        to 0,0 as the flashlight crosses directly over the
+        material.
 
-      As the light crosses directly over a material, directional
-      depth collapses toward zero before smoothly rebuilding on
-      the opposite side.
-
-      This prevents sharp bevel / emboss treatments from visually
-      snapping when the normalized light direction reverses.
-
+        This prevents high-contrast bevel and emboss treatments
+        from snapping from one side to the other.
       */
 
-      const directionStrength =
-        this.clamp(
-          distance /
-          110,
-          0,
-          1
-        );
-
-      const directionEase =
-        directionStrength *
-        directionStrength *
-        (
-          3 -
-          2 *
-          directionStrength
-        );
-
-      const offset =
+      const maxOffset =
         20 *
-        material.profile.depth *
-        directionEase;
+        material.profile.depth;
+
+
+      const softenedDistance =
+        Math.sqrt(
+          distance * distance +
+          CONFIG.materialDirectionSoftness *
+          CONFIG.materialDirectionSoftness
+        );
+
+
+      const shadowX =
+        dx /
+        softenedDistance *
+        maxOffset;
+
+
+      const shadowY =
+        dy /
+        softenedDistance *
+        maxOffset;
+
 
       const blur =
         this.clamp(
@@ -1592,20 +1581,14 @@
 
       material.element.style.setProperty(
         '--ggg-light-shadow-x',
-        (
-          directionX *
-          offset
-        ).toFixed(2) +
+        shadowX.toFixed(2) +
         'px'
       );
 
 
       material.element.style.setProperty(
         '--ggg-light-shadow-y',
-        (
-          directionY *
-          offset
-        ).toFixed(2) +
+        shadowY.toFixed(2) +
         'px'
       );
 
