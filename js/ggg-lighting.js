@@ -1500,6 +1500,43 @@
         softenedDistance *
         maxOffset;
 
+      const directionX =
+        dx /
+        softenedDistance;
+
+
+      const directionY =
+        dy /
+        softenedDistance;
+
+
+      const lightFromLeft =
+        Math.max(
+          directionX,
+          0
+        );
+
+
+      const lightFromRight =
+        Math.max(
+          -directionX,
+          0
+      );
+
+
+      const lightFromTop =
+        Math.max(
+         directionY,
+         0
+      );
+
+
+      const lightFromBottom =
+        Math.max(
+          -directionY,
+          0
+      );
+
 
       const blur =
         this.clamp(
@@ -1633,6 +1670,49 @@
         ).toFixed(2) +
         '%'
       );
+
+      material.element.style.setProperty(
+        '--ggg-light-from-left',
+        (
+          lightFromLeft *
+          proximity *
+          exposure *
+          active
+        ).toFixed(3)
+      );
+
+
+      material.element.style.setProperty(
+        '--ggg-light-from-right',
+        (
+          lightFromRight *
+          proximity *
+          exposure *
+          active
+        ).toFixed(3)
+      );
+
+
+      material.element.style.setProperty(
+        '--ggg-light-from-top',
+        (
+          lightFromTop *
+          proximity *
+          exposure *
+          active
+        ).toFixed(3)
+      );
+
+
+      material.element.style.setProperty(
+        '--ggg-light-from-bottom',
+        (
+          lightFromBottom *
+          proximity *
+          exposure *
+          active
+        ).toFixed(3)
+      ); 
 
 
       if (
