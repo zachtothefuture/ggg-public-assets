@@ -1,6 +1,6 @@
 /* ==========================================================
    GGG LIGHTING SYSTEM
-   v1.0.3
+   v1.0.4
 
    Enable per page with:
 
@@ -62,13 +62,8 @@
 
 
     /* ======================================================
-       HEADER ENTRANCE
+       MOBILE ENTRANCE
     ====================================================== */
-
-    headerSelector:
-      '.ggg-site-header, #header, header.Header',
-
-    headerTopReveal: 0,
 
     headerLightStartY: .10,
 
@@ -237,10 +232,6 @@
         0;
 
 
-      this.headerReveal =
-        0;
-
-
       this.footerReveal =
         0;
 
@@ -267,12 +258,6 @@
 
       this.batteryTimer =
         null;
-
-
-      this.header =
-        document.querySelector(
-          CONFIG.headerSelector
-        );
 
 
       this.footer =
@@ -583,6 +568,20 @@
 
       document.body.appendChild(
         this.light
+      );
+
+
+      /*
+        Legacy compatibility only.
+
+        Header exposure was removed in v1.0.4.
+        Keep the variable pinned to zero so older lighting
+        CSS cannot accidentally reveal the scene at the top.
+      */
+
+      this.light.style.setProperty(
+        '--ggg-header-reveal',
+        0
       );
 
 
@@ -1328,7 +1327,7 @@
 
 
     /* ======================================================
-       HEADER ENTRANCE PROGRESS
+       MOBILE ENTRANCE PROGRESS
     ====================================================== */
 
     getHeaderProgress() {
@@ -1345,25 +1344,6 @@
         CONFIG.headerTravelDistance,
         0,
         1
-      );
-
-    }
-
-
-    /* ======================================================
-       HEADER EXPOSURE
-    ====================================================== */
-
-    getHeaderReveal(
-      progress
-    ) {
-
-      return (
-        CONFIG.headerTopReveal *
-        (
-          1 -
-          progress
-        )
       );
 
     }
@@ -2950,17 +2930,11 @@
 
 
       /* ====================================================
-         HEADER STATE
+         MOBILE ENTRANCE STATE
       ==================================================== */
 
       this.headerProgress =
         this.getHeaderProgress();
-
-
-      this.headerReveal =
-        this.getHeaderReveal(
-          this.headerProgress
-        );
 
 
       /* ====================================================
@@ -3095,13 +3069,13 @@
 
       /* ====================================================
          MASTER EXPOSURE
+
+         Header exposure no longer participates in lighting.
+         Only the footer handoff yields the scene.
       ==================================================== */
 
       this.exposureReveal =
-        Math.max(
-          this.headerReveal,
-          this.footerReveal
-        );
+        this.footerReveal;
 
 
       /* ====================================================
@@ -3175,12 +3149,6 @@
         '--ggg-beam-height',
         beamHeight +
         'px'
-      );
-
-
-      this.light.style.setProperty(
-        '--ggg-header-reveal',
-        this.headerReveal.toFixed(4)
       );
 
 
