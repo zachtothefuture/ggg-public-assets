@@ -1477,9 +1477,51 @@
         safeDistance;
 
 
-      const offset =
-        20 *
-        material.profile.depth;
+      /*
+
+  Directional shadow easing.
+
+  As the light crosses directly over a material, directional
+
+  depth collapses toward zero before smoothly rebuilding on
+
+  the opposite side.
+
+  This prevents sharp bevel / emboss treatments from visually
+
+  snapping when the normalized light direction reverses.
+
+*/
+
+const directionStrength =
+
+  this.clamp(
+
+    distance /
+
+    110,
+
+    0,
+
+    1
+
+  );
+
+const directionEase =
+
+  directionStrength *
+
+  directionStrength *
+
+  (
+
+    3 -
+
+    2 *
+
+    directionStrength
+
+  );
 
 
       const blur =
