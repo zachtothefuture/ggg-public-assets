@@ -125,7 +125,7 @@
      
      revealRadius:
 
-      360,
+      280,
     
      revealTriggerProximity:
       .20,
