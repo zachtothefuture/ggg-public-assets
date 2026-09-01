@@ -1,8 +1,8 @@
 /* ==========================================================
    GGG LIGHTING SYSTEM
-   v1.1.1
+   v1.1.2
 
-   PERFORMANCE PASS 01
+   PERFORMANCE PASS 02
    + HIDDEN CHARACTER REVEAL
 
    VISUAL BEHAVIOR
@@ -23,6 +23,11 @@
    • Animation pauses in hidden tabs
    • ResizeObserver-driven geometry invalidation
    • Font/load geometry refresh
+   • Archive-index performance profile
+   • Reduced Archive-index material observer margin
+   • Reduced Archive-index dust count
+   • Material-update motion threshold
+   • Hidden reveals skip non-visible materials
 
    HIDDEN REVEAL
 
@@ -36,7 +41,16 @@
 
    Enable per page with:
 
-   window.GGG_LIGHTING_PAGE = { enabled: true };
+   window.GGG_LIGHTING_PAGE = {
+     enabled: true
+   };
+
+   Archive landing page:
+
+   window.GGG_LIGHTING_PAGE = {
+     enabled: true,
+     performance: 'archive-index'
+   };
 
    Materials are discovered automatically through:
 
@@ -82,6 +96,11 @@
   }
 
 
+  const ARCHIVE_INDEX =
+    PAGE.performance ===
+    'archive-index';
+
+
   /* ========================================================
      CONFIG
   ======================================================== */
@@ -118,16 +137,17 @@
     /* Material observation */
 
     materialRootMargin:
-      '300px',
+      ARCHIVE_INDEX
+        ? '80px'
+        : '300px',
 
 
     /* Hidden light-reveal messages */
-     
-     revealRadius:
 
+    revealRadius:
       280,
-    
-     revealTriggerProximity:
+
+    revealTriggerProximity:
       .20,
 
     revealResetProximity:
@@ -146,10 +166,14 @@
     /* Dust */
 
     desktopDustCount:
-      54,
+      ARCHIVE_INDEX
+        ? 28
+        : 54,
 
     mobileDustCount:
-      26,
+      ARCHIVE_INDEX
+        ? 16
+        : 26,
 
 
     /* Mobile resting behavior */
@@ -480,6 +504,30 @@
 
 
       /* ====================================================
+         MATERIAL FRAME CACHE
+      ==================================================== */
+
+      this.lastMaterialLightX =
+        NaN;
+
+
+      this.lastMaterialLightY =
+        NaN;
+
+
+      this.lastMaterialExposure =
+        NaN;
+
+
+      this.lastMaterialBattery =
+        NaN;
+
+
+      this.lastMaterialActive =
+        NaN;
+
+
+      /* ====================================================
          MATERIAL COLLECTIONS
       ==================================================== */
 
@@ -781,6 +829,26 @@
 
         this.velocityY =
           0;
+
+
+        this.lastMaterialLightX =
+          NaN;
+
+
+        this.lastMaterialLightY =
+          NaN;
+
+
+        this.lastMaterialExposure =
+          NaN;
+
+
+        this.lastMaterialBattery =
+          NaN;
+
+
+        this.lastMaterialActive =
+          NaN;
 
 
         this.invalidateGeometry();
@@ -1133,10 +1201,10 @@
         this.light
       );
 
+
       document.documentElement.classList.remove(
         'ggg-lighting-boot'
-
-      ); 
+      );
 
 
       this.setVar(
@@ -1406,6 +1474,10 @@
 
         }
       );
+
+
+      this.lastMaterialLightX =
+        NaN;
 
     }
 
@@ -2112,17 +2184,8 @@
     }
 
 
-       /* ======================================================
+    /* ======================================================
        LIGHT REVEAL STATE
-
-       Behavior:
-
-       • Starts completely hidden
-       • Light entering triggers randomized reveal
-       • Light leaving triggers randomized hide immediately
-       • Returning light can reverse the process
-       • Five-second hold still clears the message
-       • Must leave before a timed-out message can rearm
     ====================================================== */
 
     updateLightReveals(
@@ -2146,7 +2209,8 @@
 
 
           if (
-            !material
+            !material ||
+            !material.visible
           ) {
 
             return;
@@ -2225,16 +2289,6 @@
             CONFIG.revealResetProximity;
 
 
-          /* ==================================================
-             TIMED-OUT STATE
-
-             After the 5-second clear, the message cannot
-             immediately retrigger while the light is still
-             sitting on top of it.
-
-             The user must move the light away first.
-          ================================================== */
-
           if (
             reveal.state ===
             'timed-out'
@@ -2262,13 +2316,6 @@
 
           }
 
-
-          /* ==================================================
-             LIGHT ENTERS / RETURNS
-
-             Start or resume the randomized reveal whenever
-             the beam is over the message.
-          ================================================== */
 
           if (
             lightIsOn &&
@@ -2313,14 +2360,6 @@
           }
 
 
-          /* ==================================================
-             LIGHT LEAVES
-
-             Immediately begin randomized disappearance,
-             regardless of whether we were still revealing
-             or already fully visible.
-          ================================================== */
-
           if (
             lightIsAway &&
             (
@@ -2360,10 +2399,6 @@
           }
 
 
-          /* ==================================================
-             WAITING
-          ================================================== */
-
           if (
             reveal.state ===
             'waiting'
@@ -2373,10 +2408,6 @@
 
           }
 
-
-          /* ==================================================
-             REVEALING
-          ================================================== */
 
           if (
             reveal.state ===
@@ -2438,13 +2469,6 @@
           }
 
 
-          /* ==================================================
-             HOLDING
-
-             If the user keeps the flashlight on the message,
-             allow it to remain readable for five seconds.
-          ================================================== */
-
           if (
             reveal.state ===
             'holding'
@@ -2494,24 +2518,10 @@
           }
 
 
-          /* ==================================================
-             HIDING
-
-             Characters disappear independently.
-
-             If the flashlight returns before the message has
-             fully vanished, the state changes back to reveal.
-          ================================================== */
-
           if (
             reveal.state ===
             'hiding'
           ) {
-
-            /*
-              Flashlight came back before everything vanished.
-              Reverse direction immediately.
-            */
 
             if (
               lightIsOn &&
@@ -2603,12 +2613,6 @@
 
               } else {
 
-                /*
-                  This was the five-second forced clear.
-                  Require the flashlight to leave before
-                  allowing another reveal.
-                */
-
                 reveal.state =
                   'timed-out';
 
@@ -2622,6 +2626,7 @@
       );
 
     }
+
 
     /* ======================================================
        METAL PREPARATION
@@ -2932,6 +2937,10 @@
 
           this.scrollY =
             currentY;
+
+
+          this.lastMaterialLightX =
+            NaN;
 
 
           this.requestFrame();
@@ -3377,6 +3386,83 @@
         0,
         1
       );
+
+    }
+
+
+    /* ======================================================
+       MATERIAL UPDATE GATE
+    ====================================================== */
+
+    shouldUpdateMaterials() {
+
+      const positionChanged =
+        !Number.isFinite(
+          this.lastMaterialLightX
+        ) ||
+        Math.abs(
+          this.lightX -
+          this.lastMaterialLightX
+        ) >= .35 ||
+        Math.abs(
+          this.lightY -
+          this.lastMaterialLightY
+        ) >= .35;
+
+
+      const exposureChanged =
+        !Number.isFinite(
+          this.lastMaterialExposure
+        ) ||
+        Math.abs(
+          this.frameExposure -
+          this.lastMaterialExposure
+        ) >= .002;
+
+
+      const batteryChanged =
+        this.batteryStrength !==
+        this.lastMaterialBattery;
+
+
+      const activeChanged =
+        this.frameActive !==
+        this.lastMaterialActive;
+
+
+      if (
+        !positionChanged &&
+        !exposureChanged &&
+        !batteryChanged &&
+        !activeChanged
+      ) {
+
+        return false;
+
+      }
+
+
+      this.lastMaterialLightX =
+        this.lightX;
+
+
+      this.lastMaterialLightY =
+        this.lightY;
+
+
+      this.lastMaterialExposure =
+        this.frameExposure;
+
+
+      this.lastMaterialBattery =
+        this.batteryStrength;
+
+
+      this.lastMaterialActive =
+        this.frameActive;
+
+
+      return true;
 
     }
 
@@ -5387,15 +5473,21 @@
          MATERIALS
       ==================================================== */
 
-      this.activeMaterials.forEach(
-        material => {
+      if (
+        this.shouldUpdateMaterials()
+      ) {
 
-          this.updateMaterialBase(
-            material
-          );
+        this.activeMaterials.forEach(
+          material => {
 
-        }
-      );
+            this.updateMaterialBase(
+              material
+            );
+
+          }
+        );
+
+      }
 
 
       /* ====================================================
