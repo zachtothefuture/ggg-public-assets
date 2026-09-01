@@ -2103,8 +2103,17 @@
     }
 
 
-    /* ======================================================
+       /* ======================================================
        LIGHT REVEAL STATE
+
+       Behavior:
+
+       • Starts completely hidden
+       • Light entering triggers randomized reveal
+       • Light leaving triggers randomized hide immediately
+       • Returning light can reverse the process
+       • Five-second hold still clears the message
+       • Must leave before a timed-out message can rearm
     ====================================================== */
 
     updateLightReveals(
@@ -2197,46 +2206,75 @@
             this.batteryStrength;
 
 
+          const lightIsOn =
+            proximity >=
+            CONFIG.revealTriggerProximity;
+
+
+          const lightIsAway =
+            proximity <=
+            CONFIG.revealResetProximity;
+
+
           /* ==================================================
-             WAITING
+             TIMED-OUT STATE
+
+             After the 5-second clear, the message cannot
+             immediately retrigger while the light is still
+             sitting on top of it.
+
+             The user must move the light away first.
           ================================================== */
 
           if (
             reveal.state ===
-            'waiting'
+            'timed-out'
           ) {
 
             if (
-              !reveal.armed
+              lightIsAway
             ) {
 
-              if (
-                proximity <=
-                CONFIG.revealResetProximity
-              ) {
-
-                reveal.armed =
-                  true;
-
-              }
+              reveal.state =
+                'waiting';
 
 
-              return;
+              reveal.armed =
+                true;
+
+
+              reveal.phaseStart =
+                0;
 
             }
 
 
+            return;
+
+          }
+
+
+          /* ==================================================
+             LIGHT ENTERS / RETURNS
+
+             Start or resume the randomized reveal whenever
+             the beam is over the message.
+          ================================================== */
+
+          if (
+            lightIsOn &&
+            reveal.armed
+          ) {
+
             if (
-              proximity >=
-              CONFIG.revealTriggerProximity
+              reveal.state !==
+              'revealing' &&
+              reveal.state !==
+              'holding'
             ) {
 
               reveal.state =
                 'revealing';
-
-
-              reveal.armed =
-                false;
 
 
               reveal.phaseStart =
@@ -2246,12 +2284,58 @@
               reveal.characters.forEach(
                 character => {
 
-                  character.revealDelay =
-                    this.reducedMotion
-                      ? 0
-                      : Math.random() *
-                        CONFIG.revealDuration;
+                  if (
+                    !character.visible
+                  ) {
 
+                    character.revealDelay =
+                      this.reducedMotion
+                        ? 0
+                        : Math.random() *
+                          CONFIG.revealDuration;
+
+                  }
+
+                }
+              );
+
+            }
+
+          }
+
+
+          /* ==================================================
+             LIGHT LEAVES
+
+             Immediately begin randomized disappearance,
+             regardless of whether we were still revealing
+             or already fully visible.
+          ================================================== */
+
+          if (
+            lightIsAway &&
+            (
+              reveal.state ===
+              'revealing' ||
+              reveal.state ===
+              'holding'
+            )
+          ) {
+
+            reveal.state =
+              'hiding';
+
+
+            reveal.phaseStart =
+              timestamp;
+
+
+            reveal.characters.forEach(
+              character => {
+
+                if (
+                  character.visible
+                ) {
 
                   character.hideDelay =
                     this.reducedMotion
@@ -2259,21 +2343,22 @@
                       : Math.random() *
                         CONFIG.revealHideDuration;
 
-
-                  character.visible =
-                    false;
-
-
-                  character.element
-                    .classList.remove(
-                      'is-visible'
-                    );
-
                 }
-              );
 
-            }
+              }
+            );
 
+          }
+
+
+          /* ==================================================
+             WAITING
+          ================================================== */
+
+          if (
+            reveal.state ===
+            'waiting'
+          ) {
 
             return;
 
@@ -2318,15 +2403,15 @@
             );
 
 
-            const duration =
-              this.reducedMotion
-                ? 0
-                : CONFIG.revealDuration;
+            const allVisible =
+              reveal.characters.every(
+                character =>
+                  character.visible
+              );
 
 
             if (
-              elapsed >=
-              duration
+              allVisible
             ) {
 
               reveal.state =
@@ -2346,6 +2431,9 @@
 
           /* ==================================================
              HOLDING
+
+             If the user keeps the flashlight on the message,
+             allow it to remain readable for five seconds.
           ================================================== */
 
           if (
@@ -2363,8 +2451,31 @@
                 'hiding';
 
 
+              reveal.armed =
+                false;
+
+
               reveal.phaseStart =
                 timestamp;
+
+
+              reveal.characters.forEach(
+                character => {
+
+                  if (
+                    character.visible
+                  ) {
+
+                    character.hideDelay =
+                      this.reducedMotion
+                        ? 0
+                        : Math.random() *
+                          CONFIG.revealHideDuration;
+
+                  }
+
+                }
+              );
 
             }
 
@@ -2376,12 +2487,59 @@
 
           /* ==================================================
              HIDING
+
+             Characters disappear independently.
+
+             If the flashlight returns before the message has
+             fully vanished, the state changes back to reveal.
           ================================================== */
 
           if (
             reveal.state ===
             'hiding'
           ) {
+
+            /*
+              Flashlight came back before everything vanished.
+              Reverse direction immediately.
+            */
+
+            if (
+              lightIsOn &&
+              reveal.armed
+            ) {
+
+              reveal.state =
+                'revealing';
+
+
+              reveal.phaseStart =
+                timestamp;
+
+
+              reveal.characters.forEach(
+                character => {
+
+                  if (
+                    !character.visible
+                  ) {
+
+                    character.revealDelay =
+                      this.reducedMotion
+                        ? 0
+                        : Math.random() *
+                          CONFIG.revealDuration;
+
+                  }
+
+                }
+              );
+
+
+              return;
+
+            }
+
 
             const elapsed =
               timestamp -
@@ -2412,39 +2570,40 @@
             );
 
 
-            const duration =
-              this.reducedMotion
-                ? 0
-                : CONFIG.revealHideDuration;
-
-
-            if (
-              elapsed >=
-              duration
-            ) {
-
-              reveal.characters.forEach(
-                character => {
-
-                  character.visible =
-                    false;
-
-
-                  character.element
-                    .classList.remove(
-                      'is-visible'
-                    );
-
-                }
+            const allHidden =
+              reveal.characters.every(
+                character =>
+                  !character.visible
               );
 
 
-              reveal.state =
-                'waiting';
-
+            if (
+              allHidden
+            ) {
 
               reveal.phaseStart =
                 0;
+
+
+              if (
+                reveal.armed
+              ) {
+
+                reveal.state =
+                  'waiting';
+
+              } else {
+
+                /*
+                  This was the five-second forced clear.
+                  Require the flashlight to leave before
+                  allowing another reveal.
+                */
+
+                reveal.state =
+                  'timed-out';
+
+              }
 
             }
 
@@ -2454,7 +2613,6 @@
       );
 
     }
-
 
     /* ======================================================
        METAL PREPARATION
