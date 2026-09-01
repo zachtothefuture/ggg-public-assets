@@ -146,10 +146,10 @@
     /* Dust */
 
     desktopDustCount:
-      42,
+      54,
 
     mobileDustCount:
-      20,
+      26,
 
 
     /* Mobile resting behavior */
