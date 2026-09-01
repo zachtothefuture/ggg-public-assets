@@ -1881,13 +1881,12 @@
 
       if (
         type ===
-        'photo'
+        'photo' &&
+        !ARCHIVE_INDEX
       ) {
-
         this.preparePhoto(
           material
         );
-
       }
 
 
