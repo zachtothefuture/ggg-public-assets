@@ -122,8 +122,12 @@
 
 
     /* Hidden light-reveal messages */
+     
+     revealRadius:
 
-    revealTriggerProximity:
+      360,
+    
+     revealTriggerProximity:
       .20,
 
     revealResetProximity:
@@ -2194,7 +2198,7 @@
             this.clamp(
               1 -
               distance /
-              800,
+              CONFIG.revealRadius,
               0,
               1
             );
