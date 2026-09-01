@@ -1,19 +1,51 @@
 /* ==========================================================
    GGG LIGHTING SYSTEM
-   v1.1.2
+   v1.2.0
 
-   PERFORMANCE PASS 02
+   PERFORMANCE PASS 03
+   + ARCHIVE INDEX PROFILE CONSOLIDATION
    + HIDDEN CHARACTER REVEAL
 
    VISUAL BEHAVIOR
-   Preserves the approved v1.0.5 / 21B lighting direction,
-   material profiles, dust, battery behavior, mobile motion,
-   metal response, photo sheen and footer handoff.
 
-   PERFORMANCE CHANGES
+   Preserves the approved GGG flashlight system:
+
+   • cursor-following desktop examination light
+   • fixed mobile examination light
+   • optical cone movement
+   • atmospheric dust
+   • battery flicker
+   • metal bloom + bevel response
+   • photo sheen on full-material pages
+   • header / footer exposure behavior
+   • hidden character reveals
+
+
+   PERFORMANCE ARCHITECTURE
+
+   General pages:
+   • full material response
+   • metal, paper, photo, glass, print and ink
+   • photo sheen enabled
+
+   Archive index:
+   • full global flashlight preserved
+   • full metal response preserved
+   • paper is visually static
+   • photo is visually static
+   • glass is visually static
+   • print is visually static
+   • ink is visually static
+   • photo sheen is not created
+   • static material types receive no per-frame variables
+   • reduced material observer margin
+   • reduced dust count
+
+
+   PERFORMANCE FEATURES
 
    • Cached material geometry
-   • Active-material Set
+   • Active responsive-material Set
    • WeakMap material lookup
    • Cached viewport / scroll state
    • Cached footer geometry
@@ -23,27 +55,20 @@
    • Animation pauses in hidden tabs
    • ResizeObserver-driven geometry invalidation
    • Font/load geometry refresh
-   • Archive-index performance profile
-   • Reduced Archive-index material observer margin
-   • Reduced Archive-index dust count
    • Material-update motion threshold
    • Hidden reveals skip non-visible materials
+   • Archive-index runtime material filtering
+   • Explicit static-lighting subtree opt-out
 
-   HIDDEN REVEAL
 
-   • Flashlight-triggered hidden messages
-   • Randomized character development
-   • 5-second hold
-   • Randomized disappearance
-   • Rearms after the light moves away
-   • Uses existing lighting RAF
-   • No secondary animation loop
+   ENABLE PER PAGE
 
-   Enable per page with:
+   Standard page:
 
    window.GGG_LIGHTING_PAGE = {
      enabled: true
    };
+
 
    Archive landing page:
 
@@ -52,17 +77,28 @@
      performance: 'archive-index'
    };
 
-   Materials are discovered automatically through:
+
+   MATERIAL DISCOVERY
 
    data-ggg-material="metal|paper|photo|glass|print|ink"
 
    or canonical GGG material classes.
 
-   Character reveal:
+
+   STATIC SUBTREE OPT-OUT
+
+   data-ggg-light-static
+
+   Any material inside an element carrying this attribute
+   is ignored entirely by the runtime material engine.
+
+
+   CHARACTER REVEAL
 
    class="ggg-light-reveal ggg-light-reveal--characters"
 
-   Runtime control:
+
+   RUNTIME CONTROL
 
    window.dispatchEvent(
      new CustomEvent('ggg:lighting-toggle')
@@ -72,6 +108,10 @@
 (function () {
   'use strict';
 
+
+  /* ========================================================
+     PAGE CONFIGURATION
+  ======================================================== */
 
   const PAGE =
     window.GGG_LIGHTING_PAGE;
@@ -99,6 +139,24 @@
   const ARCHIVE_INDEX =
     PAGE.performance ===
     'archive-index';
+
+
+  /* ========================================================
+     ARCHIVE INDEX RUNTIME MATERIALS
+
+     Archive Home now receives its moving illumination from
+     the global flashlight.
+
+     Only metal retains full per-element material response.
+
+     Character-reveal elements are also registered when
+     necessary so they retain geometry / visibility tracking.
+  ======================================================== */
+
+  const ARCHIVE_INDEX_RESPONSIVE_TYPES =
+    new Set([
+      'metal'
+    ]);
 
 
   /* ========================================================
@@ -185,9 +243,7 @@
       12,
 
 
-    /* ======================================================
-       MOBILE ENTRANCE
-    ====================================================== */
+    /* Mobile entrance */
 
     headerLightStartY:
       .10,
@@ -196,9 +252,7 @@
       220,
 
 
-    /* ======================================================
-       FOOTER EXIT
-    ====================================================== */
+    /* Footer exit */
 
     footerSelector:
       '.ggg-site-footer',
@@ -529,6 +583,15 @@
 
       /* ====================================================
          MATERIAL COLLECTIONS
+
+         materials
+         All runtime-registered materials. This includes
+         responsive materials and any non-responsive element
+         required for hidden-reveal geometry tracking.
+
+         activeMaterials
+         Only visible materials that actually consume live
+         lighting response.
       ==================================================== */
 
       this.materials =
@@ -616,6 +679,14 @@
 
 
       /* ====================================================
+         BATTERY TIMER
+      ==================================================== */
+
+      this.batteryTimer =
+        null;
+
+
+      /* ====================================================
          BIND RAF ONCE
       ==================================================== */
 
@@ -634,13 +705,13 @@
     init() {
 
       this.cleanupGenerated();
-       if (
-         ARCHIVE_INDEX
-       ) {
-         document.body.classList.add(
-          'ggg-lighting-profile-archive-index'
-         );
-      }
+
+
+      document.body.classList.toggle(
+        'ggg-lighting-profile-archive-index',
+        ARCHIVE_INDEX
+      );
+
 
       this.createLight();
 
@@ -673,6 +744,10 @@
 
     }
 
+
+    /* ======================================================
+       GENERATED DOM CLEANUP
+    ====================================================== */
 
     cleanupGenerated() {
 
@@ -838,24 +913,7 @@
           0;
 
 
-        this.lastMaterialLightX =
-          NaN;
-
-
-        this.lastMaterialLightY =
-          NaN;
-
-
-        this.lastMaterialExposure =
-          NaN;
-
-
-        this.lastMaterialBattery =
-          NaN;
-
-
-        this.lastMaterialActive =
-          NaN;
+        this.resetMaterialFrameCache();
 
 
         this.invalidateGeometry();
@@ -969,108 +1027,55 @@
     }
 
 
+    /* ======================================================
+       MATERIAL FRAME CACHE RESET
+    ====================================================== */
+
+    resetMaterialFrameCache() {
+
+      this.lastMaterialLightX =
+        NaN;
+
+
+      this.lastMaterialLightY =
+        NaN;
+
+
+      this.lastMaterialExposure =
+        NaN;
+
+
+      this.lastMaterialBattery =
+        NaN;
+
+
+      this.lastMaterialActive =
+        NaN;
+
+    }
+
+
+    /* ======================================================
+       MATERIAL EFFECT RESET
+    ====================================================== */
+
     resetMaterialEffects() {
 
       this.materials.forEach(
         material => {
 
-          material.strength =
-            0;
-
-
-          material.bevelStrength =
-            0;
-
-
-          this.setMaterialVar(
-            material,
-            '--ggg-light-shadow-opacity',
-            '0'
-          );
-
-
-          this.setMaterialVar(
-            material,
-            '--ggg-light-proximity',
-            '0'
-          );
-
-
-          this.setMaterialVar(
-            material,
-            '--ggg-light-glass',
-            '0'
-          );
-
-
-          this.setMaterialVar(
-            material,
-            '--ggg-light-from-left',
-            '0'
-          );
-
-
-          this.setMaterialVar(
-            material,
-            '--ggg-light-from-right',
-            '0'
-          );
-
-
-          this.setMaterialVar(
-            material,
-            '--ggg-light-from-top',
-            '0'
-          );
-
-
-          this.setMaterialVar(
-            material,
-            '--ggg-light-from-bottom',
-            '0'
-          );
-
-
           if (
-            material.bloom
+            !material.respondsToLight
           ) {
 
-            this.setVar(
-              material.bloom,
-              material.bloomVars,
-              '--ggg-metal-opacity',
-              '0'
-            );
+            return;
 
           }
 
 
-          if (
-            material.bevel
-          ) {
-
-            this.setVar(
-              material.bevel,
-              material.bevelVars,
-              '--ggg-metal-bevel-opacity',
-              '0'
-            );
-
-          }
-
-
-          if (
-            material.sheen
-          ) {
-
-            this.setVar(
-              material.sheen,
-              material.sheenVars,
-              '--ggg-photo-opacity',
-              '0'
-            );
-
-          }
+          this.deactivateMaterial(
+            material
+          );
 
         }
       );
@@ -1328,9 +1333,15 @@
                       true;
 
 
-                    this.activeMaterials.add(
-                      material
-                    );
+                    if (
+                      material.respondsToLight
+                    ) {
+
+                      this.activeMaterials.add(
+                        material
+                      );
+
+                    }
 
                   } else {
 
@@ -1338,14 +1349,20 @@
                       false;
 
 
-                    this.activeMaterials.delete(
-                      material
-                    );
+                    if (
+                      material.respondsToLight
+                    ) {
+
+                      this.activeMaterials.delete(
+                        material
+                      );
 
 
-                    this.deactivateMaterial(
-                      material
-                    );
+                      this.deactivateMaterial(
+                        material
+                      );
+
+                    }
 
                   }
 
@@ -1483,8 +1500,7 @@
       );
 
 
-      this.lastMaterialLightX =
-        NaN;
+      this.resetMaterialFrameCache();
 
     }
 
@@ -1621,6 +1637,41 @@
 
 
     /* ======================================================
+       MATERIAL PROFILE HELPERS
+    ====================================================== */
+
+    materialRespondsToLight(
+      type
+    ) {
+
+      if (
+        !ARCHIVE_INDEX
+      ) {
+
+        return true;
+
+      }
+
+
+      return ARCHIVE_INDEX_RESPONSIVE_TYPES.has(
+        type
+      );
+
+    }
+
+
+    materialNeedsRevealTracking(
+      element
+    ) {
+
+      return element.classList.contains(
+        'ggg-light-reveal--characters'
+      );
+
+    }
+
+
+    /* ======================================================
        MATERIAL DISCOVERY
     ====================================================== */
 
@@ -1688,10 +1739,36 @@
       }
 
 
+      /* ====================================================
+         EXPLICIT STATIC SUBTREE
+
+         Anything inside data-ggg-light-static is completely
+         excluded from runtime material behavior.
+      ==================================================== */
+
+      if (
+        element.closest(
+          '[data-ggg-light-static]'
+        )
+      ) {
+
+        return;
+
+      }
+
+
       this.materialElements.add(
         element
       );
 
+
+      /* ====================================================
+         CANONICAL MATERIAL CONTRACT
+
+         These remain present even when Archive Home chooses
+         not to register the element for live calculations.
+         Component CSS may depend on them.
+      ==================================================== */
 
       element.classList.add(
         'ggg-light-material'
@@ -1702,6 +1779,39 @@
         'data-ggg-light-type',
         type
       );
+
+
+      const respondsToLight =
+        this.materialRespondsToLight(
+          type
+        );
+
+
+      const needsRevealTracking =
+        this.materialNeedsRevealTracking(
+          element
+        );
+
+
+      /* ====================================================
+         ARCHIVE INDEX FAST PATH
+
+         Static Archive Home materials keep their semantic
+         material class/type but never enter the runtime
+         geometry, observer or animation systems.
+
+         A hidden character reveal is the exception because
+         it still requires geometry and visibility tracking.
+      ==================================================== */
+
+      if (
+        !respondsToLight &&
+        !needsRevealTracking
+      ) {
+
+        return;
+
+      }
 
 
       const position =
@@ -1718,6 +1828,11 @@
 
         profile:
           PROFILES[type],
+
+
+        respondsToLight,
+
+        needsRevealTracking,
 
 
         visible:
@@ -1847,7 +1962,9 @@
           element
         );
 
-      } else {
+      } else if (
+        material.respondsToLight
+      ) {
 
         this.activeMaterials.add(
           material
@@ -1867,9 +1984,14 @@
       }
 
 
+      /* ====================================================
+         GENERATED MATERIAL EFFECTS
+      ==================================================== */
+
       if (
         type ===
-        'metal'
+        'metal' &&
+        respondsToLight
       ) {
 
         this.prepareMetal(
@@ -1882,17 +2004,24 @@
       if (
         type ===
         'photo' &&
-        !ARCHIVE_INDEX
+        respondsToLight
       ) {
+
         this.preparePhoto(
           material
         );
+
       }
 
+
+      /* ====================================================
+         GLASS POINTER RESPONSE
+      ==================================================== */
 
       if (
         type ===
         'glass' &&
+        respondsToLight &&
         !this.mobile
       ) {
 
@@ -1922,9 +2051,23 @@
     }
 
 
+    /* ======================================================
+       MATERIAL DEACTIVATION
+    ====================================================== */
+
     deactivateMaterial(
       material
     ) {
+
+      if (
+        !material ||
+        !material.respondsToLight
+      ) {
+
+        return;
+
+      }
+
 
       material.hovered =
         false;
@@ -2782,6 +2925,9 @@
 
     /* ======================================================
        PHOTO PREPARATION
+
+       Archive Home never reaches this method because photos
+       are non-responsive under the archive-index profile.
     ====================================================== */
 
     preparePhoto(
@@ -2945,8 +3091,7 @@
             currentY;
 
 
-          this.lastMaterialLightX =
-            NaN;
+          this.resetMaterialFrameCache();
 
 
           this.requestFrame();
@@ -3402,6 +3547,15 @@
 
     shouldUpdateMaterials() {
 
+      if (
+        !this.activeMaterials.size
+      ) {
+
+        return false;
+
+      }
+
+
       const positionChanged =
         !Number.isFinite(
           this.lastMaterialLightX
@@ -3480,6 +3634,15 @@
     updateMaterialBase(
       material
     ) {
+
+      if (
+        !material.respondsToLight
+      ) {
+
+        return;
+
+      }
+
 
       const rect =
         this.getMaterialRect(
@@ -5476,7 +5639,10 @@
 
 
       /* ====================================================
-         MATERIALS
+         RESPONSIVE MATERIALS ONLY
+
+         On Archive Home this Set normally contains only
+         visible metal materials.
       ==================================================== */
 
       if (
