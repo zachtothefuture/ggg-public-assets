@@ -634,6 +634,13 @@
     init() {
 
       this.cleanupGenerated();
+       if (
+         ARCHIVE_INDEX
+       ) {
+         document.body.classList.add(
+          'ggg-lighting-profile-archive-index'
+         );
+      }
 
       this.createLight();
 
