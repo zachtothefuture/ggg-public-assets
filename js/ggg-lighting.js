@@ -4549,17 +4549,26 @@
 
       /* ====================================================
          FOOTER STATE
+
+         Desktop:
+         The flashlight continues naturally through the
+         global footer.
+
+         Mobile:
+         The footer receives the existing exposure handoff
+         as the fixed light reaches the end of the page.
       ==================================================== */
 
       this.footerReveal =
-        this.getFooterReveal();
+        this.mobile
+          ? this.getFooterReveal()
+          : 0;
 
 
       /* ====================================================
          MASTER EXPOSURE
 
-         Header exposure no longer participates in lighting.
-         Only the footer handoff yields the scene.
+         Footer exposure handoff is mobile-only.
       ==================================================== */
 
       this.exposureReveal =
