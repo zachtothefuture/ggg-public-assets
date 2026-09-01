@@ -1,8 +1,9 @@
 /* ==========================================================
    GGG LIGHTING SYSTEM
-   v1.1.0
+   v1.1.1
 
    PERFORMANCE PASS 01
+   + HIDDEN CHARACTER REVEAL
 
    VISUAL BEHAVIOR
    Preserves the approved v1.0.5 / 21B lighting direction,
@@ -23,6 +24,16 @@
    • ResizeObserver-driven geometry invalidation
    • Font/load geometry refresh
 
+   HIDDEN REVEAL
+
+   • Flashlight-triggered hidden messages
+   • Randomized character development
+   • 5-second hold
+   • Randomized disappearance
+   • Rearms after the light moves away
+   • Uses existing lighting RAF
+   • No secondary animation loop
+
    Enable per page with:
 
    window.GGG_LIGHTING_PAGE = { enabled: true };
@@ -32,6 +43,10 @@
    data-ggg-material="metal|paper|photo|glass|print|ink"
 
    or canonical GGG material classes.
+
+   Character reveal:
+
+   class="ggg-light-reveal ggg-light-reveal--characters"
 
    Runtime control:
 
@@ -104,6 +119,24 @@
 
     materialRootMargin:
       '300px',
+
+
+    /* Hidden light-reveal messages */
+
+    revealTriggerProximity:
+      .20,
+
+    revealResetProximity:
+      .08,
+
+    revealDuration:
+      1200,
+
+    revealHoldDuration:
+      5000,
+
+    revealHideDuration:
+      1200,
 
 
     /* Dust */
@@ -471,6 +504,14 @@
 
 
       /* ====================================================
+         HIDDEN LIGHT REVEALS
+      ==================================================== */
+
+      this.lightReveals =
+        [];
+
+
+      /* ====================================================
          CSS VARIABLE CACHES
       ==================================================== */
 
@@ -547,6 +588,8 @@
       this.createObservers();
 
       this.discoverMaterials();
+
+      this.prepareLightReveals();
 
       this.measureFooter();
 
@@ -954,6 +997,40 @@
       );
 
 
+      this.lightReveals.forEach(
+        reveal => {
+
+          reveal.characters.forEach(
+            character => {
+
+              character.visible =
+                false;
+
+
+              character.element
+                .classList.remove(
+                  'is-visible'
+                );
+
+            }
+          );
+
+
+          reveal.state =
+            'waiting';
+
+
+          reveal.armed =
+            true;
+
+
+          reveal.phaseStart =
+            0;
+
+        }
+      );
+
+
       this.dust.forEach(
         particle => {
 
@@ -979,9 +1056,6 @@
 
     /* ======================================================
        CSS VARIABLE WRITERS
-
-       Inline properties are only touched when the actual
-       serialized value has changed.
     ====================================================== */
 
     setVar(
@@ -1055,14 +1129,6 @@
         this.light
       );
 
-
-      /*
-        Legacy compatibility only.
-
-        Header exposure was removed in v1.0.4.
-        Keep the variable pinned to zero so older lighting
-        CSS cannot accidentally reveal the scene at the top.
-      */
 
       this.setVar(
         this.light,
@@ -1163,12 +1229,6 @@
 
                   }
 
-
-                  /*
-                    IntersectionObserver has already measured
-                    this element. Reuse that geometry instead
-                    of immediately asking layout for it again.
-                  */
 
                   this.cacheMaterialRect(
                     material,
@@ -1372,11 +1432,6 @@
       material.geometry.height =
         rect.height;
 
-
-      /*
-        fixed/sticky elements cannot safely derive viewport
-        position from document coordinates during scrolling.
-      */
 
       if (
         material.dynamicPosition
@@ -1691,12 +1746,6 @@
       );
 
 
-      /*
-        Initial measurement happens once during registration.
-        From here on normal-flow elements use cached document
-        geometry until layout is invalidated.
-      */
-
       this.measureMaterial(
         material
       );
@@ -1891,6 +1940,518 @@
         );
 
       }
+
+    }
+
+
+    /* ======================================================
+       HIDDEN LIGHT REVEALS
+    ====================================================== */
+
+    prepareLightReveals() {
+
+      document
+        .querySelectorAll(
+          '.ggg-light-reveal--characters'
+        )
+        .forEach(
+          element => {
+
+            const text =
+              element.textContent
+                .trim();
+
+
+            if (
+              !text
+            ) {
+
+              return;
+
+            }
+
+
+            element.setAttribute(
+              'aria-label',
+              text
+            );
+
+
+            element.textContent =
+              '';
+
+
+            const characters =
+              [];
+
+
+            Array.from(
+              text
+            ).forEach(
+              character => {
+
+                if (
+                  character === ' '
+                ) {
+
+                  const space =
+                    document.createElement(
+                      'span'
+                    );
+
+
+                  space.className =
+                    'ggg-light-reveal__space';
+
+
+                  space.setAttribute(
+                    'aria-hidden',
+                    'true'
+                  );
+
+
+                  space.textContent =
+                    ' ';
+
+
+                  element.appendChild(
+                    space
+                  );
+
+
+                  return;
+
+                }
+
+
+                const span =
+                  document.createElement(
+                    'span'
+                  );
+
+
+                span.className =
+                  'ggg-light-reveal__char';
+
+
+                span.setAttribute(
+                  'aria-hidden',
+                  'true'
+                );
+
+
+                span.textContent =
+                  character;
+
+
+                element.appendChild(
+                  span
+                );
+
+
+                characters.push({
+
+                  element:
+                    span,
+
+                  revealDelay:
+                    Math.random() *
+                    CONFIG.revealDuration,
+
+                  hideDelay:
+                    Math.random() *
+                    CONFIG.revealHideDuration,
+
+                  visible:
+                    false
+
+                });
+
+              }
+            );
+
+
+            const material =
+              this.materialMap.get(
+                element
+              ) ||
+              null;
+
+
+            this.lightReveals.push({
+
+              element,
+
+              material,
+
+              characters,
+
+              state:
+                'waiting',
+
+              armed:
+                true,
+
+              phaseStart:
+                0
+
+            });
+
+          }
+        );
+
+    }
+
+
+    /* ======================================================
+       LIGHT REVEAL STATE
+    ====================================================== */
+
+    updateLightReveals(
+      timestamp
+    ) {
+
+      if (
+        !this.lightReveals.length
+      ) {
+
+        return;
+
+      }
+
+
+      this.lightReveals.forEach(
+        reveal => {
+
+          const material =
+            reveal.material;
+
+
+          if (
+            !material
+          ) {
+
+            return;
+
+          }
+
+
+          const rect =
+            this.getMaterialRect(
+              material
+            );
+
+
+          if (
+            !rect.width ||
+            !rect.height
+          ) {
+
+            return;
+
+          }
+
+
+          const centerX =
+            rect.left +
+            rect.width /
+            2;
+
+
+          const centerY =
+            rect.top +
+            rect.height /
+            2;
+
+
+          const dx =
+            centerX -
+            this.lightX;
+
+
+          const dy =
+            centerY -
+            this.lightY;
+
+
+          const distance =
+            Math.sqrt(
+              dx * dx +
+              dy * dy
+            );
+
+
+          let proximity =
+            this.clamp(
+              1 -
+              distance /
+              800,
+              0,
+              1
+            );
+
+
+          proximity *=
+            this.frameExposure *
+            this.frameActive *
+            this.batteryStrength;
+
+
+          /* ==================================================
+             WAITING
+          ================================================== */
+
+          if (
+            reveal.state ===
+            'waiting'
+          ) {
+
+            if (
+              !reveal.armed
+            ) {
+
+              if (
+                proximity <=
+                CONFIG.revealResetProximity
+              ) {
+
+                reveal.armed =
+                  true;
+
+              }
+
+
+              return;
+
+            }
+
+
+            if (
+              proximity >=
+              CONFIG.revealTriggerProximity
+            ) {
+
+              reveal.state =
+                'revealing';
+
+
+              reveal.armed =
+                false;
+
+
+              reveal.phaseStart =
+                timestamp;
+
+
+              reveal.characters.forEach(
+                character => {
+
+                  character.revealDelay =
+                    this.reducedMotion
+                      ? 0
+                      : Math.random() *
+                        CONFIG.revealDuration;
+
+
+                  character.hideDelay =
+                    this.reducedMotion
+                      ? 0
+                      : Math.random() *
+                        CONFIG.revealHideDuration;
+
+
+                  character.visible =
+                    false;
+
+
+                  character.element
+                    .classList.remove(
+                      'is-visible'
+                    );
+
+                }
+              );
+
+            }
+
+
+            return;
+
+          }
+
+
+          /* ==================================================
+             REVEALING
+          ================================================== */
+
+          if (
+            reveal.state ===
+            'revealing'
+          ) {
+
+            const elapsed =
+              timestamp -
+              reveal.phaseStart;
+
+
+            reveal.characters.forEach(
+              character => {
+
+                if (
+                  !character.visible &&
+                  elapsed >=
+                  character.revealDelay
+                ) {
+
+                  character.visible =
+                    true;
+
+
+                  character.element
+                    .classList.add(
+                      'is-visible'
+                    );
+
+                }
+
+              }
+            );
+
+
+            const duration =
+              this.reducedMotion
+                ? 0
+                : CONFIG.revealDuration;
+
+
+            if (
+              elapsed >=
+              duration
+            ) {
+
+              reveal.state =
+                'holding';
+
+
+              reveal.phaseStart =
+                timestamp;
+
+            }
+
+
+            return;
+
+          }
+
+
+          /* ==================================================
+             HOLDING
+          ================================================== */
+
+          if (
+            reveal.state ===
+            'holding'
+          ) {
+
+            if (
+              timestamp -
+              reveal.phaseStart >=
+              CONFIG.revealHoldDuration
+            ) {
+
+              reveal.state =
+                'hiding';
+
+
+              reveal.phaseStart =
+                timestamp;
+
+            }
+
+
+            return;
+
+          }
+
+
+          /* ==================================================
+             HIDING
+          ================================================== */
+
+          if (
+            reveal.state ===
+            'hiding'
+          ) {
+
+            const elapsed =
+              timestamp -
+              reveal.phaseStart;
+
+
+            reveal.characters.forEach(
+              character => {
+
+                if (
+                  character.visible &&
+                  elapsed >=
+                  character.hideDelay
+                ) {
+
+                  character.visible =
+                    false;
+
+
+                  character.element
+                    .classList.remove(
+                      'is-visible'
+                    );
+
+                }
+
+              }
+            );
+
+
+            const duration =
+              this.reducedMotion
+                ? 0
+                : CONFIG.revealHideDuration;
+
+
+            if (
+              elapsed >=
+              duration
+            ) {
+
+              reveal.characters.forEach(
+                character => {
+
+                  character.visible =
+                    false;
+
+
+                  character.element
+                    .classList.remove(
+                      'is-visible'
+                    );
+
+                }
+              );
+
+
+              reveal.state =
+                'waiting';
+
+
+              reveal.phaseStart =
+                0;
+
+            }
+
+          }
+
+        }
+      );
 
     }
 
@@ -2162,13 +2723,6 @@
       }
 
 
-      /*
-        Cache scroll state for both desktop and mobile.
-
-        Desktop now uses this instead of repeatedly reading
-        window.scrollX / window.scrollY from the animation loop.
-      */
-
       window.addEventListener(
         'scroll',
 
@@ -2274,11 +2828,6 @@
       );
 
 
-      /*
-        A full resource load can shift image / font layout
-        after DOMContentLoaded.
-      */
-
       window.addEventListener(
         'load',
 
@@ -2299,12 +2848,6 @@
         }
       );
 
-
-      /*
-        Webfont completion can shift text without a traditional
-        resize event. Refresh cached document geometry once
-        fonts have settled.
-      */
 
       if (
         document.fonts &&
@@ -2332,13 +2875,6 @@
 
       }
 
-
-      /*
-        Stop all RAF work while the page is hidden.
-
-        When returning, re-sync geometry and motion state before
-        restarting so there is no giant velocity jump.
-      */
 
       document.addEventListener(
         'visibilitychange',
@@ -2532,10 +3068,6 @@
           1
         );
 
-
-      /*
-        Preserve approved 21B direction exactly.
-      */
 
       const x =
         normalizedX *
@@ -2734,17 +3266,6 @@
           dy * dy
         );
 
-
-      /*
-        Continuous softened direction vector.
-
-        Unlike a normalized direction, this naturally collapses
-        to 0,0 as the flashlight crosses directly over the
-        material.
-
-        This prevents high-contrast bevel and emboss treatments
-        from snapping from one side to the other.
-      */
 
       const maxOffset =
         20 *
@@ -4389,10 +4910,6 @@
       timestamp
     ) {
 
-      /*
-        The scheduled frame has now been consumed.
-      */
-
       this.rafId =
         null;
 
@@ -4549,14 +5066,6 @@
 
       /* ====================================================
          FOOTER STATE
-
-         Desktop:
-         The flashlight continues naturally through the
-         global footer.
-
-         Mobile:
-         The footer receives the existing exposure handoff
-         as the fixed light reaches the end of the page.
       ==================================================== */
 
       this.footerReveal =
@@ -4567,8 +5076,6 @@
 
       /* ====================================================
          MASTER EXPOSURE
-
-         Footer exposure handoff is mobile-only.
       ==================================================== */
 
       this.exposureReveal =
@@ -4577,9 +5084,6 @@
 
       /* ====================================================
          FRAME STATE
-
-         DOM/class queries that were previously repeated by
-         each subsystem are resolved once here.
       ==================================================== */
 
       this.frameActive =
@@ -4714,9 +5218,6 @@
 
       /* ====================================================
          MATERIALS
-
-         Only materials inside the observer's active region
-         participate in the per-frame response.
       ==================================================== */
 
       this.activeMaterials.forEach(
@@ -4727,6 +5228,16 @@
           );
 
         }
+      );
+
+
+      /* ====================================================
+         HIDDEN LIGHT REVEALS
+      ==================================================== */
+
+      this.updateLightReveals(
+        timestamp ||
+        0
       );
 
 
