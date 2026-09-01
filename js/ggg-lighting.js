@@ -1,6 +1,27 @@
 /* ==========================================================
    GGG LIGHTING SYSTEM
-   v1.0.5
+   v1.1.0
+
+   PERFORMANCE PASS 01
+
+   VISUAL BEHAVIOR
+   Preserves the approved v1.0.5 / 21B lighting direction,
+   material profiles, dust, battery behavior, mobile motion,
+   metal response, photo sheen and footer handoff.
+
+   PERFORMANCE CHANGES
+
+   • Cached material geometry
+   • Active-material Set
+   • WeakMap material lookup
+   • Cached viewport / scroll state
+   • Cached footer geometry
+   • Deduplicated CSS variable writes
+   • Single bound animation callback
+   • Animation pauses when disabled
+   • Animation pauses in hidden tabs
+   • ResizeObserver-driven geometry invalidation
+   • Font/load geometry refresh
 
    Enable per page with:
 
@@ -22,14 +43,27 @@
 (function () {
   'use strict';
 
-  const PAGE = window.GGG_LIGHTING_PAGE;
 
-  if (!PAGE || PAGE.enabled !== true) {
+  const PAGE =
+    window.GGG_LIGHTING_PAGE;
+
+
+  if (
+    !PAGE ||
+    PAGE.enabled !== true
+  ) {
+
     return;
+
   }
 
-  if (window.GGG_LIGHTING_ENGINE) {
+
+  if (
+    window.GGG_LIGHTING_ENGINE
+  ) {
+
     return;
+
   }
 
 
@@ -41,38 +75,64 @@
 
     /* Desktop optics */
 
-    followSpeed: .28,
-    velocitySmoothing: .18,
-    maxOpticalOffset: 8,
-    maxStretch: 18,
-    maxConeX: 145,
-    maxConeY: 105,
+    followSpeed:
+      .28,
+
+    velocitySmoothing:
+      .18,
+
+    maxOpticalOffset:
+      8,
+
+    maxStretch:
+      18,
+
+    maxConeX:
+      145,
+
+    maxConeY:
+      105,
 
 
     /* Material direction */
 
-    materialDirectionSoftness: 110,
+    materialDirectionSoftness:
+      110,
+
+
+    /* Material observation */
+
+    materialRootMargin:
+      '300px',
 
 
     /* Dust */
 
-    desktopDustCount: 42,
-    mobileDustCount: 20,
+    desktopDustCount:
+      42,
+
+    mobileDustCount:
+      20,
 
 
     /* Mobile resting behavior */
 
-    mobileBaseY: .43,
-    mobileMaxLag: 12,
+    mobileBaseY:
+      .43,
+
+    mobileMaxLag:
+      12,
 
 
     /* ======================================================
        MOBILE ENTRANCE
     ====================================================== */
 
-    headerLightStartY: .10,
+    headerLightStartY:
+      .10,
 
-    headerTravelDistance: 220,
+    headerTravelDistance:
+      220,
 
 
     /* ======================================================
@@ -82,8 +142,11 @@
     footerSelector:
       '.ggg-site-footer',
 
-    footerRevealStart: .95,
-    footerRevealEnd: .62
+    footerRevealStart:
+      .95,
+
+    footerRevealEnd:
+      .62
 
   };
 
@@ -95,39 +158,86 @@
   const PROFILES = {
 
     metal: {
-      depth: 1,
-      maxOpacity: .62,
-      blurScale: 1
+
+      depth:
+        1,
+
+      maxOpacity:
+        .62,
+
+      blurScale:
+        1
+
     },
+
 
     glass: {
-      depth: .48,
-      maxOpacity: .46,
-      blurScale: .90
+
+      depth:
+        .48,
+
+      maxOpacity:
+        .46,
+
+      blurScale:
+        .90
+
     },
+
 
     paper: {
-      depth: .28,
-      maxOpacity: .36,
-      blurScale: .85
+
+      depth:
+        .28,
+
+      maxOpacity:
+        .36,
+
+      blurScale:
+        .85
+
     },
+
 
     photo: {
-      depth: .34,
-      maxOpacity: .40,
-      blurScale: .88
+
+      depth:
+        .34,
+
+      maxOpacity:
+        .40,
+
+      blurScale:
+        .88
+
     },
+
 
     print: {
-      depth: .14,
-      maxOpacity: .24,
-      blurScale: .65
+
+      depth:
+        .14,
+
+      maxOpacity:
+        .24,
+
+      blurScale:
+        .65
+
     },
 
+
     ink: {
-      depth: .025,
-      maxOpacity: .09,
-      blurScale: .34
+
+      depth:
+        .025,
+
+      maxOpacity:
+        .09,
+
+      blurScale:
+        .34
+
     }
 
   };
@@ -135,7 +245,9 @@
 
   const VALID_TYPES =
     new Set(
-      Object.keys(PROFILES)
+      Object.keys(
+        PROFILES
+      )
     );
 
 
@@ -145,15 +257,45 @@
 
   const CLASS_RULES = [
 
-    ['.ggg-material-metal', 'metal'],
-    ['.ggg-material-paper', 'paper'],
-    ['.ggg-material-photo', 'photo'],
-    ['.ggg-material-glass', 'glass'],
-    ['.ggg-material-print', 'print'],
-    ['.ggg-material-ink', 'ink'],
+    [
+      '.ggg-material-metal',
+      'metal'
+    ],
 
-    ['.ggg-attachment', 'paper'],
-    ['.ggg-evidence-photo img', 'photo']
+    [
+      '.ggg-material-paper',
+      'paper'
+    ],
+
+    [
+      '.ggg-material-photo',
+      'photo'
+    ],
+
+    [
+      '.ggg-material-glass',
+      'glass'
+    ],
+
+    [
+      '.ggg-material-print',
+      'print'
+    ],
+
+    [
+      '.ggg-material-ink',
+      'ink'
+    ],
+
+    [
+      '.ggg-attachment',
+      'paper'
+    ],
+
+    [
+      '.ggg-evidence-photo img',
+      'photo'
+    ]
 
   ];
 
@@ -166,8 +308,21 @@
 
     constructor() {
 
+
+      /* ====================================================
+         ENGINE STATE
+      ==================================================== */
+
       this.enabled =
         true;
+
+
+      this.running =
+        false;
+
+
+      this.rafId =
+        null;
 
 
       this.mobile =
@@ -182,15 +337,41 @@
         ).matches;
 
 
+      /* ====================================================
+         CACHED VIEWPORT STATE
+      ==================================================== */
+
+      this.viewportWidth =
+        window.innerWidth;
+
+
+      this.viewportHeight =
+        window.innerHeight;
+
+
+      this.scrollX =
+        window.scrollX;
+
+
+      this.scrollY =
+        window.scrollY;
+
+
+      /* ====================================================
+         LIGHT STATE
+      ==================================================== */
+
       this.targetX =
-        window.innerWidth / 2;
+        this.viewportWidth /
+        2;
 
 
       this.targetY =
         this.mobile
-          ? window.innerHeight *
+          ? this.viewportHeight *
             CONFIG.headerLightStartY
-          : window.innerHeight / 2;
+          : this.viewportHeight /
+            2;
 
 
       this.lightX =
@@ -217,8 +398,12 @@
         0;
 
 
+      /* ====================================================
+         MOBILE STATE
+      ==================================================== */
+
       this.lastScrollY =
-        window.scrollY;
+        this.scrollY;
 
 
       this.scrollVelocity =
@@ -228,6 +413,10 @@
       this.mobileOffsetY =
         0;
 
+
+      /* ====================================================
+         BATTERY / EXPOSURE
+      ==================================================== */
 
       this.batteryStrength =
         1;
@@ -245,29 +434,101 @@
         0;
 
 
+      this.frameActive =
+        0;
+
+
+      this.frameExposure =
+        1;
+
+
+      /* ====================================================
+         MATERIAL COLLECTIONS
+      ==================================================== */
+
       this.materials =
         [];
+
+
+      this.activeMaterials =
+        new Set();
 
 
       this.materialElements =
         new WeakSet();
 
 
+      this.materialMap =
+        new WeakMap();
+
+
+      /* ====================================================
+         GENERATED EFFECTS
+      ==================================================== */
+
       this.dust =
         [];
 
 
-      this.running =
-        false;
+      /* ====================================================
+         CSS VARIABLE CACHES
+      ==================================================== */
+
+      this.lightVars =
+        Object.create(
+          null
+        );
 
 
-      this.batteryTimer =
+      /* ====================================================
+         OBSERVERS
+      ==================================================== */
+
+      this.intersectionObserver =
         null;
 
+
+      this.resizeObserver =
+        null;
+
+
+      /* ====================================================
+         FOOTER GEOMETRY
+      ==================================================== */
 
       this.footer =
         document.querySelector(
           CONFIG.footerSelector
+        );
+
+
+      this.footerGeometryDirty =
+        true;
+
+
+      this.footerDocTop =
+        0;
+
+
+      /* ====================================================
+         DOCUMENT STATE CACHE
+      ==================================================== */
+
+      this.documentLightingState =
+        null;
+
+
+      this.documentFooterState =
+        null;
+
+
+      /* ====================================================
+         BIND RAF ONCE
+      ==================================================== */
+
+      this.animate =
+        this.animate.bind(
+          this
         );
 
     }
@@ -283,13 +544,18 @@
 
       this.createLight();
 
+      this.createObservers();
+
       this.discoverMaterials();
+
+      this.measureFooter();
 
       this.createDust();
 
       this.bindEvents();
 
       this.scheduleBatteryEvent();
+
 
       this.running =
         true;
@@ -301,9 +567,7 @@
       this.emitState();
 
 
-      requestAnimationFrame(
-        this.animate.bind(this)
-      );
+      this.requestFrame();
 
     }
 
@@ -311,11 +575,67 @@
     cleanupGenerated() {
 
       document.querySelectorAll(
-        '.ggg-light, .ggg-metal-bloom, .ggg-metal-bevel, .ggg-photo-sheen'
+        [
+          '.ggg-light',
+          '.ggg-metal-bloom',
+          '.ggg-metal-bevel',
+          '.ggg-photo-sheen'
+        ].join(', ')
       ).forEach(
-        element =>
-          element.remove()
+        element => {
+
+          element.remove();
+
+        }
       );
+
+    }
+
+
+    /* ======================================================
+       FRAME CONTROL
+    ====================================================== */
+
+    requestFrame() {
+
+      if (
+        !this.running ||
+        !this.enabled ||
+        document.hidden ||
+        this.rafId !== null
+      ) {
+
+        return;
+
+      }
+
+
+      this.rafId =
+        requestAnimationFrame(
+          this.animate
+        );
+
+    }
+
+
+    cancelFrame() {
+
+      if (
+        this.rafId === null
+      ) {
+
+        return;
+
+      }
+
+
+      cancelAnimationFrame(
+        this.rafId
+      );
+
+
+      this.rafId =
+        null;
 
     }
 
@@ -366,9 +686,11 @@
           1;
 
 
-        this.light.style.setProperty(
+        this.setVar(
+          this.light,
+          this.lightVars,
           '--ggg-battery-strength',
-          1
+          '1'
         );
 
 
@@ -379,6 +701,9 @@
 
         this.light.style.display =
           'none';
+
+
+        this.cancelFrame();
 
 
         this.resetMaterialEffects();
@@ -395,7 +720,29 @@
         );
 
 
+        this.previousX =
+          this.targetX;
+
+
+        this.previousY =
+          this.targetY;
+
+
+        this.velocityX =
+          0;
+
+
+        this.velocityY =
+          0;
+
+
+        this.invalidateGeometry();
+
+
         this.scheduleBatteryEvent();
+
+
+        this.requestFrame();
 
       }
 
@@ -423,10 +770,14 @@
         new CustomEvent(
           'ggg:lighting-state',
           {
+
             detail: {
+
               enabled:
                 this.enabled
+
             }
+
           }
         )
       );
@@ -443,26 +794,55 @@
       if (
         !document.body
       ) {
+
         return;
+
       }
 
 
-      document.body.classList.toggle(
-        'ggg-lighting-enabled',
+      if (
+        this.documentLightingState !==
         this.enabled
-      );
+      ) {
+
+        document.body.classList.toggle(
+          'ggg-lighting-enabled',
+          this.enabled
+        );
 
 
-      document.body.classList.toggle(
-        'ggg-lighting-disabled',
-        !this.enabled
-      );
+        document.body.classList.toggle(
+          'ggg-lighting-disabled',
+          !this.enabled
+        );
 
 
-      document.body.classList.toggle(
-        'ggg-footer-revealed',
-        this.footerReveal >= .98
-      );
+        this.documentLightingState =
+          this.enabled;
+
+      }
+
+
+      const footerRevealed =
+        this.footerReveal >=
+        .98;
+
+
+      if (
+        this.documentFooterState !==
+        footerRevealed
+      ) {
+
+        document.body.classList.toggle(
+          'ggg-footer-revealed',
+          footerRevealed
+        );
+
+
+        this.documentFooterState =
+          footerRevealed;
+
+      }
 
     }
 
@@ -480,21 +860,52 @@
             0;
 
 
-          material.element.style.setProperty(
+          this.setMaterialVar(
+            material,
             '--ggg-light-shadow-opacity',
-            0
+            '0'
           );
 
 
-          material.element.style.setProperty(
+          this.setMaterialVar(
+            material,
             '--ggg-light-proximity',
-            0
+            '0'
           );
 
 
-          material.element.style.setProperty(
+          this.setMaterialVar(
+            material,
             '--ggg-light-glass',
-            0
+            '0'
+          );
+
+
+          this.setMaterialVar(
+            material,
+            '--ggg-light-from-left',
+            '0'
+          );
+
+
+          this.setMaterialVar(
+            material,
+            '--ggg-light-from-right',
+            '0'
+          );
+
+
+          this.setMaterialVar(
+            material,
+            '--ggg-light-from-top',
+            '0'
+          );
+
+
+          this.setMaterialVar(
+            material,
+            '--ggg-light-from-bottom',
+            '0'
           );
 
 
@@ -502,9 +913,11 @@
             material.bloom
           ) {
 
-            material.bloom.style.setProperty(
+            this.setVar(
+              material.bloom,
+              material.bloomVars,
               '--ggg-metal-opacity',
-              0
+              '0'
             );
 
           }
@@ -514,9 +927,11 @@
             material.bevel
           ) {
 
-            material.bevel.style.setProperty(
+            this.setVar(
+              material.bevel,
+              material.bevelVars,
               '--ggg-metal-bevel-opacity',
-              0
+              '0'
             );
 
           }
@@ -526,9 +941,11 @@
             material.sheen
           ) {
 
-            material.sheen.style.setProperty(
+            this.setVar(
+              material.sheen,
+              material.sheenVars,
               '--ggg-photo-opacity',
-              0
+              '0'
             );
 
           }
@@ -540,10 +957,73 @@
       this.dust.forEach(
         particle => {
 
-          particle.element.style.opacity =
-            0;
+          if (
+            particle.opacity !==
+            '0'
+          ) {
+
+            particle.opacity =
+              '0';
+
+
+            particle.element.style.opacity =
+              '0';
+
+          }
 
         }
+      );
+
+    }
+
+
+    /* ======================================================
+       CSS VARIABLE WRITERS
+
+       Inline properties are only touched when the actual
+       serialized value has changed.
+    ====================================================== */
+
+    setVar(
+      element,
+      cache,
+      property,
+      value
+    ) {
+
+      if (
+        cache[property] ===
+        value
+      ) {
+
+        return;
+
+      }
+
+
+      cache[property] =
+        value;
+
+
+      element.style.setProperty(
+        property,
+        value
+      );
+
+    }
+
+
+    setMaterialVar(
+      material,
+      property,
+      value
+    ) {
+
+      this.setVar(
+        material.element,
+        material.vars,
+        property,
+        value
       );
 
     }
@@ -584,9 +1064,11 @@
         CSS cannot accidentally reveal the scene at the top.
       */
 
-      this.light.style.setProperty(
+      this.setVar(
+        this.light,
+        this.lightVars,
         '--ggg-header-reveal',
-        0
+        '0'
       );
 
 
@@ -644,6 +1126,353 @@
         );
 
       }
+
+    }
+
+
+    /* ======================================================
+       OBSERVERS
+    ====================================================== */
+
+    createObservers() {
+
+      if (
+        'IntersectionObserver'
+        in window
+      ) {
+
+        this.intersectionObserver =
+          new IntersectionObserver(
+
+            entries => {
+
+              entries.forEach(
+                entry => {
+
+                  const material =
+                    this.materialMap.get(
+                      entry.target
+                    );
+
+
+                  if (
+                    !material
+                  ) {
+
+                    return;
+
+                  }
+
+
+                  /*
+                    IntersectionObserver has already measured
+                    this element. Reuse that geometry instead
+                    of immediately asking layout for it again.
+                  */
+
+                  this.cacheMaterialRect(
+                    material,
+                    entry.boundingClientRect
+                  );
+
+
+                  if (
+                    entry.isIntersecting
+                  ) {
+
+                    material.visible =
+                      true;
+
+
+                    this.activeMaterials.add(
+                      material
+                    );
+
+                  } else {
+
+                    material.visible =
+                      false;
+
+
+                    this.activeMaterials.delete(
+                      material
+                    );
+
+
+                    this.deactivateMaterial(
+                      material
+                    );
+
+                  }
+
+                }
+              );
+
+            },
+
+            {
+
+              rootMargin:
+                CONFIG.materialRootMargin
+
+            }
+
+          );
+
+      }
+
+
+      if (
+        'ResizeObserver'
+        in window
+      ) {
+
+        this.resizeObserver =
+          new ResizeObserver(
+            entries => {
+
+              let documentChanged =
+                false;
+
+
+              entries.forEach(
+                entry => {
+
+                  if (
+                    entry.target ===
+                    document.body
+                  ) {
+
+                    documentChanged =
+                      true;
+
+                    return;
+
+                  }
+
+
+                  if (
+                    entry.target ===
+                    this.footer
+                  ) {
+
+                    this.footerGeometryDirty =
+                      true;
+
+                  }
+
+
+                  const material =
+                    this.materialMap.get(
+                      entry.target
+                    );
+
+
+                  if (
+                    material
+                  ) {
+
+                    material.geometryDirty =
+                      true;
+
+                  }
+
+                }
+              );
+
+
+              if (
+                documentChanged
+              ) {
+
+                this.invalidateGeometry();
+
+              }
+
+            }
+          );
+
+
+        if (
+          document.body
+        ) {
+
+          this.resizeObserver.observe(
+            document.body
+          );
+
+        }
+
+
+        if (
+          this.footer
+        ) {
+
+          this.resizeObserver.observe(
+            this.footer
+          );
+
+        }
+
+      }
+
+    }
+
+
+    /* ======================================================
+       GEOMETRY INVALIDATION
+    ====================================================== */
+
+    invalidateGeometry() {
+
+      this.footerGeometryDirty =
+        true;
+
+
+      this.materials.forEach(
+        material => {
+
+          material.geometryDirty =
+            true;
+
+        }
+      );
+
+    }
+
+
+    cacheMaterialRect(
+      material,
+      rect
+    ) {
+
+      if (
+        !rect
+      ) {
+
+        return;
+
+      }
+
+
+      material.geometry.docLeft =
+        rect.left +
+        this.scrollX;
+
+
+      material.geometry.docTop =
+        rect.top +
+        this.scrollY;
+
+
+      material.geometry.width =
+        rect.width;
+
+
+      material.geometry.height =
+        rect.height;
+
+
+      /*
+        fixed/sticky elements cannot safely derive viewport
+        position from document coordinates during scrolling.
+      */
+
+      if (
+        material.dynamicPosition
+      ) {
+
+        material.geometry.viewportLeft =
+          rect.left;
+
+
+        material.geometry.viewportTop =
+          rect.top;
+
+      }
+
+
+      material.geometryDirty =
+        false;
+
+    }
+
+
+    measureMaterial(
+      material
+    ) {
+
+      const rect =
+        material.element
+          .getBoundingClientRect();
+
+
+      this.cacheMaterialRect(
+        material,
+        rect
+      );
+
+    }
+
+
+    getMaterialRect(
+      material
+    ) {
+
+      if (
+        material.dynamicPosition ||
+        material.geometryDirty
+      ) {
+
+        this.measureMaterial(
+          material
+        );
+
+      }
+
+
+      const geometry =
+        material.geometry;
+
+
+      const frameRect =
+        material.frameRect;
+
+
+      if (
+        material.dynamicPosition
+      ) {
+
+        frameRect.left =
+          geometry.viewportLeft;
+
+
+        frameRect.top =
+          geometry.viewportTop;
+
+      } else {
+
+        frameRect.left =
+          geometry.docLeft -
+          this.scrollX;
+
+
+        frameRect.top =
+          geometry.docTop -
+          this.scrollY;
+
+      }
+
+
+      frameRect.width =
+        geometry.width;
+
+
+      frameRect.height =
+        geometry.height;
+
+
+      return frameRect;
 
     }
 
@@ -732,31 +1561,118 @@
       );
 
 
+      const position =
+        window.getComputedStyle(
+          element
+        ).position;
+
+
       const material = {
 
         element,
+
         type,
 
         profile:
           PROFILES[type],
 
+
         visible:
+          !this.intersectionObserver,
+
+
+        dynamicPosition:
+          position === 'fixed' ||
+          position === 'sticky',
+
+
+        geometryDirty:
           true,
+
+
+        geometry: {
+
+          docLeft:
+            0,
+
+          docTop:
+            0,
+
+          viewportLeft:
+            0,
+
+          viewportTop:
+            0,
+
+          width:
+            0,
+
+          height:
+            0
+
+        },
+
+
+        frameRect: {
+
+          left:
+            0,
+
+          top:
+            0,
+
+          width:
+            0,
+
+          height:
+            0
+
+        },
+
+
+        vars:
+          Object.create(
+            null
+          ),
+
+
+        bloomVars:
+          Object.create(
+            null
+          ),
+
+
+        bevelVars:
+          Object.create(
+            null
+          ),
+
+
+        sheenVars:
+          Object.create(
+            null
+          ),
+
 
         strength:
           0,
 
+
         bevelStrength:
           0,
+
 
         hovered:
           false,
 
+
         bloom:
           null,
 
+
         bevel:
           null,
+
 
         sheen:
           null
@@ -764,56 +1680,50 @@
       };
 
 
+      this.materials.push(
+        material
+      );
+
+
+      this.materialMap.set(
+        element,
+        material
+      );
+
+
+      /*
+        Initial measurement happens once during registration.
+        From here on normal-flow elements use cached document
+        geometry until layout is invalidated.
+      */
+
+      this.measureMaterial(
+        material
+      );
+
+
       if (
-        'IntersectionObserver'
-        in window
+        this.intersectionObserver
       ) {
 
-        if (
-          !this.intersectionObserver
-        ) {
-
-          this.intersectionObserver =
-            new IntersectionObserver(
-
-              entries => {
-
-                entries.forEach(
-                  entry => {
-
-                    const found =
-                      this.materials.find(
-                        item =>
-                          item.element ===
-                          entry.target
-                      );
-
-
-                    if (
-                      found
-                    ) {
-
-                      found.visible =
-                        entry.isIntersecting;
-
-                    }
-
-                  }
-                );
-
-              },
-
-              {
-                rootMargin:
-                  '300px'
-              }
-
-            );
-
-        }
-
-
         this.intersectionObserver.observe(
+          element
+        );
+
+      } else {
+
+        this.activeMaterials.add(
+          material
+        );
+
+      }
+
+
+      if (
+        this.resizeObserver
+      ) {
+
+        this.resizeObserver.observe(
           element
         );
 
@@ -852,23 +1762,135 @@
 
         element.addEventListener(
           'pointerenter',
-          () =>
-            material.hovered = true
+          () => {
+
+            material.hovered =
+              true;
+
+          }
         );
 
 
         element.addEventListener(
           'pointerleave',
-          () =>
-            material.hovered = false
+          () => {
+
+            material.hovered =
+              false;
+
+          }
+        );
+
+      }
+
+    }
+
+
+    deactivateMaterial(
+      material
+    ) {
+
+      material.hovered =
+        false;
+
+
+      material.strength =
+        0;
+
+
+      material.bevelStrength =
+        0;
+
+
+      this.setMaterialVar(
+        material,
+        '--ggg-light-shadow-opacity',
+        '0'
+      );
+
+
+      this.setMaterialVar(
+        material,
+        '--ggg-light-proximity',
+        '0'
+      );
+
+
+      this.setMaterialVar(
+        material,
+        '--ggg-light-glass',
+        '0'
+      );
+
+
+      this.setMaterialVar(
+        material,
+        '--ggg-light-from-left',
+        '0'
+      );
+
+
+      this.setMaterialVar(
+        material,
+        '--ggg-light-from-right',
+        '0'
+      );
+
+
+      this.setMaterialVar(
+        material,
+        '--ggg-light-from-top',
+        '0'
+      );
+
+
+      this.setMaterialVar(
+        material,
+        '--ggg-light-from-bottom',
+        '0'
+      );
+
+
+      if (
+        material.bloom
+      ) {
+
+        this.setVar(
+          material.bloom,
+          material.bloomVars,
+          '--ggg-metal-opacity',
+          '0'
         );
 
       }
 
 
-      this.materials.push(
-        material
-      );
+      if (
+        material.bevel
+      ) {
+
+        this.setVar(
+          material.bevel,
+          material.bevelVars,
+          '--ggg-metal-bevel-opacity',
+          '0'
+        );
+
+      }
+
+
+      if (
+        material.sheen
+      ) {
+
+        this.setVar(
+          material.sheen,
+          material.sheenVars,
+          '--ggg-photo-opacity',
+          '0'
+        );
+
+      }
 
     }
 
@@ -881,6 +1903,36 @@
       material
     ) {
 
+      material.bloom =
+        document.createElement(
+          'div'
+        );
+
+
+      material.bloom.className =
+        'ggg-metal-bloom';
+
+
+      document.body.appendChild(
+        material.bloom
+      );
+
+
+      material.bevel =
+        document.createElement(
+          'div'
+        );
+
+
+      material.bevel.className =
+        'ggg-metal-bevel';
+
+
+      document.body.appendChild(
+        material.bevel
+      );
+
+
       const applyMask = () => {
 
         const element =
@@ -888,7 +1940,9 @@
 
 
         const image =
-          element.matches('img')
+          element.matches(
+            'img'
+          )
             ? element
             : element.querySelector(
                 'img'
@@ -924,48 +1978,22 @@
           '")';
 
 
-        material.bloom.style.setProperty(
+        this.setVar(
+          material.bloom,
+          material.bloomVars,
           '--ggg-metal-mask',
           mask
         );
 
 
-        material.bevel.style.setProperty(
+        this.setVar(
+          material.bevel,
+          material.bevelVars,
           '--ggg-metal-mask',
           mask
         );
 
       };
-
-
-      material.bloom =
-        document.createElement(
-          'div'
-        );
-
-
-      material.bloom.className =
-        'ggg-metal-bloom';
-
-
-      document.body.appendChild(
-        material.bloom
-      );
-
-
-      material.bevel =
-        document.createElement(
-          'div'
-        );
-
-
-      material.bevel.className =
-        'ggg-metal-bevel';
-
-
-      document.body.appendChild(
-        material.bevel
-      );
 
 
       applyMask();
@@ -988,9 +2016,23 @@
 
         image.addEventListener(
           'load',
-          applyMask,
+          () => {
+
+            applyMask();
+
+
+            material.geometryDirty =
+              true;
+
+
+            this.footerGeometryDirty =
+              true;
+
+          },
+
           {
-            once: true
+            once:
+              true
           }
         );
 
@@ -1076,14 +2118,17 @@
                 'is-active'
               );
 
+
+              this.requestFrame();
+
             }
 
           },
 
           {
-            passive: true
+            passive:
+              true
           }
-
         );
 
 
@@ -1098,8 +2143,12 @@
 
 
             this.materials.forEach(
-              material =>
-                material.hovered = false
+              material => {
+
+                material.hovered =
+                  false;
+
+              }
             );
 
 
@@ -1108,32 +2157,42 @@
             );
 
           }
-
         );
 
       }
 
 
-      if (
-        this.mobile
-      ) {
+      /*
+        Cache scroll state for both desktop and mobile.
 
-        window.addEventListener(
-          'scroll',
+        Desktop now uses this instead of repeatedly reading
+        window.scrollX / window.scrollY from the animation loop.
+      */
 
-          () => {
+      window.addEventListener(
+        'scroll',
 
-            const current =
-              window.scrollY;
+        () => {
 
+          const currentX =
+            window.scrollX;
+
+
+          const currentY =
+            window.scrollY;
+
+
+          if (
+            this.mobile
+          ) {
 
             const delta =
-              current -
+              currentY -
               this.lastScrollY;
 
 
             this.lastScrollY =
-              current;
+              currentY;
 
 
             this.scrollVelocity +=
@@ -1143,15 +2202,26 @@
               ) *
               .18;
 
-          },
-
-          {
-            passive: true
           }
 
-        );
 
-      }
+          this.scrollX =
+            currentX;
+
+
+          this.scrollY =
+            currentY;
+
+
+          this.requestFrame();
+
+        },
+
+        {
+          passive:
+            true
+        }
+      );
 
 
       window.addEventListener(
@@ -1159,22 +2229,175 @@
 
         () => {
 
+          this.viewportWidth =
+            window.innerWidth;
+
+
+          this.viewportHeight =
+            window.innerHeight;
+
+
+          this.scrollX =
+            window.scrollX;
+
+
+          this.scrollY =
+            window.scrollY;
+
+
+          this.lastScrollY =
+            this.scrollY;
+
+
           if (
             this.mobile
           ) {
 
             this.targetX =
-              window.innerWidth *
+              this.viewportWidth *
               .5;
 
           }
 
+
+          this.invalidateGeometry();
+
+
+          this.requestFrame();
+
         },
 
         {
-          passive: true
+          passive:
+            true
         }
+      );
 
+
+      /*
+        A full resource load can shift image / font layout
+        after DOMContentLoaded.
+      */
+
+      window.addEventListener(
+        'load',
+
+        () => {
+
+          this.invalidateGeometry();
+
+          this.requestFrame();
+
+        },
+
+        {
+          once:
+            true,
+
+          passive:
+            true
+        }
+      );
+
+
+      /*
+        Webfont completion can shift text without a traditional
+        resize event. Refresh cached document geometry once
+        fonts have settled.
+      */
+
+      if (
+        document.fonts &&
+        document.fonts.ready
+      ) {
+
+        document.fonts.ready.then(
+          () => {
+
+            if (
+              !this.running
+            ) {
+
+              return;
+
+            }
+
+
+            this.invalidateGeometry();
+
+            this.requestFrame();
+
+          }
+        );
+
+      }
+
+
+      /*
+        Stop all RAF work while the page is hidden.
+
+        When returning, re-sync geometry and motion state before
+        restarting so there is no giant velocity jump.
+      */
+
+      document.addEventListener(
+        'visibilitychange',
+
+        () => {
+
+          if (
+            document.hidden
+          ) {
+
+            this.cancelFrame();
+
+            return;
+
+          }
+
+
+          this.viewportWidth =
+            window.innerWidth;
+
+
+          this.viewportHeight =
+            window.innerHeight;
+
+
+          this.scrollX =
+            window.scrollX;
+
+
+          this.scrollY =
+            window.scrollY;
+
+
+          this.lastScrollY =
+            this.scrollY;
+
+
+          this.previousX =
+            this.targetX;
+
+
+          this.previousY =
+            this.targetY;
+
+
+          this.velocityX =
+            0;
+
+
+          this.velocityY =
+            0;
+
+
+          this.invalidateGeometry();
+
+
+          this.requestFrame();
+
+        }
       );
 
     }
@@ -1258,22 +2481,31 @@
       ) {
 
         return {
-          x: 0,
-          y: 14,
-          midX: 0,
-          midY: 7
+
+          x:
+            0,
+
+          y:
+            14,
+
+          midX:
+            0,
+
+          midY:
+            7
+
         };
 
       }
 
 
       const centerX =
-        window.innerWidth /
+        this.viewportWidth /
         2;
 
 
       const centerY =
-        window.innerHeight /
+        this.viewportHeight /
         2;
 
 
@@ -1318,13 +2550,16 @@
       return {
 
         x,
+
         y,
 
         midX:
-          x * .48,
+          x *
+          .48,
 
         midY:
-          y * .48
+          y *
+          .48
 
       };
 
@@ -1339,7 +2574,7 @@
 
       const scrollY =
         Math.max(
-          window.scrollY,
+          this.scrollY,
           0
         );
 
@@ -1350,6 +2585,40 @@
         0,
         1
       );
+
+    }
+
+
+    /* ======================================================
+       FOOTER GEOMETRY
+    ====================================================== */
+
+    measureFooter() {
+
+      if (
+        !this.footer
+      ) {
+
+        this.footerGeometryDirty =
+          false;
+
+        return;
+
+      }
+
+
+      const rect =
+        this.footer
+          .getBoundingClientRect();
+
+
+      this.footerDocTop =
+        rect.top +
+        this.scrollY;
+
+
+      this.footerGeometryDirty =
+        false;
 
     }
 
@@ -1369,13 +2638,22 @@
       }
 
 
-      const rect =
-        this.footer
-          .getBoundingClientRect();
+      if (
+        this.footerGeometryDirty
+      ) {
+
+        this.measureFooter();
+
+      }
+
+
+      const footerTop =
+        this.footerDocTop -
+        this.scrollY;
 
 
       const viewport =
-        window.innerHeight;
+        this.viewportHeight;
 
 
       const start =
@@ -1391,7 +2669,7 @@
       return this.clamp(
         (
           start -
-          rect.top
+          footerTop
         ) /
         (
           start -
@@ -1412,18 +2690,10 @@
       material
     ) {
 
-      if (
-        !material.visible
-      ) {
-
-        return;
-
-      }
-
-
       const rect =
-        material.element
-          .getBoundingClientRect();
+        this.getMaterialRect(
+          material
+        );
 
 
       if (
@@ -1483,7 +2753,8 @@
 
       const softenedDistance =
         Math.sqrt(
-          distance * distance +
+          distance *
+          distance +
           CONFIG.materialDirectionSoftness *
           CONFIG.materialDirectionSoftness
         );
@@ -1499,6 +2770,7 @@
         dy /
         softenedDistance *
         maxOffset;
+
 
       const directionX =
         dx /
@@ -1521,21 +2793,21 @@
         Math.max(
           -directionX,
           0
-      );
+        );
 
 
       const lightFromTop =
         Math.max(
-         directionY,
-         0
-      );
+          directionY,
+          0
+        );
 
 
       const lightFromBottom =
         Math.max(
           -directionY,
           0
-      );
+        );
 
 
       const blur =
@@ -1564,16 +2836,11 @@
 
 
       const active =
-        this.light.classList.contains(
-          'is-active'
-        )
-          ? 1
-          : 0;
+        this.frameActive;
 
 
       const exposure =
-        1 -
-        this.exposureReveal;
+        this.frameExposure;
 
 
       const opacity =
@@ -1616,34 +2883,39 @@
         );
 
 
-      material.element.style.setProperty(
+      this.setMaterialVar(
+        material,
         '--ggg-light-shadow-x',
         shadowX.toFixed(2) +
         'px'
       );
 
 
-      material.element.style.setProperty(
+      this.setMaterialVar(
+        material,
         '--ggg-light-shadow-y',
         shadowY.toFixed(2) +
         'px'
       );
 
 
-      material.element.style.setProperty(
+      this.setMaterialVar(
+        material,
         '--ggg-light-shadow-blur',
         blur.toFixed(2) +
         'px'
       );
 
 
-      material.element.style.setProperty(
+      this.setMaterialVar(
+        material,
         '--ggg-light-shadow-opacity',
         opacity.toFixed(3)
       );
 
 
-      material.element.style.setProperty(
+      this.setMaterialVar(
+        material,
         '--ggg-light-proximity',
         (
           proximity *
@@ -1652,7 +2924,8 @@
       );
 
 
-      material.element.style.setProperty(
+      this.setMaterialVar(
+        material,
         '--ggg-light-local-x',
         (
           localX *
@@ -1662,7 +2935,8 @@
       );
 
 
-      material.element.style.setProperty(
+      this.setMaterialVar(
+        material,
         '--ggg-light-local-y',
         (
           localY *
@@ -1671,7 +2945,9 @@
         '%'
       );
 
-      material.element.style.setProperty(
+
+      this.setMaterialVar(
+        material,
         '--ggg-light-from-left',
         (
           lightFromLeft *
@@ -1682,7 +2958,8 @@
       );
 
 
-      material.element.style.setProperty(
+      this.setMaterialVar(
+        material,
         '--ggg-light-from-right',
         (
           lightFromRight *
@@ -1693,7 +2970,8 @@
       );
 
 
-      material.element.style.setProperty(
+      this.setMaterialVar(
+        material,
         '--ggg-light-from-top',
         (
           lightFromTop *
@@ -1704,7 +2982,8 @@
       );
 
 
-      material.element.style.setProperty(
+      this.setMaterialVar(
+        material,
         '--ggg-light-from-bottom',
         (
           lightFromBottom *
@@ -1712,7 +2991,7 @@
           exposure *
           active
         ).toFixed(3)
-      ); 
+      );
 
 
       if (
@@ -1750,7 +3029,6 @@
 
         this.updateGlass(
           material,
-          rect,
           distance
         );
 
@@ -1819,16 +3097,11 @@
 
 
       const exposure =
-        1 -
-        this.exposureReveal;
+        this.frameExposure;
 
 
       const active =
-        this.light.classList.contains(
-          'is-active'
-        )
-          ? 1
-          : 0;
+        this.frameActive;
 
 
       let target =
@@ -1884,69 +3157,123 @@
         );
 
 
-      [
+      const leftValue =
+        rect.left.toFixed(2) +
+        'px';
+
+
+      const topValue =
+        rect.top.toFixed(2) +
+        'px';
+
+
+      const widthValue =
+        rect.width.toFixed(2) +
+        'px';
+
+
+      const heightValue =
+        rect.height.toFixed(2) +
+        'px';
+
+
+      this.setVar(
         material.bloom,
-        material.bevel
-
-      ].forEach(
-        layer => {
-
-          layer.style.setProperty(
-            '--ggg-metal-left',
-            rect.left +
-            'px'
-          );
-
-
-          layer.style.setProperty(
-            '--ggg-metal-top',
-            rect.top +
-            'px'
-          );
-
-
-          layer.style.setProperty(
-            '--ggg-metal-width',
-            rect.width +
-            'px'
-          );
-
-
-          layer.style.setProperty(
-            '--ggg-metal-height',
-            rect.height +
-            'px'
-          );
-
-        }
+        material.bloomVars,
+        '--ggg-metal-left',
+        leftValue
       );
 
 
-      material.bloom.style.setProperty(
+      this.setVar(
+        material.bloom,
+        material.bloomVars,
+        '--ggg-metal-top',
+        topValue
+      );
+
+
+      this.setVar(
+        material.bloom,
+        material.bloomVars,
+        '--ggg-metal-width',
+        widthValue
+      );
+
+
+      this.setVar(
+        material.bloom,
+        material.bloomVars,
+        '--ggg-metal-height',
+        heightValue
+      );
+
+
+      this.setVar(
+        material.bevel,
+        material.bevelVars,
+        '--ggg-metal-left',
+        leftValue
+      );
+
+
+      this.setVar(
+        material.bevel,
+        material.bevelVars,
+        '--ggg-metal-top',
+        topValue
+      );
+
+
+      this.setVar(
+        material.bevel,
+        material.bevelVars,
+        '--ggg-metal-width',
+        widthValue
+      );
+
+
+      this.setVar(
+        material.bevel,
+        material.bevelVars,
+        '--ggg-metal-height',
+        heightValue
+      );
+
+
+      this.setVar(
+        material.bloom,
+        material.bloomVars,
         '--ggg-metal-x',
         (
           20 +
           localX *
           60
-        ) +
+        ).toFixed(2) +
         '%'
       );
 
 
-      material.bloom.style.setProperty(
+      this.setVar(
+        material.bloom,
+        material.bloomVars,
         '--ggg-metal-y',
         (
           20 +
           localY *
           60
-        ) +
+        ).toFixed(2) +
         '%'
       );
 
 
-      material.bloom.style.setProperty(
+      this.setVar(
+        material.bloom,
+        material.bloomVars,
         '--ggg-metal-opacity',
-        material.strength.toFixed(3)
+        material.strength.toFixed(
+          3
+        )
       );
 
 
@@ -1999,31 +3326,39 @@
         .18;
 
 
-      material.bevel.style.setProperty(
+      this.setVar(
+        material.bevel,
+        material.bevelVars,
         '--ggg-metal-bevel-x',
         (
           50 -
           directionX *
           78
-        ) +
+        ).toFixed(2) +
         '%'
       );
 
 
-      material.bevel.style.setProperty(
+      this.setVar(
+        material.bevel,
+        material.bevelVars,
         '--ggg-metal-bevel-y',
         (
           50 -
           directionY *
           78
-        ) +
+        ).toFixed(2) +
         '%'
       );
 
 
-      material.bevel.style.setProperty(
+      this.setVar(
+        material.bevel,
+        material.bevelVars,
         '--ggg-metal-bevel-opacity',
-        material.bevelStrength.toFixed(3)
+        material.bevelStrength.toFixed(
+          3
+        )
       );
 
     }
@@ -2049,16 +3384,11 @@
 
 
       const exposure =
-        1 -
-        this.exposureReveal;
+        this.frameExposure;
 
 
       const active =
-        this.light.classList.contains(
-          'is-active'
-        )
-          ? 1
-          : 0;
+        this.frameActive;
 
 
       let target =
@@ -2114,57 +3444,73 @@
         );
 
 
-      material.sheen.style.setProperty(
+      this.setVar(
+        material.sheen,
+        material.sheenVars,
         '--ggg-photo-left',
-        rect.left +
+        rect.left.toFixed(2) +
         'px'
       );
 
 
-      material.sheen.style.setProperty(
+      this.setVar(
+        material.sheen,
+        material.sheenVars,
         '--ggg-photo-top',
-        rect.top +
+        rect.top.toFixed(2) +
         'px'
       );
 
 
-      material.sheen.style.setProperty(
+      this.setVar(
+        material.sheen,
+        material.sheenVars,
         '--ggg-photo-width',
-        rect.width +
+        rect.width.toFixed(2) +
         'px'
       );
 
 
-      material.sheen.style.setProperty(
+      this.setVar(
+        material.sheen,
+        material.sheenVars,
         '--ggg-photo-height',
-        rect.height +
+        rect.height.toFixed(2) +
         'px'
       );
 
 
-      material.sheen.style.setProperty(
+      this.setVar(
+        material.sheen,
+        material.sheenVars,
         '--ggg-photo-x',
         (
           localX *
           100
-        ) +
+        ).toFixed(2) +
         '%'
       );
 
 
-      material.sheen.style.setProperty(
+      this.setVar(
+        material.sheen,
+        material.sheenVars,
         '--ggg-photo-y',
         (
           localY *
           100
-        ) +
+        ).toFixed(2) +
         '%'
       );
 
 
-      material.sheen.style.setProperty(
+      this.setVar(
+        material.sheen,
+        material.sheenVars,
         '--ggg-photo-opacity',
-        material.strength.toFixed(3)
+        material.strength.toFixed(
+          3
+        )
       );
 
     }
@@ -2176,13 +3522,11 @@
 
     updateGlass(
       material,
-      rect,
       distance
     ) {
 
       const exposure =
-        1 -
-        this.exposureReveal;
+        this.frameExposure;
 
 
       const proximity =
@@ -2217,9 +3561,7 @@
 
       } else if (
         material.hovered &&
-        this.light.classList.contains(
-          'is-active'
-        )
+        this.frameActive
       ) {
 
         target =
@@ -2245,9 +3587,12 @@
         response;
 
 
-      material.element.style.setProperty(
+      this.setMaterialVar(
+        material,
         '--ggg-light-glass',
-        material.strength.toFixed(3)
+        material.strength.toFixed(
+          3
+        )
       );
 
     }
@@ -2335,15 +3680,19 @@
 
           element,
 
+
           x:
             Math.random() *
-            window.innerWidth,
+            this.viewportWidth,
+
 
           y:
             Math.random() *
-            window.innerHeight,
+            this.viewportHeight,
+
 
           depth,
+
 
           driftX:
             this.random(
@@ -2352,6 +3701,7 @@
             ) *
             depth,
 
+
           driftY:
             this.random(
               -.075,
@@ -2359,10 +3709,12 @@
             ) *
             depth,
 
+
           phase:
             Math.random() *
             Math.PI *
             2,
+
 
           shimmer:
             this.random(
@@ -2370,11 +3722,20 @@
               .0018
             ),
 
+
           brightness:
             this.random(
               .16,
               .78
-            )
+            ),
+
+
+          transform:
+            '',
+
+
+          opacity:
+            ''
 
         });
 
@@ -2424,16 +3785,11 @@
 
 
       const exposure =
-        1 -
-        this.exposureReveal;
+        this.frameExposure;
 
 
       const active =
-        this.light.classList.contains(
-          'is-active'
-        )
-          ? 1
-          : 0;
+        this.frameActive;
 
 
       this.dust.forEach(
@@ -2453,7 +3809,7 @@
           ) {
 
             particle.x =
-              window.innerWidth +
+              this.viewportWidth +
               20;
 
           }
@@ -2461,7 +3817,7 @@
 
           if (
             particle.x >
-            window.innerWidth +
+            this.viewportWidth +
             20
           ) {
 
@@ -2477,7 +3833,7 @@
           ) {
 
             particle.y =
-              window.innerHeight +
+              this.viewportHeight +
               20;
 
           }
@@ -2485,7 +3841,7 @@
 
           if (
             particle.y >
-            window.innerHeight +
+            this.viewportHeight +
             20
           ) {
 
@@ -2598,7 +3954,7 @@
             );
 
 
-          particle.element.style.transform =
+          const transform =
             'translate3d(' +
             renderX.toFixed(2) +
             'px,' +
@@ -2606,8 +3962,40 @@
             'px,0)';
 
 
-          particle.element.style.opacity =
-            opacity.toFixed(3);
+          if (
+            particle.transform !==
+            transform
+          ) {
+
+            particle.transform =
+              transform;
+
+
+            particle.element.style.transform =
+              transform;
+
+          }
+
+
+          const opacityValue =
+            opacity.toFixed(
+              3
+            );
+
+
+          if (
+            particle.opacity !==
+            opacityValue
+          ) {
+
+            particle.opacity =
+              opacityValue;
+
+
+            particle.element.style.opacity =
+              opacityValue;
+
+          }
 
         }
       );
@@ -2624,12 +4012,12 @@
     ) {
 
       const startY =
-        window.innerHeight *
+        this.viewportHeight *
         CONFIG.headerLightStartY;
 
 
       const restY =
-        window.innerHeight *
+        this.viewportHeight *
         CONFIG.mobileBaseY;
 
 
@@ -2672,7 +4060,7 @@
 
 
       this.targetX =
-        window.innerWidth *
+        this.viewportWidth *
         .5;
 
 
@@ -2724,10 +4112,17 @@
         strength;
 
 
-      this.light.style.setProperty(
+      this.setVar(
+        this.light,
+        this.lightVars,
         '--ggg-battery-strength',
-        strength
+        String(
+          strength
+        )
       );
+
+
+      this.requestFrame();
 
     }
 
@@ -2737,11 +4132,14 @@
     ) {
 
       return new Promise(
-        resolve =>
+        resolve => {
+
           setTimeout(
             resolve,
             ms
-          )
+          );
+
+        }
       );
 
     }
@@ -2968,8 +4366,11 @@
       this.batteryTimer =
         setTimeout(
 
-          () =>
-            this.batteryEvent(),
+          () => {
+
+            this.batteryEvent();
+
+          },
 
           2500 +
           Math.random() *
@@ -2988,22 +4389,19 @@
       timestamp
     ) {
 
+      /*
+        The scheduled frame has now been consumed.
+      */
+
+      this.rafId =
+        null;
+
+
       if (
-        !this.running
+        !this.running ||
+        !this.enabled ||
+        document.hidden
       ) {
-
-        return;
-
-      }
-
-
-      if (
-        !this.enabled
-      ) {
-
-        requestAnimationFrame(
-          this.animate.bind(this)
-        );
 
         return;
 
@@ -3157,9 +4555,6 @@
         this.getFooterReveal();
 
 
-      this.updateDocumentState();
-
-
       /* ====================================================
          MASTER EXPOSURE
 
@@ -3172,100 +4567,157 @@
 
 
       /* ====================================================
-         CSS VARIABLES
+         FRAME STATE
+
+         DOM/class queries that were previously repeated by
+         each subsystem are resolved once here.
       ==================================================== */
 
-      this.light.style.setProperty(
+      this.frameActive =
+        this.light.classList.contains(
+          'is-active'
+        )
+          ? 1
+          : 0;
+
+
+      this.frameExposure =
+        1 -
+        this.exposureReveal;
+
+
+      this.updateDocumentState();
+
+
+      /* ====================================================
+         LIGHT CSS VARIABLES
+      ==================================================== */
+
+      this.setVar(
+        this.light,
+        this.lightVars,
         '--ggg-light-x',
-        this.lightX +
+        this.lightX.toFixed(2) +
         'px'
       );
 
 
-      this.light.style.setProperty(
+      this.setVar(
+        this.light,
+        this.lightVars,
         '--ggg-light-y',
-        this.lightY +
+        this.lightY.toFixed(2) +
         'px'
       );
 
 
-      this.light.style.setProperty(
+      this.setVar(
+        this.light,
+        this.lightVars,
         '--ggg-optical-x',
-        opticalX +
+        opticalX.toFixed(2) +
         'px'
       );
 
 
-      this.light.style.setProperty(
+      this.setVar(
+        this.light,
+        this.lightVars,
         '--ggg-optical-y',
-        opticalY +
+        opticalY.toFixed(2) +
         'px'
       );
 
 
-      this.light.style.setProperty(
+      this.setVar(
+        this.light,
+        this.lightVars,
         '--ggg-cone-x',
-        cone.x +
+        cone.x.toFixed(2) +
         'px'
       );
 
 
-      this.light.style.setProperty(
+      this.setVar(
+        this.light,
+        this.lightVars,
         '--ggg-cone-y',
-        cone.y +
+        cone.y.toFixed(2) +
         'px'
       );
 
 
-      this.light.style.setProperty(
+      this.setVar(
+        this.light,
+        this.lightVars,
         '--ggg-mid-cone-x',
-        cone.midX +
+        cone.midX.toFixed(2) +
         'px'
       );
 
 
-      this.light.style.setProperty(
+      this.setVar(
+        this.light,
+        this.lightVars,
         '--ggg-mid-cone-y',
-        cone.midY +
+        cone.midY.toFixed(2) +
         'px'
       );
 
 
-      this.light.style.setProperty(
+      this.setVar(
+        this.light,
+        this.lightVars,
         '--ggg-beam-width',
-        beamWidth +
+        beamWidth.toFixed(2) +
         'px'
       );
 
 
-      this.light.style.setProperty(
+      this.setVar(
+        this.light,
+        this.lightVars,
         '--ggg-beam-height',
-        beamHeight +
+        beamHeight.toFixed(2) +
         'px'
       );
 
 
-      this.light.style.setProperty(
+      this.setVar(
+        this.light,
+        this.lightVars,
         '--ggg-footer-reveal',
-        this.footerReveal.toFixed(4)
+        this.footerReveal.toFixed(
+          4
+        )
       );
 
 
-      this.light.style.setProperty(
+      this.setVar(
+        this.light,
+        this.lightVars,
         '--ggg-exposure-reveal',
-        this.exposureReveal.toFixed(4)
+        this.exposureReveal.toFixed(
+          4
+        )
       );
 
 
       /* ====================================================
          MATERIALS
+
+         Only materials inside the observer's active region
+         participate in the per-frame response.
       ==================================================== */
 
-      this.materials.forEach(
-        material =>
+      this.activeMaterials.forEach(
+        material => {
+
           this.updateMaterialBase(
             material
-          )
+          );
+
+        }
       );
 
 
@@ -3282,9 +4734,11 @@
       );
 
 
-      requestAnimationFrame(
-        this.animate.bind(this)
-      );
+      /* ====================================================
+         NEXT FRAME
+      ==================================================== */
+
+      this.requestFrame();
 
     }
 
@@ -3319,7 +4773,8 @@
       'DOMContentLoaded',
       boot,
       {
-        once: true
+        once:
+          true
       }
     );
 
