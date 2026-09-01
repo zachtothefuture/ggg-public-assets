@@ -1133,6 +1133,11 @@
         this.light
       );
 
+      document.documentElement.classList.remove(
+        'ggg-lighting-boot'
+
+      ); 
+
 
       this.setVar(
         this.light,
