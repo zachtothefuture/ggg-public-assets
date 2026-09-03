@@ -1,10 +1,11 @@
 /* ==========================================================
    GGG LIGHTING SYSTEM
-   v1.2.0
+   v1.3.0
 
    PERFORMANCE PASS 03
    + ARCHIVE INDEX PROFILE CONSOLIDATION
    + HIDDEN CHARACTER REVEAL
+   + TEXT ENTRY LIGHTING SUSPENSION
 
    VISUAL BEHAVIOR
 
@@ -19,6 +20,27 @@
    • photo sheen on full-material pages
    • header / footer exposure behavior
    • hidden character reveals
+   • automatic suspension while entering text
+
+
+   TEXT ENTRY BEHAVIOR
+
+   While a text-entry control has focus:
+
+   • flashlight temporarily disappears
+   • animation loop pauses
+   • battery flicker pauses
+   • material effects reset
+   • dust pauses
+   • mobile keyboard viewport changes are tracked
+
+   When text entry ends:
+
+   • mobile browser viewport is allowed to settle
+   • visual viewport dimensions are remeasured
+   • material geometry is invalidated
+   • mobile light returns to its canonical resting position
+   • flashlight resumes without changing user preference
 
 
    PERFORMANCE ARCHITECTURE
@@ -53,7 +75,9 @@
    • Single bound animation callback
    • Animation pauses when disabled
    • Animation pauses in hidden tabs
+   • Animation pauses during text entry
    • ResizeObserver-driven geometry invalidation
+   • VisualViewport keyboard handling
    • Font/load geometry refresh
    • Material-update motion threshold
    • Hidden reveals skip non-visible materials
@@ -143,14 +167,6 @@
 
   /* ========================================================
      ARCHIVE INDEX RUNTIME MATERIALS
-
-     Archive Home now receives its moving illumination from
-     the global flashlight.
-
-     Only metal retains full per-element material response.
-
-     Character-reveal elements are also registered when
-     necessary so they retain geometry / visibility tracking.
   ======================================================== */
 
   const ARCHIVE_INDEX_RESPONSIVE_TYPES =
@@ -261,7 +277,16 @@
       .95,
 
     footerRevealEnd:
-      .62
+      .62,
+
+
+    /* Text-entry suspension */
+
+    desktopInputResumeDelay:
+      80,
+
+    mobileInputResumeDelay:
+      320
 
   };
 
@@ -416,6 +441,51 @@
 
 
   /* ========================================================
+     TEXT ENTRY LIGHTING SUSPENSION
+
+     Only controls that actually summon text entry are
+     included.
+
+     Radio buttons, checkboxes, file inputs and ordinary
+     buttons do not suspend lighting.
+  ======================================================== */
+
+  const TEXT_ENTRY_SELECTOR = [
+
+    'textarea',
+
+    '[contenteditable="true"]',
+
+    'input:not([type])',
+
+    'input[type="text"]',
+
+    'input[type="email"]',
+
+    'input[type="tel"]',
+
+    'input[type="url"]',
+
+    'input[type="search"]',
+
+    'input[type="password"]',
+
+    'input[type="number"]',
+
+    'input[type="date"]',
+
+    'input[type="datetime-local"]',
+
+    'input[type="month"]',
+
+    'input[type="time"]',
+
+    'input[type="week"]'
+
+  ].join(',');
+
+
+  /* ========================================================
      ENGINE
   ======================================================== */
 
@@ -440,6 +510,18 @@
         null;
 
 
+      /* ====================================================
+         TEXT INPUT SUSPENSION
+      ==================================================== */
+
+      this.inputSuspended =
+        false;
+
+
+      this.inputResumeTimer =
+        null;
+
+
       this.mobile =
         window.matchMedia(
           '(hover: none), (pointer: coarse)'
@@ -457,11 +539,15 @@
       ==================================================== */
 
       this.viewportWidth =
-        window.innerWidth;
+        window.visualViewport
+          ? window.visualViewport.width
+          : window.innerWidth;
 
 
       this.viewportHeight =
-        window.innerHeight;
+        window.visualViewport
+          ? window.visualViewport.height
+          : window.innerHeight;
 
 
       this.scrollX =
@@ -583,15 +669,6 @@
 
       /* ====================================================
          MATERIAL COLLECTIONS
-
-         materials
-         All runtime-registered materials. This includes
-         responsive materials and any non-responsive element
-         required for hidden-reveal geometry tracking.
-
-         activeMaterials
-         Only visible materials that actually consume live
-         lighting response.
       ==================================================== */
 
       this.materials =
@@ -778,6 +855,7 @@
       if (
         !this.running ||
         !this.enabled ||
+        this.inputSuspended ||
         document.hidden ||
         this.rafId !== null
       ) {
@@ -813,6 +891,312 @@
 
       this.rafId =
         null;
+
+    }
+
+
+    /* ======================================================
+       VIEWPORT SYNCHRONIZATION
+    ====================================================== */
+
+    syncViewportState() {
+
+      const viewport =
+        window.visualViewport;
+
+
+      this.viewportWidth =
+        viewport
+          ? viewport.width
+          : window.innerWidth;
+
+
+      this.viewportHeight =
+        viewport
+          ? viewport.height
+          : window.innerHeight;
+
+
+      this.scrollX =
+        window.scrollX;
+
+
+      this.scrollY =
+        window.scrollY;
+
+
+      this.lastScrollY =
+        this.scrollY;
+
+    }
+
+
+    /* ======================================================
+       TEXT ENTRY DETECTION
+    ====================================================== */
+
+    isTextEntryTarget(
+      target
+    ) {
+
+      return Boolean(
+        target &&
+        target.matches &&
+        target.matches(
+          TEXT_ENTRY_SELECTOR
+        )
+      );
+
+    }
+
+
+    /* ======================================================
+       SUSPEND FOR TEXT ENTRY
+    ====================================================== */
+
+    suspendForTextEntry() {
+
+      clearTimeout(
+        this.inputResumeTimer
+      );
+
+
+      this.inputResumeTimer =
+        null;
+
+
+      if (
+        this.inputSuspended
+      ) {
+
+        return;
+
+      }
+
+
+      this.inputSuspended =
+        true;
+
+
+      document.body.classList.add(
+        'ggg-lighting-input-active'
+      );
+
+
+      clearTimeout(
+        this.batteryTimer
+      );
+
+
+      this.batteryTimer =
+        null;
+
+
+      this.batteryStrength =
+        1;
+
+
+      this.setVar(
+        this.light,
+        this.lightVars,
+        '--ggg-battery-strength',
+        '1'
+      );
+
+
+      this.light.classList.remove(
+        'is-active'
+      );
+
+
+      this.light.style.display =
+        'none';
+
+
+      this.cancelFrame();
+
+
+      this.resetMaterialEffects();
+
+    }
+
+
+    /* ======================================================
+       RESUME AFTER TEXT ENTRY
+    ====================================================== */
+
+    resumeFromTextEntry() {
+
+      if (
+        !this.inputSuspended
+      ) {
+
+        return;
+
+      }
+
+
+      this.inputSuspended =
+        false;
+
+
+      document.body.classList.remove(
+        'ggg-lighting-input-active'
+      );
+
+
+      /*
+         Important for mobile browsers:
+
+         Measure after the keyboard / input accessory
+         viewport has had time to settle.
+      */
+
+      this.syncViewportState();
+
+
+      this.headerProgress =
+        this.getHeaderProgress();
+
+
+      if (
+        this.mobile
+      ) {
+
+        this.targetX =
+          this.viewportWidth *
+          .5;
+
+
+        const startY =
+          this.viewportHeight *
+          CONFIG.headerLightStartY;
+
+
+        const restY =
+          this.viewportHeight *
+          CONFIG.mobileBaseY;
+
+
+        this.targetY =
+          startY +
+          (
+            restY -
+            startY
+          ) *
+          this.headerProgress;
+
+
+        this.lightX =
+          this.targetX;
+
+
+        this.lightY =
+          this.targetY;
+
+
+        this.previousX =
+          this.targetX;
+
+
+        this.previousY =
+          this.targetY;
+
+
+        this.mobileOffsetY =
+          0;
+
+
+        this.scrollVelocity =
+          0;
+
+      } else {
+
+        this.previousX =
+          this.targetX;
+
+
+        this.previousY =
+          this.targetY;
+
+
+        this.velocityX =
+          0;
+
+
+        this.velocityY =
+          0;
+
+      }
+
+
+      this.invalidateGeometry();
+
+
+      this.light.style.removeProperty(
+        'display'
+      );
+
+
+      if (
+        this.enabled
+      ) {
+
+        this.light.classList.add(
+          'is-active'
+        );
+
+
+        this.scheduleBatteryEvent();
+
+
+        this.requestFrame();
+
+      }
+
+    }
+
+
+    /* ======================================================
+       DEFERRED INPUT RESUME
+    ====================================================== */
+
+    scheduleInputResume() {
+
+      clearTimeout(
+        this.inputResumeTimer
+      );
+
+
+      this.inputResumeTimer =
+        setTimeout(
+
+          () => {
+
+            const active =
+              document.activeElement;
+
+
+            if (
+              this.isTextEntryTarget(
+                active
+              )
+            ) {
+
+              return;
+
+            }
+
+
+            this.resumeFromTextEntry();
+
+          },
+
+          this.mobile
+            ? CONFIG.mobileInputResumeDelay
+            : CONFIG.desktopInputResumeDelay
+
+        );
 
     }
 
@@ -855,7 +1239,16 @@
         );
 
 
+        clearTimeout(
+          this.inputResumeTimer
+        );
+
+
         this.batteryTimer =
+          null;
+
+
+        this.inputResumeTimer =
           null;
 
 
@@ -886,6 +1279,19 @@
         this.resetMaterialEffects();
 
       } else {
+
+        if (
+          this.inputSuspended
+        ) {
+
+          this.updateDocumentState();
+
+          this.emitState();
+
+          return;
+
+        }
+
 
         this.light.style.removeProperty(
           'display'
@@ -954,7 +1360,10 @@
             detail: {
 
               enabled:
-                this.enabled
+                this.enabled,
+
+              inputSuspended:
+                this.inputSuspended
 
             }
 
@@ -1739,13 +2148,6 @@
       }
 
 
-      /* ====================================================
-         EXPLICIT STATIC SUBTREE
-
-         Anything inside data-ggg-light-static is completely
-         excluded from runtime material behavior.
-      ==================================================== */
-
       if (
         element.closest(
           '[data-ggg-light-static]'
@@ -1761,14 +2163,6 @@
         element
       );
 
-
-      /* ====================================================
-         CANONICAL MATERIAL CONTRACT
-
-         These remain present even when Archive Home chooses
-         not to register the element for live calculations.
-         Component CSS may depend on them.
-      ==================================================== */
 
       element.classList.add(
         'ggg-light-material'
@@ -1792,17 +2186,6 @@
           element
         );
 
-
-      /* ====================================================
-         ARCHIVE INDEX FAST PATH
-
-         Static Archive Home materials keep their semantic
-         material class/type but never enter the runtime
-         geometry, observer or animation systems.
-
-         A hidden character reveal is the exception because
-         it still requires geometry and visibility tracking.
-      ==================================================== */
 
       if (
         !respondsToLight &&
@@ -1984,10 +2367,6 @@
       }
 
 
-      /* ====================================================
-         GENERATED MATERIAL EFFECTS
-      ==================================================== */
-
       if (
         type ===
         'metal' &&
@@ -2013,10 +2392,6 @@
 
       }
 
-
-      /* ====================================================
-         GLASS POINTER RESPONSE
-      ==================================================== */
 
       if (
         type ===
@@ -2925,9 +3300,6 @@
 
     /* ======================================================
        PHOTO PREPARATION
-
-       Archive Home never reaches this method because photos
-       are non-responsive under the archive-index profile.
     ====================================================== */
 
     preparePhoto(
@@ -2957,6 +3329,63 @@
 
     bindEvents() {
 
+
+      /* ====================================================
+         FORM / TEXT ENTRY SUSPENSION
+      ==================================================== */
+
+      document.addEventListener(
+
+        'focusin',
+
+        event => {
+
+          if (
+            !this.isTextEntryTarget(
+              event.target
+            )
+          ) {
+
+            return;
+
+          }
+
+
+          this.suspendForTextEntry();
+
+        }
+
+      );
+
+
+      document.addEventListener(
+
+        'focusout',
+
+        event => {
+
+          if (
+            !this.isTextEntryTarget(
+              event.target
+            )
+          ) {
+
+            return;
+
+          }
+
+
+          this.scheduleInputResume();
+
+        }
+
+      );
+
+
+      /* ====================================================
+         RUNTIME TOGGLE
+      ==================================================== */
+
       window.addEventListener(
         'ggg:lighting-toggle',
 
@@ -2967,6 +3396,10 @@
         }
       );
 
+
+      /* ====================================================
+         DESKTOP POINTER
+      ==================================================== */
 
       if (
         !this.mobile
@@ -2996,7 +3429,8 @@
 
 
             if (
-              this.enabled
+              this.enabled &&
+              !this.inputSuspended
             ) {
 
               this.light.classList.add(
@@ -3047,6 +3481,10 @@
       }
 
 
+      /* ====================================================
+         DOCUMENT SCROLL
+      ==================================================== */
+
       window.addEventListener(
         'scroll',
 
@@ -3061,7 +3499,8 @@
 
 
           if (
-            this.mobile
+            this.mobile &&
+            !this.inputSuspended
           ) {
 
             const delta =
@@ -3080,6 +3519,11 @@
               ) *
               .18;
 
+          } else {
+
+            this.lastScrollY =
+              currentY;
+
           }
 
 
@@ -3094,7 +3538,13 @@
           this.resetMaterialFrameCache();
 
 
-          this.requestFrame();
+          if (
+            !this.inputSuspended
+          ) {
+
+            this.requestFrame();
+
+          }
 
         },
 
@@ -3105,29 +3555,16 @@
       );
 
 
+      /* ====================================================
+         LAYOUT VIEWPORT RESIZE
+      ==================================================== */
+
       window.addEventListener(
         'resize',
 
         () => {
 
-          this.viewportWidth =
-            window.innerWidth;
-
-
-          this.viewportHeight =
-            window.innerHeight;
-
-
-          this.scrollX =
-            window.scrollX;
-
-
-          this.scrollY =
-            window.scrollY;
-
-
-          this.lastScrollY =
-            this.scrollY;
+          this.syncViewportState();
 
 
           if (
@@ -3144,7 +3581,13 @@
           this.invalidateGeometry();
 
 
-          this.requestFrame();
+          if (
+            !this.inputSuspended
+          ) {
+
+            this.requestFrame();
+
+          }
 
         },
 
@@ -3155,12 +3598,96 @@
       );
 
 
+      /* ====================================================
+         VISUAL VIEWPORT
+
+         Mobile keyboards alter the visual viewport
+         independently from the layout viewport.
+      ==================================================== */
+
+      if (
+        window.visualViewport
+      ) {
+
+        window.visualViewport.addEventListener(
+
+          'resize',
+
+          () => {
+
+            this.syncViewportState();
+
+
+            this.invalidateGeometry();
+
+
+            if (
+              !this.inputSuspended
+            ) {
+
+              this.requestFrame();
+
+            }
+
+          },
+
+          {
+            passive:
+              true
+          }
+
+        );
+
+
+        window.visualViewport.addEventListener(
+
+          'scroll',
+
+          () => {
+
+            if (
+              this.inputSuspended
+            ) {
+
+              return;
+
+            }
+
+
+            this.syncViewportState();
+
+
+            this.invalidateGeometry();
+
+
+            this.requestFrame();
+
+          },
+
+          {
+            passive:
+              true
+          }
+
+        );
+
+      }
+
+
+      /* ====================================================
+         PAGE LOAD
+      ==================================================== */
+
       window.addEventListener(
         'load',
 
         () => {
 
+          this.syncViewportState();
+
+
           this.invalidateGeometry();
+
 
           this.requestFrame();
 
@@ -3175,6 +3702,10 @@
         }
       );
 
+
+      /* ====================================================
+         FONT LOAD
+      ==================================================== */
 
       if (
         document.fonts &&
@@ -3195,6 +3726,7 @@
 
             this.invalidateGeometry();
 
+
             this.requestFrame();
 
           }
@@ -3202,6 +3734,10 @@
 
       }
 
+
+      /* ====================================================
+         VISIBILITY
+      ==================================================== */
 
       document.addEventListener(
         'visibilitychange',
@@ -3219,24 +3755,7 @@
           }
 
 
-          this.viewportWidth =
-            window.innerWidth;
-
-
-          this.viewportHeight =
-            window.innerHeight;
-
-
-          this.scrollX =
-            window.scrollX;
-
-
-          this.scrollY =
-            window.scrollY;
-
-
-          this.lastScrollY =
-            this.scrollY;
+          this.syncViewportState();
 
 
           this.previousX =
@@ -3258,7 +3777,13 @@
           this.invalidateGeometry();
 
 
-          this.requestFrame();
+          if (
+            !this.inputSuspended
+          ) {
+
+            this.requestFrame();
+
+          }
 
         }
       );
@@ -5091,7 +5616,8 @@
     async batteryEvent() {
 
       if (
-        !this.enabled
+        !this.enabled ||
+        this.inputSuspended
       ) {
 
         return;
@@ -5295,7 +5821,8 @@
 
 
       if (
-        !this.enabled
+        !this.enabled ||
+        this.inputSuspended
       ) {
 
         this.batteryTimer =
@@ -5339,6 +5866,7 @@
       if (
         !this.running ||
         !this.enabled ||
+        this.inputSuspended ||
         document.hidden
       ) {
 
@@ -5640,9 +6168,6 @@
 
       /* ====================================================
          RESPONSIVE MATERIALS ONLY
-
-         On Archive Home this Set normally contains only
-         visible metal materials.
       ==================================================== */
 
       if (
