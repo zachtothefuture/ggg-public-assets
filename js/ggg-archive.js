@@ -1,11 +1,16 @@
 /* ==========================================================
    GGG ARCHIVE — DATA API
 
-   Shared client-side interface for the Guild Archive graph.
+   VERSION
+   v1.1 — Archive Home Data
+
+   Shared client-side interface for the Guild Archive graph
+   and Archive Home editorial configuration.
 
    Public data sources:
    • archive-records.json
    • archive-relationships.json
+   • archive-home.json
 
    Provides:
    • init()
@@ -14,6 +19,7 @@
    • getRelatedRecords()
    • getOutgoingRelationships()
    • getIncomingRelationships()
+   • getHomeConfig()
 ========================================================== */
 
 
@@ -50,7 +56,10 @@
       `${DATA_BASE}/archive-records.json`,
 
     relationships:
-      `${DATA_BASE}/archive-relationships.json`
+      `${DATA_BASE}/archive-relationships.json`,
+
+    home:
+      `${DATA_BASE}/archive-home.json`
 
   };
 
@@ -74,6 +83,9 @@
 
   let relationships =
     [];
+
+  let homeConfig =
+    {};
 
 
 
@@ -166,6 +178,10 @@
 
           loadJSON(
             DATA_URLS.relationships
+          ),
+
+          loadJSON(
+            DATA_URLS.home
           )
 
         ])
@@ -173,7 +189,8 @@
           function (
             [
               recordManifest,
-              relationshipManifest
+              relationshipManifest,
+              homeManifest
             ]
           ) {
 
@@ -191,6 +208,10 @@
               )
                 ? relationshipManifest.relationships
                 : [];
+
+
+            homeConfig =
+              homeManifest || {};
 
 
             initialized =
@@ -502,6 +523,26 @@
           }
         )
         .filter(Boolean);
+
+    };
+
+
+
+  /* ========================================================
+     ARCHIVE HOME CONFIGURATION
+
+     Returns editorial configuration for Archive Home.
+
+     This file contains presentation decisions such as:
+     • Featured Investigation
+     • Open Investigations
+     • Recent Activity
+  ======================================================== */
+
+  archive.getHomeConfig =
+    function () {
+
+      return homeConfig;
 
     };
 
