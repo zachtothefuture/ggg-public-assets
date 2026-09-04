@@ -2,7 +2,7 @@
    GGG ARCHIVE HOME — RENDERER
 
    VERSION
-   v1.4
+   v1.5
 
    COMPONENTS
    • Featured Investigation
@@ -10,6 +10,7 @@
    • Search the Archive
    • Latest Records
    • Collections
+   • Open Investigations
 
    PURPOSE
    Renders Archive Home components from the shared Archive
@@ -950,11 +951,6 @@
       window.GGG.archive.getAllRecords();
 
 
-
-    /* ======================================================
-       COUNT RECORDS BY COLLECTION
-    ====================================================== */
-
     const collectionCounts =
       Object.values(records)
         .reduce(function (
@@ -1002,11 +998,6 @@
         }, {});
 
 
-
-    /* ======================================================
-       SORT COLLECTIONS
-    ====================================================== */
-
     const collections =
       Object.keys(
         collectionCounts
@@ -1022,11 +1013,6 @@
 
     grid.replaceChildren();
 
-
-
-    /* ======================================================
-       RENDER COLLECTIONS
-    ====================================================== */
 
     collections.forEach(
       function (collection) {
@@ -1055,10 +1041,6 @@
 
 
 
-        /* ==================================================
-           LABEL
-        ================================================== */
-
         const label =
           createElement(
             'span',
@@ -1071,10 +1053,6 @@
           collection;
 
 
-
-        /* ==================================================
-           ARROW
-        ================================================== */
 
         const arrow =
           createElement(
@@ -1091,11 +1069,6 @@
           'true'
         );
 
-
-
-        /* ==================================================
-           ACCESSIBILITY
-        ================================================== */
 
         const count =
           collectionCounts[
@@ -1115,11 +1088,6 @@
           )
         );
 
-
-
-        /* ==================================================
-           ASSEMBLE
-        ================================================== */
 
         link.append(
           label,
@@ -1145,6 +1113,174 @@
 
 
   /* ========================================================
+     OPEN INVESTIGATIONS
+  ======================================================== */
+
+  function renderOpenInvestigations() {
+
+    const section =
+      document.querySelector(
+        '[data-ggg-open-investigations]'
+      );
+
+
+    if (!section) {
+
+      return;
+
+    }
+
+
+    const container =
+      section.querySelector(
+        '[data-ggg-open-records]'
+      );
+
+
+    if (!container) {
+
+      return;
+
+    }
+
+
+    const home =
+      window.GGG.archive.getHomeConfig();
+
+
+    const investigations =
+      home &&
+      Array.isArray(
+        home.openInvestigations
+      )
+        ? home.openInvestigations
+        : [];
+
+
+    container.replaceChildren();
+
+
+    investigations.forEach(
+      function (investigation) {
+
+        if (
+          !investigation ||
+          !investigation.question ||
+          !investigation.record
+        ) {
+
+          return;
+
+        }
+
+
+        const recordId =
+          investigation.record;
+
+
+        const record =
+          window.GGG.archive.getRecord(
+            recordId
+          );
+
+
+        if (!record) {
+
+          console.warn(
+            'GGG Archive Home: Open Investigation record not found:',
+            recordId
+          );
+
+          return;
+
+        }
+
+
+        const link =
+          createElement(
+            'a',
+            'ggg-archive-home-open__record'
+          );
+
+
+        link.dataset.recordId =
+          recordId;
+
+
+        if (record.url) {
+
+          link.href =
+            record.url;
+
+        }
+        else {
+
+          link.href =
+            '#';
+
+        }
+
+
+
+        const question =
+          createElement(
+            'span',
+            '',
+            'ink'
+          );
+
+
+        question.textContent =
+          investigation.question;
+
+
+
+        const arrow =
+          createElement(
+            'span'
+          );
+
+
+        arrow.textContent =
+          '→';
+
+
+        arrow.setAttribute(
+          'aria-hidden',
+          'true'
+        );
+
+
+        link.append(
+          question,
+          arrow
+        );
+
+
+        container.appendChild(
+          link
+        );
+
+      }
+    );
+
+
+    console.log(
+      'GGG Archive Home: Open Investigations loaded',
+      investigations.map(
+        function (investigation) {
+
+          return investigation.record;
+
+        }
+      )
+    );
+
+  }
+
+
+
+  /* ========================================================
      RENDER ARCHIVE HOME
   ======================================================== */
 
@@ -1159,6 +1295,8 @@
     renderLatestRecords();
 
     renderCollections();
+
+    renderOpenInvestigations();
 
   }
 
