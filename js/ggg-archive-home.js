@@ -2,7 +2,7 @@
    GGG ARCHIVE HOME — RENDERER
 
    VERSION
-   v1.7
+   v1.8
 
    COMPONENTS
    • Featured Investigation
@@ -13,6 +13,10 @@
    • Open Investigations
    • Recent Activity
    • Archive Statistics
+
+   INTERACTIONS
+   • Browse → Search Results
+   • Collections → Search Results
 
    PURPOSE
    Renders Archive Home components from the shared Archive
@@ -136,6 +140,55 @@
 
 
 
+  function normalizeSearchValue(value) {
+
+    return String(
+      value || ''
+    )
+      .trim()
+      .toLowerCase();
+
+  }
+
+
+
+  function formatArchiveDate(value) {
+
+    if (
+      !value ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(value)
+    ) {
+
+      return value || '';
+
+    }
+
+
+    const parts =
+      value.split('-');
+
+
+    const date =
+      new Date(
+        Number(parts[0]),
+        Number(parts[1]) - 1,
+        Number(parts[2])
+      );
+
+
+    return date.toLocaleDateString(
+      'en-US',
+      {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+      }
+    );
+
+  }
+
+
+
   function createRecordCard(
     recordId,
     record
@@ -236,50 +289,114 @@
 
 
 
-  function normalizeSearchValue(value) {
+  /* ========================================================
+     SHARED SEARCH RESULTS
+  ======================================================== */
 
-    return String(
-      value || ''
-    )
-      .trim()
-      .toLowerCase();
+  function getSearchElements() {
+
+    const section =
+      document.querySelector(
+        '[data-ggg-archive-search]'
+      );
+
+
+    if (!section) {
+
+      return null;
+
+    }
+
+
+    return {
+
+      section:
+        section,
+
+      form:
+        section.querySelector(
+          '[data-ggg-search-form]'
+        ),
+
+      input:
+        section.querySelector(
+          '[data-ggg-search-input]'
+        ),
+
+      results:
+        section.querySelector(
+          '[data-ggg-search-results]'
+        )
+
+    };
 
   }
 
 
 
-  function formatArchiveDate(value) {
+  function renderSearchResults(entries) {
+
+    const search =
+      getSearchElements();
+
 
     if (
-      !value ||
-      !/^\d{4}-\d{2}-\d{2}$/.test(value)
+      !search ||
+      !search.results
     ) {
 
-      return value || '';
+      return;
 
     }
 
 
-    const parts =
-      value.split('-');
+    search.results.replaceChildren();
 
 
-    const date =
-      new Date(
-        Number(parts[0]),
-        Number(parts[1]) - 1,
-        Number(parts[2])
-      );
+    entries.forEach(
+      function (entry) {
 
+        search.results.appendChild(
+          createRecordCard(
+            entry[0],
+            entry[1]
+          )
+        );
 
-    return date.toLocaleDateString(
-      'en-US',
-      {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric'
       }
     );
+
+
+    search.results.hidden =
+      false;
+
+  }
+
+
+
+  function scrollToSearch() {
+
+    const search =
+      getSearchElements();
+
+
+    if (
+      !search ||
+      !search.section
+    ) {
+
+      return;
+
+    }
+
+
+    search.section.scrollIntoView({
+      behavior:
+        'smooth',
+
+      block:
+        'start'
+    });
 
   }
 
@@ -626,47 +743,156 @@
 
 
 
-  /* ========================================================
-     SEARCH THE ARCHIVE
-  ======================================================== */
+  function initBrowseInteraction() {
 
-  function initSearch() {
-
-    const section =
+    const navigation =
       document.querySelector(
-        '[data-ggg-archive-search]'
+        '[data-ggg-browse-types]'
       );
 
 
-    if (!section) {
+    if (!navigation) {
 
       return;
 
     }
 
 
-    const form =
-      section.querySelector(
-        '[data-ggg-search-form]'
-      );
+    navigation.addEventListener(
+      'click',
+      function (event) {
+
+        const link =
+          event.target.closest(
+            '[data-ggg-browse-type]'
+          );
 
 
-    const input =
-      section.querySelector(
-        '[data-ggg-search-input]'
-      );
+        if (
+          !link ||
+          !navigation.contains(link)
+        ) {
+
+          return;
+
+        }
 
 
-    const results =
-      section.querySelector(
-        '[data-ggg-search-results]'
-      );
+        event.preventDefault();
+
+
+        const type =
+          link.dataset.gggBrowseType;
+
+
+        const records =
+          window.GGG.archive.getAllRecords();
+
+
+        let matches =
+          Object.entries(records);
+
+
+        if (
+          type &&
+          type !== 'all'
+        ) {
+
+          matches =
+            matches.filter(
+              function (entry) {
+
+                return (
+                  entry[1] &&
+                  entry[1].type ===
+                    type
+                );
+
+              }
+            );
+
+        }
+
+
+        matches.sort(
+          function (a, b) {
+
+            return normalizeSearchValue(
+              a[1] &&
+              a[1].title
+            ).localeCompare(
+              normalizeSearchValue(
+                b[1] &&
+                b[1].title
+              )
+            );
+
+          }
+        );
+
+
+        const search =
+          getSearchElements();
+
+
+        if (
+          search &&
+          search.input
+        ) {
+
+          search.input.value =
+            '';
+
+        }
+
+
+        renderSearchResults(
+          matches
+        );
+
+
+        scrollToSearch();
+
+
+        console.log(
+          'GGG Archive Home: Browse filter',
+          type,
+          matches.map(
+            function (entry) {
+
+              return entry[0];
+
+            }
+          )
+        );
+
+      }
+    );
+
+
+    console.log(
+      'GGG Archive Home: Browse interaction ready'
+    );
+
+  }
+
+
+
+  /* ========================================================
+     SEARCH THE ARCHIVE
+  ======================================================== */
+
+  function initSearch() {
+
+    const search =
+      getSearchElements();
 
 
     if (
-      !form ||
-      !input ||
-      !results
+      !search ||
+      !search.form ||
+      !search.input ||
+      !search.results
     ) {
 
       return;
@@ -678,7 +904,7 @@
       window.GGG.archive.getAllRecords();
 
 
-    form.addEventListener(
+    search.form.addEventListener(
       'submit',
       function (event) {
 
@@ -687,15 +913,15 @@
 
         const query =
           normalizeSearchValue(
-            input.value
+            search.input.value
           );
 
 
         if (!query) {
 
-          results.replaceChildren();
+          search.results.replaceChildren();
 
-          results.hidden =
+          search.results.hidden =
             true;
 
           return;
@@ -750,46 +976,22 @@
 
             .sort(function (a, b) {
 
-              const titleA =
-                normalizeSearchValue(
-                  a[1] &&
-                  a[1].title
-                );
-
-
-              const titleB =
+              return normalizeSearchValue(
+                a[1] &&
+                a[1].title
+              ).localeCompare(
                 normalizeSearchValue(
                   b[1] &&
                   b[1].title
-                );
-
-
-              return titleA.localeCompare(
-                titleB
+                )
               );
 
             });
 
 
-        results.replaceChildren();
-
-
-        matches.forEach(
-          function (entry) {
-
-            results.appendChild(
-              createRecordCard(
-                entry[0],
-                entry[1]
-              )
-            );
-
-          }
+        renderSearchResults(
+          matches
         );
-
-
-        results.hidden =
-          false;
 
 
         console.log(
@@ -1121,6 +1323,127 @@
 
 
 
+  function initCollectionInteraction() {
+
+    const grid =
+      document.querySelector(
+        '[data-ggg-collections-grid]'
+      );
+
+
+    if (!grid) {
+
+      return;
+
+    }
+
+
+    grid.addEventListener(
+      'click',
+      function (event) {
+
+        const link =
+          event.target.closest(
+            '[data-ggg-collection]'
+          );
+
+
+        if (
+          !link ||
+          !grid.contains(link)
+        ) {
+
+          return;
+
+        }
+
+
+        event.preventDefault();
+
+
+        const collection =
+          link.dataset.gggCollection;
+
+
+        const records =
+          window.GGG.archive.getAllRecords();
+
+
+        const matches =
+          Object.entries(records)
+
+            .filter(function (entry) {
+
+              return (
+                entry[1] &&
+                entry[1].collection ===
+                  collection
+              );
+
+            })
+
+            .sort(function (a, b) {
+
+              return normalizeSearchValue(
+                a[1] &&
+                a[1].title
+              ).localeCompare(
+                normalizeSearchValue(
+                  b[1] &&
+                  b[1].title
+                )
+              );
+
+            });
+
+
+        const search =
+          getSearchElements();
+
+
+        if (
+          search &&
+          search.input
+        ) {
+
+          search.input.value =
+            '';
+
+        }
+
+
+        renderSearchResults(
+          matches
+        );
+
+
+        scrollToSearch();
+
+
+        console.log(
+          'GGG Archive Home: Collection filter',
+          collection,
+          matches.map(
+            function (entry) {
+
+              return entry[0];
+
+            }
+          )
+        );
+
+      }
+    );
+
+
+    console.log(
+      'GGG Archive Home: Collection interaction ready'
+    );
+
+  }
+
+
+
   /* ========================================================
      OPEN INVESTIGATIONS
   ======================================================== */
@@ -1400,7 +1723,6 @@
           recordId;
 
 
-
         const time =
           createElement(
             'time',
@@ -1419,7 +1741,6 @@
           );
 
 
-
         const activityType =
           createElement(
             'span',
@@ -1430,7 +1751,6 @@
 
         activityType.textContent =
           entry.type;
-
 
 
         const link =
@@ -1449,7 +1769,6 @@
         link.href =
           record.url ||
           '#';
-
 
 
         row.append(
@@ -1519,11 +1838,6 @@
     const recordList =
       Object.values(records);
 
-
-
-    /* ======================================================
-       CALCULATE STATISTICS
-    ====================================================== */
 
     const totalRecords =
       recordList.length;
@@ -1616,11 +1930,6 @@
         : 0;
 
 
-
-    /* ======================================================
-       STATISTIC DEFINITIONS
-    ====================================================== */
-
     const statistics =
       [
 
@@ -1693,11 +2002,6 @@
       ];
 
 
-
-    /* ======================================================
-       RENDER
-    ====================================================== */
-
     grid.replaceChildren();
 
 
@@ -1710,7 +2014,6 @@
           );
 
 
-
         const term =
           createElement(
             'dt',
@@ -1721,7 +2024,6 @@
 
         term.textContent =
           statistic.label;
-
 
 
         const value =
@@ -1738,7 +2040,6 @@
           );
 
 
-
         const description =
           createElement(
             'span',
@@ -1749,7 +2050,6 @@
 
         description.textContent =
           statistic.description;
-
 
 
         item.append(
@@ -1815,6 +2115,11 @@
     renderRecentActivity();
 
     renderStatistics();
+
+
+    initBrowseInteraction();
+
+    initCollectionInteraction();
 
   }
 
