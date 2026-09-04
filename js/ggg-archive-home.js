@@ -2,7 +2,7 @@
    GGG ARCHIVE HOME — RENDERER
 
    VERSION
-   v1.5
+   v1.6
 
    COMPONENTS
    • Featured Investigation
@@ -11,6 +11,7 @@
    • Latest Records
    • Collections
    • Open Investigations
+   • Recent Activity
 
    PURPOSE
    Renders Archive Home components from the shared Archive
@@ -151,10 +152,6 @@
 
 
 
-    /* ======================================================
-       TYPE
-    ====================================================== */
-
     const type =
       createElement(
         'div',
@@ -171,10 +168,6 @@
 
 
 
-    /* ======================================================
-       TITLE
-    ====================================================== */
-
     const title =
       createElement(
         'h3',
@@ -188,10 +181,6 @@
       recordId;
 
 
-
-    /* ======================================================
-       META
-    ====================================================== */
 
     const meta =
       createElement(
@@ -210,10 +199,6 @@
         .join(' · ');
 
 
-
-    /* ======================================================
-       LINK
-    ====================================================== */
 
     const link =
       createElement(
@@ -236,10 +221,6 @@
 
 
 
-    /* ======================================================
-       ASSEMBLE
-    ====================================================== */
-
     article.append(
       type,
       title,
@@ -261,6 +242,43 @@
     )
       .trim()
       .toLowerCase();
+
+  }
+
+
+
+  function formatArchiveDate(value) {
+
+    if (
+      !value ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(value)
+    ) {
+
+      return value || '';
+
+    }
+
+
+    const parts =
+      value.split('-');
+
+
+    const date =
+      new Date(
+        Number(parts[0]),
+        Number(parts[1]) - 1,
+        Number(parts[2])
+      );
+
+
+    return date.toLocaleDateString(
+      'en-US',
+      {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+      }
+    );
 
   }
 
@@ -510,10 +528,6 @@
 
 
 
-    /* ======================================================
-       ALL RECORDS
-    ====================================================== */
-
     const allRecords =
       createElement(
         'a'
@@ -551,10 +565,6 @@
     );
 
 
-
-    /* ======================================================
-       RECORD TYPES
-    ====================================================== */
 
     availableTypes.forEach(
       function (type) {
@@ -1040,7 +1050,6 @@
           );
 
 
-
         const label =
           createElement(
             'span',
@@ -1051,7 +1060,6 @@
 
         label.textContent =
           collection;
-
 
 
         const arrow =
@@ -1207,19 +1215,9 @@
           recordId;
 
 
-        if (record.url) {
-
-          link.href =
-            record.url;
-
-        }
-        else {
-
-          link.href =
-            '#';
-
-        }
-
+        link.href =
+          record.url ||
+          '#';
 
 
         const question =
@@ -1232,7 +1230,6 @@
 
         question.textContent =
           investigation.question;
-
 
 
         const arrow =
@@ -1281,6 +1278,231 @@
 
 
   /* ========================================================
+     RECENT ACTIVITY
+  ======================================================== */
+
+  function renderRecentActivity() {
+
+    const section =
+      document.querySelector(
+        '[data-ggg-recent-activity]'
+      );
+
+
+    if (!section) {
+
+      return;
+
+    }
+
+
+    const log =
+      section.querySelector(
+        '[data-ggg-activity-log]'
+      );
+
+
+    if (!log) {
+
+      return;
+
+    }
+
+
+    const home =
+      window.GGG.archive.getHomeConfig();
+
+
+    const activity =
+      home &&
+      Array.isArray(
+        home.recentActivity
+      )
+        ? home.recentActivity
+        : [];
+
+
+    log.replaceChildren();
+
+
+
+    /* ======================================================
+       SORT NEWEST FIRST
+    ====================================================== */
+
+    const sortedActivity =
+      activity
+        .slice()
+        .sort(function (a, b) {
+
+          const dateA =
+            (
+              a &&
+              a.date
+            ) || '';
+
+
+          const dateB =
+            (
+              b &&
+              b.date
+            ) || '';
+
+
+          return dateB.localeCompare(
+            dateA
+          );
+
+        });
+
+
+
+    /* ======================================================
+       RENDER ENTRIES
+    ====================================================== */
+
+    sortedActivity.forEach(
+      function (entry) {
+
+        if (
+          !entry ||
+          !entry.date ||
+          !entry.type ||
+          !entry.record
+        ) {
+
+          return;
+
+        }
+
+
+        const recordId =
+          entry.record;
+
+
+        const record =
+          window.GGG.archive.getRecord(
+            recordId
+          );
+
+
+        if (!record) {
+
+          console.warn(
+            'GGG Archive Home: Recent Activity record not found:',
+            recordId
+          );
+
+          return;
+
+        }
+
+
+
+        const row =
+          createElement(
+            'div',
+            'ggg-archive-home-activity__entry'
+          );
+
+
+        row.dataset.recordId =
+          recordId;
+
+
+
+        /* ==================================================
+           DATE
+        ================================================== */
+
+        const time =
+          createElement(
+            'time',
+            '',
+            'print'
+          );
+
+
+        time.dateTime =
+          entry.date;
+
+
+        time.textContent =
+          formatArchiveDate(
+            entry.date
+          );
+
+
+
+        /* ==================================================
+           ACTIVITY TYPE
+        ================================================== */
+
+        const activityType =
+          createElement(
+            'span',
+            '',
+            'print'
+          );
+
+
+        activityType.textContent =
+          entry.type;
+
+
+
+        /* ==================================================
+           RECORD
+        ================================================== */
+
+        const link =
+          createElement(
+            'a',
+            '',
+            'ink'
+          );
+
+
+        link.textContent =
+          record.title ||
+          recordId;
+
+
+        link.href =
+          record.url ||
+          '#';
+
+
+
+        /* ==================================================
+           ASSEMBLE
+        ================================================== */
+
+        row.append(
+          time,
+          activityType,
+          link
+        );
+
+
+        log.appendChild(
+          row
+        );
+
+      }
+    );
+
+
+    console.log(
+      'GGG Archive Home: Recent Activity loaded',
+      sortedActivity
+    );
+
+  }
+
+
+
+  /* ========================================================
      RENDER ARCHIVE HOME
   ======================================================== */
 
@@ -1297,6 +1519,8 @@
     renderCollections();
 
     renderOpenInvestigations();
+
+    renderRecentActivity();
 
   }
 
