@@ -2,10 +2,11 @@
    GGG ARCHIVE HOME — RENDERER
 
    VERSION
-   v1.9
+   v2.0
 
    COMPONENTS
    • Featured Investigation
+   • Archive Index
    • Browse the Archive
    • Search the Archive
    • Latest Records
@@ -14,11 +15,11 @@
    • Recent Activity
    • Archive Statistics
 
-   INTERACTIONS
-   • Browse → Search Results
-   • Collections → Search Results
-   • Search Result Status
-   • Search Clear / Reset
+   ARCHIVE INDEX INPUTS
+   • Search Query
+   • Record Type
+   • Collection
+   • All Records
 
    PURPOSE
    Renders Archive Home components from the shared Archive
@@ -191,6 +192,36 @@
 
 
 
+  function sortRecordsByTitle(entries) {
+
+    return entries.sort(
+      function (a, b) {
+
+        const titleA =
+          normalizeSearchValue(
+            a[1] &&
+            a[1].title
+          );
+
+
+        const titleB =
+          normalizeSearchValue(
+            b[1] &&
+            b[1].title
+          );
+
+
+        return titleA.localeCompare(
+          titleB
+        );
+
+      }
+    );
+
+  }
+
+
+
   function createRecordCard(
     recordId,
     record
@@ -292,14 +323,14 @@
 
 
   /* ========================================================
-     SHARED SEARCH RESULTS
+     ARCHIVE INDEX
   ======================================================== */
 
-  function getSearchElements() {
+  function getIndexElements() {
 
     const section =
       document.querySelector(
-        '[data-ggg-archive-search]'
+        '[data-ggg-archive-index]'
       );
 
 
@@ -325,14 +356,19 @@
           '[data-ggg-search-input]'
         ),
 
+      index:
+        section.querySelector(
+          '[data-ggg-index]'
+        ),
+
       status:
         section.querySelector(
-          '[data-ggg-search-status]'
+          '[data-ggg-index-status]'
         ),
 
       results:
         section.querySelector(
-          '[data-ggg-search-results]'
+          '[data-ggg-index-results]'
         )
 
     };
@@ -341,129 +377,288 @@
 
 
 
-  function setSearchStatus(count) {
+  function createIndexRow(
+    recordId,
+    record
+  ) {
 
-    const search =
-      getSearchElements();
-
-
-    if (
-      !search ||
-      !search.status
-    ) {
-
-      return;
-
-    }
-
-
-    if (count === 0) {
-
-      search.status.textContent =
-        'No records found.';
-
-    }
-
-    else if (count === 1) {
-
-      search.status.textContent =
-        '1 record found.';
-
-    }
-
-    else {
-
-      search.status.textContent =
-        count +
-        ' records found.';
-
-    }
-
-
-    search.status.hidden =
-      false;
-
-  }
-
-
-
-  function clearSearchState() {
-
-    const search =
-      getSearchElements();
-
-
-    if (!search) {
-
-      return;
-
-    }
-
-
-    if (search.results) {
-
-      search.results.replaceChildren();
-
-      search.results.hidden =
-        true;
-
-    }
-
-
-    if (search.status) {
-
-      search.status.textContent =
-        '';
-
-      search.status.hidden =
-        true;
-
-    }
-
-  }
-
-
-
-  function renderSearchResults(entries) {
-
-    const search =
-      getSearchElements();
-
-
-    if (
-      !search ||
-      !search.results
-    ) {
-
-      return;
-
-    }
-
-
-    search.results.replaceChildren();
-
-
-    if (!entries.length) {
-
-      search.results.hidden =
-        true;
-
-
-      setSearchStatus(
-        0
+    const link =
+      createElement(
+        'a',
+        'ggg-archive-home-index__row'
       );
 
 
+    link.dataset.recordId =
+      recordId;
+
+
+    link.href =
+      record.url ||
+      '#';
+
+
+
+    const type =
+      createElement(
+        'span',
+        'ggg-archive-home-index__type',
+        'print'
+      );
+
+
+    type.textContent =
+      (
+        record.type ||
+        'Record'
+      ).toUpperCase();
+
+
+
+    const id =
+      createElement(
+        'span',
+        'ggg-archive-home-index__id',
+        'print'
+      );
+
+
+    id.textContent =
+      recordId;
+
+
+
+    const title =
+      createElement(
+        'span',
+        'ggg-archive-home-index__title',
+        'ink'
+      );
+
+
+    title.textContent =
+      record.title ||
+      recordId;
+
+
+
+    const arrow =
+      createElement(
+        'span',
+        'ggg-archive-home-index__arrow'
+      );
+
+
+    arrow.textContent =
+      '→';
+
+
+    arrow.setAttribute(
+      'aria-hidden',
+      'true'
+    );
+
+
+
+    link.append(
+      type,
+      id,
+      title,
+      arrow
+    );
+
+
+    return link;
+
+  }
+
+
+
+  function hideArchiveIndex() {
+
+    const elements =
+      getIndexElements();
+
+
+    if (!elements) {
+
       return;
 
     }
+
+
+    if (elements.results) {
+
+      elements.results.replaceChildren();
+
+    }
+
+
+    if (elements.status) {
+
+      elements.status.textContent =
+        '';
+
+    }
+
+
+    if (elements.index) {
+
+      elements.index.hidden =
+        true;
+
+    }
+
+  }
+
+
+
+  function getIndexStatusText(
+    mode,
+    count,
+    value
+  ) {
+
+    if (mode === 'search') {
+
+      if (count === 0) {
+
+        return (
+          'NO RECORDS FOUND FOR “' +
+          value.toUpperCase() +
+          '”'
+        );
+
+      }
+
+
+      if (count === 1) {
+
+        return (
+          '1 RECORD FOUND FOR “' +
+          value.toUpperCase() +
+          '”'
+        );
+
+      }
+
+
+      return (
+        count +
+        ' RECORDS FOUND FOR “' +
+        value.toUpperCase() +
+        '”'
+      );
+
+    }
+
+
+
+    if (mode === 'type') {
+
+      if (count === 1) {
+
+        return (
+          '1 ' +
+          String(value).toUpperCase() +
+          ' RECORD'
+        );
+
+      }
+
+
+      return (
+        count +
+        ' ' +
+        String(value).toUpperCase() +
+        ' RECORDS'
+      );
+
+    }
+
+
+
+    if (mode === 'collection') {
+
+      if (count === 1) {
+
+        return (
+          '1 RECORD IN ' +
+          String(value).toUpperCase()
+        );
+
+      }
+
+
+      return (
+        count +
+        ' RECORDS IN ' +
+        String(value).toUpperCase()
+      );
+
+    }
+
+
+
+    if (count === 1) {
+
+      return '1 RECORD';
+
+    }
+
+
+    return (
+      count +
+      ' RECORDS'
+    );
+
+  }
+
+
+
+  function renderArchiveIndex(
+    entries,
+    options
+  ) {
+
+    const elements =
+      getIndexElements();
+
+
+    if (
+      !elements ||
+      !elements.index ||
+      !elements.results ||
+      !elements.status
+    ) {
+
+      return;
+
+    }
+
+
+    const settings =
+      options || {};
+
+
+    const mode =
+      settings.mode ||
+      'all';
+
+
+    const value =
+      settings.value ||
+      '';
+
+
+    elements.results.replaceChildren();
 
 
     entries.forEach(
       function (entry) {
 
-        search.results.appendChild(
-          createRecordCard(
+        elements.results.appendChild(
+          createIndexRow(
             entry[0],
             entry[1]
           )
@@ -473,27 +668,51 @@
     );
 
 
-    search.results.hidden =
+    elements.status.textContent =
+      getIndexStatusText(
+        mode,
+        entries.length,
+        value
+      );
+
+
+    elements.index.hidden =
       false;
 
 
-    setSearchStatus(
-      entries.length
+    console.log(
+      'GGG Archive Home: Archive Index rendered',
+      {
+        mode:
+          mode,
+
+        value:
+          value,
+
+        records:
+          entries.map(
+            function (entry) {
+
+              return entry[0];
+
+            }
+          )
+      }
     );
 
   }
 
 
 
-  function scrollToSearch() {
+  function scrollToArchiveIndex() {
 
-    const search =
-      getSearchElements();
+    const elements =
+      getIndexElements();
 
 
     if (
-      !search ||
-      !search.section
+      !elements ||
+      !elements.section
     ) {
 
       return;
@@ -501,7 +720,7 @@
     }
 
 
-    search.section.scrollIntoView({
+    elements.section.scrollIntoView({
       behavior:
         'smooth',
 
@@ -925,57 +1144,43 @@
         }
 
 
-        matches.sort(
-          function (a, b) {
-
-            return normalizeSearchValue(
-              a[1] &&
-              a[1].title
-            ).localeCompare(
-              normalizeSearchValue(
-                b[1] &&
-                b[1].title
-              )
-            );
-
-          }
+        sortRecordsByTitle(
+          matches
         );
 
 
-        const search =
-          getSearchElements();
+        const index =
+          getIndexElements();
 
 
         if (
-          search &&
-          search.input
+          index &&
+          index.input
         ) {
 
-          search.input.value =
+          index.input.value =
             '';
 
         }
 
 
-        renderSearchResults(
-          matches
+        renderArchiveIndex(
+          matches,
+          {
+            mode:
+              (
+                type === 'all'
+                  ? 'all'
+                  : 'type'
+              ),
+
+            value:
+              type
+          }
         );
 
 
-        scrollToSearch();
-
-
-        console.log(
-          'GGG Archive Home: Browse filter',
-          type,
-          matches.map(
-            function (entry) {
-
-              return entry[0];
-
-            }
-          )
-        );
+        scrollToArchiveIndex();
 
       }
     );
@@ -995,15 +1200,14 @@
 
   function initSearch() {
 
-    const search =
-      getSearchElements();
+    const elements =
+      getIndexElements();
 
 
     if (
-      !search ||
-      !search.form ||
-      !search.input ||
-      !search.results
+      !elements ||
+      !elements.form ||
+      !elements.input
     ) {
 
       return;
@@ -1015,22 +1219,28 @@
       window.GGG.archive.getAllRecords();
 
 
-    search.form.addEventListener(
+    elements.form.addEventListener(
       'submit',
       function (event) {
 
         event.preventDefault();
 
 
+        const rawQuery =
+          String(
+            elements.input.value || ''
+          ).trim();
+
+
         const query =
           normalizeSearchValue(
-            search.input.value
+            rawQuery
           );
 
 
         if (!query) {
 
-          clearSearchState();
+          hideArchiveIndex();
 
           return;
 
@@ -1080,31 +1290,29 @@
                 query
               );
 
-            })
-
-            .sort(function (a, b) {
-
-              return normalizeSearchValue(
-                a[1] &&
-                a[1].title
-              ).localeCompare(
-                normalizeSearchValue(
-                  b[1] &&
-                  b[1].title
-                )
-              );
-
             });
 
 
-        renderSearchResults(
+        sortRecordsByTitle(
           matches
+        );
+
+
+        renderArchiveIndex(
+          matches,
+          {
+            mode:
+              'search',
+
+            value:
+              rawQuery
+          }
         );
 
 
         console.log(
           'GGG Archive Home: Search',
-          query,
+          rawQuery,
           matches.map(
             function (entry) {
 
@@ -1119,23 +1327,23 @@
 
 
 
-    search.input.addEventListener(
+    elements.input.addEventListener(
       'input',
       function () {
 
         const query =
           normalizeSearchValue(
-            search.input.value
+            elements.input.value
           );
 
 
         if (!query) {
 
-          clearSearchState();
+          hideArchiveIndex();
 
 
           console.log(
-            'GGG Archive Home: Search reset'
+            'GGG Archive Home: Archive Index reset'
           );
 
         }
@@ -1514,57 +1722,42 @@
                   collection
               );
 
-            })
-
-            .sort(function (a, b) {
-
-              return normalizeSearchValue(
-                a[1] &&
-                a[1].title
-              ).localeCompare(
-                normalizeSearchValue(
-                  b[1] &&
-                  b[1].title
-                )
-              );
-
             });
 
 
-        const search =
-          getSearchElements();
+        sortRecordsByTitle(
+          matches
+        );
+
+
+        const index =
+          getIndexElements();
 
 
         if (
-          search &&
-          search.input
+          index &&
+          index.input
         ) {
 
-          search.input.value =
+          index.input.value =
             '';
 
         }
 
 
-        renderSearchResults(
-          matches
+        renderArchiveIndex(
+          matches,
+          {
+            mode:
+              'collection',
+
+            value:
+              collection
+          }
         );
 
 
-        scrollToSearch();
-
-
-        console.log(
-          'GGG Archive Home: Collection filter',
-          collection,
-          matches.map(
-            function (entry) {
-
-              return entry[0];
-
-            }
-          )
-        );
+        scrollToArchiveIndex();
 
       }
     );
