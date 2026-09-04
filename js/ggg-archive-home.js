@@ -2,7 +2,11 @@
    GGG ARCHIVE HOME — RENDERER
 
    VERSION
-   v1.0 — Featured Investigation
+   v1.1
+
+   COMPONENTS
+   • Featured Investigation
+   • Latest Records
 
    PURPOSE
    Renders Archive Home components from the shared Archive
@@ -28,9 +32,86 @@
   const RETRY_DELAY =
     100;
 
+  const LATEST_RECORD_LIMIT =
+    3;
+
 
   let attempts =
     0;
+
+
+
+  /* ========================================================
+     HELPERS
+  ======================================================== */
+
+  function createElement(
+    tagName,
+    className,
+    material
+  ) {
+
+    const element =
+      document.createElement(
+        tagName
+      );
+
+
+    if (className) {
+
+      element.className =
+        className;
+
+    }
+
+
+    if (material) {
+
+      element.setAttribute(
+        'data-ggg-material',
+        material
+      );
+
+    }
+
+
+    return element;
+
+  }
+
+
+
+  function getRecordId(record) {
+
+    if (
+      !record ||
+      !window.GGG ||
+      !window.GGG.archive
+    ) {
+
+      return '';
+
+    }
+
+
+    const records =
+      window.GGG.archive.getAllRecords();
+
+
+    const match =
+      Object.entries(records)
+        .find(function (entry) {
+
+          return entry[1] === record;
+
+        });
+
+
+    return match
+      ? match[0]
+      : '';
+
+  }
 
 
 
@@ -194,12 +275,249 @@
 
 
   /* ========================================================
-     RENDER
+     LATEST RECORDS
+  ======================================================== */
+
+  function renderLatestRecords() {
+
+    const section =
+      document.querySelector(
+        '[data-ggg-latest-records]'
+      );
+
+
+    if (!section) {
+
+      return;
+
+    }
+
+
+    const grid =
+      section.querySelector(
+        '[data-ggg-latest-grid]'
+      );
+
+
+    if (!grid) {
+
+      return;
+
+    }
+
+
+    const records =
+      window.GGG.archive.getAllRecords();
+
+
+    /*
+      Convert the record object into an array while preserving
+      the canonical Record ID.
+    */
+
+    const latest =
+      Object.entries(records)
+
+        .map(function (entry) {
+
+          return {
+            id:
+              entry[0],
+
+            record:
+              entry[1]
+          };
+
+        })
+
+        /*
+          Records without a valid dateAdded are intentionally
+          excluded from Latest Records.
+        */
+
+        .filter(function (item) {
+
+          return (
+            item.record &&
+            item.record.dateAdded &&
+            /^\d{4}-\d{2}-\d{2}$/.test(
+              item.record.dateAdded
+            )
+          );
+
+        })
+
+        /*
+          ISO YYYY-MM-DD dates sort correctly as strings.
+          Newest records appear first.
+        */
+
+        .sort(function (a, b) {
+
+          return b.record.dateAdded
+            .localeCompare(
+              a.record.dateAdded
+            );
+
+        })
+
+        .slice(
+          0,
+          LATEST_RECORD_LIMIT
+        );
+
+
+    grid.replaceChildren();
+
+
+    latest.forEach(function (item) {
+
+      const record =
+        item.record;
+
+
+      /* ====================================================
+         CARD
+      ==================================================== */
+
+      const article =
+        createElement(
+          'article',
+          'ggg-archive-home-record'
+        );
+
+
+      article.dataset.recordId =
+        item.id;
+
+
+
+      /* ====================================================
+         TYPE
+      ==================================================== */
+
+      const type =
+        createElement(
+          'div',
+          'ggg-archive-home-record__type',
+          'print'
+        );
+
+
+      type.textContent =
+        (
+          record.type ||
+          'Record'
+        ).toUpperCase();
+
+
+
+      /* ====================================================
+         TITLE
+      ==================================================== */
+
+      const title =
+        createElement(
+          'h3',
+          'ggg-archive-home-record__title',
+          'print'
+        );
+
+
+      title.textContent =
+        record.title ||
+        item.id;
+
+
+
+      /* ====================================================
+         META
+      ==================================================== */
+
+      const meta =
+        createElement(
+          'div',
+          'ggg-archive-home-record__meta',
+          'ink'
+        );
+
+
+      meta.textContent =
+        [
+          record.collection,
+          record.status
+        ]
+          .filter(Boolean)
+          .join(' · ');
+
+
+
+      /* ====================================================
+         LINK
+      ==================================================== */
+
+      const link =
+        createElement(
+          'a',
+          'ggg-archive-home-record__link',
+          'glass'
+        );
+
+
+      link.textContent =
+        'Open Record';
+
+
+      if (record.url) {
+
+        link.href =
+          record.url;
+
+      }
+
+
+
+      /* ====================================================
+         ASSEMBLE
+      ==================================================== */
+
+      article.append(
+        type,
+        title,
+        meta,
+        link
+      );
+
+
+      grid.appendChild(
+        article
+      );
+
+    });
+
+
+    console.log(
+      'GGG Archive Home: Latest Records loaded',
+      latest.map(function (item) {
+
+        return item.id;
+
+      })
+    );
+
+  }
+
+
+
+  /* ========================================================
+     RENDER ARCHIVE HOME
   ======================================================== */
 
   function renderArchiveHome() {
 
     renderFeaturedInvestigation();
+
+    renderLatestRecords();
 
   }
 
@@ -223,7 +541,10 @@
       attempts += 1;
 
 
-      if (attempts < MAX_ATTEMPTS) {
+      if (
+        attempts <
+        MAX_ATTEMPTS
+      ) {
 
         window.setTimeout(
           initArchiveHome,
@@ -246,23 +567,21 @@
 
     window.GGG.archive
       .init()
-      .then(
-        function () {
 
-          renderArchiveHome();
+      .then(function () {
 
-        }
-      )
-      .catch(
-        function (error) {
+        renderArchiveHome();
 
-          console.error(
-            'GGG Archive Home:',
-            error
-          );
+      })
 
-        }
-      );
+      .catch(function (error) {
+
+        console.error(
+          'GGG Archive Home:',
+          error
+        );
+
+      });
 
   }
 
