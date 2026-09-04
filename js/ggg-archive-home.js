@@ -2,7 +2,7 @@
    GGG ARCHIVE HOME — RENDERER
 
    VERSION
-   v1.6
+   v1.7
 
    COMPONENTS
    • Featured Investigation
@@ -12,6 +12,7 @@
    • Collections
    • Open Investigations
    • Recent Activity
+   • Archive Statistics
 
    PURPOSE
    Renders Archive Home components from the shared Archive
@@ -1325,11 +1326,6 @@
     log.replaceChildren();
 
 
-
-    /* ======================================================
-       SORT NEWEST FIRST
-    ====================================================== */
-
     const sortedActivity =
       activity
         .slice()
@@ -1355,11 +1351,6 @@
 
         });
 
-
-
-    /* ======================================================
-       RENDER ENTRIES
-    ====================================================== */
 
     sortedActivity.forEach(
       function (entry) {
@@ -1398,7 +1389,6 @@
         }
 
 
-
         const row =
           createElement(
             'div',
@@ -1410,10 +1400,6 @@
           recordId;
 
 
-
-        /* ==================================================
-           DATE
-        ================================================== */
 
         const time =
           createElement(
@@ -1434,10 +1420,6 @@
 
 
 
-        /* ==================================================
-           ACTIVITY TYPE
-        ================================================== */
-
         const activityType =
           createElement(
             'span',
@@ -1450,10 +1432,6 @@
           entry.type;
 
 
-
-        /* ==================================================
-           RECORD
-        ================================================== */
 
         const link =
           createElement(
@@ -1473,10 +1451,6 @@
           '#';
 
 
-
-        /* ==================================================
-           ASSEMBLE
-        ================================================== */
 
         row.append(
           time,
@@ -1503,6 +1477,324 @@
 
 
   /* ========================================================
+     ARCHIVE STATISTICS
+  ======================================================== */
+
+  function renderStatistics() {
+
+    const section =
+      document.querySelector(
+        '[data-ggg-statistics]'
+      );
+
+
+    if (!section) {
+
+      return;
+
+    }
+
+
+    const grid =
+      section.querySelector(
+        '[data-ggg-statistics-grid]'
+      );
+
+
+    if (!grid) {
+
+      return;
+
+    }
+
+
+    const records =
+      window.GGG.archive.getAllRecords();
+
+
+    const home =
+      window.GGG.archive.getHomeConfig();
+
+
+    const recordList =
+      Object.values(records);
+
+
+
+    /* ======================================================
+       CALCULATE STATISTICS
+    ====================================================== */
+
+    const totalRecords =
+      recordList.length;
+
+
+    const artifacts =
+      recordList.filter(
+        function (record) {
+
+          return (
+            record &&
+            record.type ===
+              'Artifact'
+          );
+
+        }
+      ).length;
+
+
+    const people =
+      recordList.filter(
+        function (record) {
+
+          return (
+            record &&
+            record.type ===
+              'Person'
+          );
+
+        }
+      ).length;
+
+
+    const documentaryTypes =
+      [
+        'Document',
+        'Audio Recording',
+        'Film/Video'
+      ];
+
+
+    const documentaryRecords =
+      recordList.filter(
+        function (record) {
+
+          return (
+            record &&
+            documentaryTypes.includes(
+              record.type
+            )
+          );
+
+        }
+      ).length;
+
+
+    const openInvestigations =
+      recordList.filter(
+        function (record) {
+
+          return (
+            record &&
+            record.status ===
+              'Under Investigation'
+          );
+
+        }
+      ).length;
+
+
+    const unresolvedQuestions =
+      (
+        home &&
+        Array.isArray(
+          home.openInvestigations
+        )
+      )
+        ? home.openInvestigations
+            .filter(
+              function (investigation) {
+
+                return Boolean(
+                  investigation &&
+                  investigation.question
+                );
+
+              }
+            )
+            .length
+        : 0;
+
+
+
+    /* ======================================================
+       STATISTIC DEFINITIONS
+    ====================================================== */
+
+    const statistics =
+      [
+
+        {
+          label:
+            'Total Records',
+
+          value:
+            totalRecords,
+
+          description:
+            'Catalogued Records'
+        },
+
+        {
+          label:
+            'Artifacts',
+
+          value:
+            artifacts,
+
+          description:
+            'Physical Objects'
+        },
+
+        {
+          label:
+            'People',
+
+          value:
+            people,
+
+          description:
+            'Biographical Records'
+        },
+
+        {
+          label:
+            'Documentary Records',
+
+          value:
+            documentaryRecords,
+
+          description:
+            'Documents · Audio · Film'
+        },
+
+        {
+          label:
+            'Open Investigations',
+
+          value:
+            openInvestigations,
+
+          description:
+            'Currently Active'
+        },
+
+        {
+          label:
+            'Unresolved Questions',
+
+          value:
+            unresolvedQuestions,
+
+          description:
+            'Awaiting Evidence'
+        }
+
+      ];
+
+
+
+    /* ======================================================
+       RENDER
+    ====================================================== */
+
+    grid.replaceChildren();
+
+
+    statistics.forEach(
+      function (statistic) {
+
+        const item =
+          createElement(
+            'div'
+          );
+
+
+
+        const term =
+          createElement(
+            'dt',
+            '',
+            'print'
+          );
+
+
+        term.textContent =
+          statistic.label;
+
+
+
+        const value =
+          createElement(
+            'dd',
+            '',
+            'print'
+          );
+
+
+        value.textContent =
+          String(
+            statistic.value
+          );
+
+
+
+        const description =
+          createElement(
+            'span',
+            '',
+            'ink'
+          );
+
+
+        description.textContent =
+          statistic.description;
+
+
+
+        item.append(
+          term,
+          value,
+          description
+        );
+
+
+        grid.appendChild(
+          item
+        );
+
+      }
+    );
+
+
+    console.log(
+      'GGG Archive Home: Statistics loaded',
+      {
+        totalRecords:
+          totalRecords,
+
+        artifacts:
+          artifacts,
+
+        people:
+          people,
+
+        documentaryRecords:
+          documentaryRecords,
+
+        openInvestigations:
+          openInvestigations,
+
+        unresolvedQuestions:
+          unresolvedQuestions
+      }
+    );
+
+  }
+
+
+
+  /* ========================================================
      RENDER ARCHIVE HOME
   ======================================================== */
 
@@ -1521,6 +1813,8 @@
     renderOpenInvestigations();
 
     renderRecentActivity();
+
+    renderStatistics();
 
   }
 
