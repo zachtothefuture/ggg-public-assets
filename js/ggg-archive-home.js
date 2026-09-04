@@ -2,13 +2,14 @@
    GGG ARCHIVE HOME — RENDERER
 
    VERSION
-   v1.3
+   v1.4
 
    COMPONENTS
    • Featured Investigation
    • Browse the Archive
    • Search the Archive
    • Latest Records
+   • Collections
 
    PURPOSE
    Renders Archive Home components from the shared Archive
@@ -665,7 +666,6 @@
       window.GGG.archive.getAllRecords();
 
 
-
     form.addEventListener(
       'submit',
       function (event) {
@@ -679,10 +679,6 @@
           );
 
 
-        /*
-          Empty search restores the original page state.
-        */
-
         if (!query) {
 
           results.replaceChildren();
@@ -694,11 +690,6 @@
 
         }
 
-
-
-        /* ==================================================
-           SEARCH RECORDS
-        ================================================== */
 
         const matches =
           Object.entries(records)
@@ -768,11 +759,6 @@
             });
 
 
-
-        /* ==================================================
-           RENDER RESULTS
-        ================================================== */
-
         results.replaceChildren();
 
 
@@ -789,12 +775,6 @@
           }
         );
 
-
-        /*
-          A zero-result search remains visible but empty.
-          We'll give that state its own designed treatment
-          once the search interaction itself is proven.
-        */
 
         results.hidden =
           false;
@@ -935,6 +915,236 @@
 
 
   /* ========================================================
+     COLLECTIONS
+  ======================================================== */
+
+  function renderCollections() {
+
+    const section =
+      document.querySelector(
+        '[data-ggg-collections]'
+      );
+
+
+    if (!section) {
+
+      return;
+
+    }
+
+
+    const grid =
+      section.querySelector(
+        '[data-ggg-collections-grid]'
+      );
+
+
+    if (!grid) {
+
+      return;
+
+    }
+
+
+    const records =
+      window.GGG.archive.getAllRecords();
+
+
+
+    /* ======================================================
+       COUNT RECORDS BY COLLECTION
+    ====================================================== */
+
+    const collectionCounts =
+      Object.values(records)
+        .reduce(function (
+          counts,
+          record
+        ) {
+
+          if (
+            !record ||
+            !record.collection
+          ) {
+
+            return counts;
+
+          }
+
+
+          const collection =
+            String(
+              record.collection
+            ).trim();
+
+
+          if (!collection) {
+
+            return counts;
+
+          }
+
+
+          if (!counts[collection]) {
+
+            counts[collection] =
+              0;
+
+          }
+
+
+          counts[collection] +=
+            1;
+
+
+          return counts;
+
+        }, {});
+
+
+
+    /* ======================================================
+       SORT COLLECTIONS
+    ====================================================== */
+
+    const collections =
+      Object.keys(
+        collectionCounts
+      )
+        .sort(function (a, b) {
+
+          return a.localeCompare(
+            b
+          );
+
+        });
+
+
+    grid.replaceChildren();
+
+
+
+    /* ======================================================
+       RENDER COLLECTIONS
+    ====================================================== */
+
+    collections.forEach(
+      function (collection) {
+
+        const link =
+          createElement(
+            'a',
+            'ggg-archive-home-collection'
+          );
+
+
+        link.href =
+          '#';
+
+
+        link.dataset.gggCollection =
+          collection;
+
+
+        link.dataset.recordCount =
+          String(
+            collectionCounts[
+              collection
+            ]
+          );
+
+
+
+        /* ==================================================
+           LABEL
+        ================================================== */
+
+        const label =
+          createElement(
+            'span',
+            '',
+            'ink'
+          );
+
+
+        label.textContent =
+          collection;
+
+
+
+        /* ==================================================
+           ARROW
+        ================================================== */
+
+        const arrow =
+          createElement(
+            'span'
+          );
+
+
+        arrow.textContent =
+          '→';
+
+
+        arrow.setAttribute(
+          'aria-hidden',
+          'true'
+        );
+
+
+
+        /* ==================================================
+           ACCESSIBILITY
+        ================================================== */
+
+        const count =
+          collectionCounts[
+            collection
+          ];
+
+
+        link.setAttribute(
+          'aria-label',
+          collection +
+          ', ' +
+          count +
+          (
+            count === 1
+              ? ' record'
+              : ' records'
+          )
+        );
+
+
+
+        /* ==================================================
+           ASSEMBLE
+        ================================================== */
+
+        link.append(
+          label,
+          arrow
+        );
+
+
+        grid.appendChild(
+          link
+        );
+
+      }
+    );
+
+
+    console.log(
+      'GGG Archive Home: Collections loaded',
+      collectionCounts
+    );
+
+  }
+
+
+
+  /* ========================================================
      RENDER ARCHIVE HOME
   ======================================================== */
 
@@ -947,6 +1157,8 @@
     initSearch();
 
     renderLatestRecords();
+
+    renderCollections();
 
   }
 
