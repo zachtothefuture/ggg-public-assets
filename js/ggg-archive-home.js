@@ -2,7 +2,7 @@
    GGG ARCHIVE HOME — RENDERER
 
    VERSION
-   v1.8
+   v1.9
 
    COMPONENTS
    • Featured Investigation
@@ -17,6 +17,8 @@
    INTERACTIONS
    • Browse → Search Results
    • Collections → Search Results
+   • Search Result Status
+   • Search Clear / Reset
 
    PURPOSE
    Renders Archive Home components from the shared Archive
@@ -323,12 +325,100 @@
           '[data-ggg-search-input]'
         ),
 
+      status:
+        section.querySelector(
+          '[data-ggg-search-status]'
+        ),
+
       results:
         section.querySelector(
           '[data-ggg-search-results]'
         )
 
     };
+
+  }
+
+
+
+  function setSearchStatus(count) {
+
+    const search =
+      getSearchElements();
+
+
+    if (
+      !search ||
+      !search.status
+    ) {
+
+      return;
+
+    }
+
+
+    if (count === 0) {
+
+      search.status.textContent =
+        'No records found.';
+
+    }
+
+    else if (count === 1) {
+
+      search.status.textContent =
+        '1 record found.';
+
+    }
+
+    else {
+
+      search.status.textContent =
+        count +
+        ' records found.';
+
+    }
+
+
+    search.status.hidden =
+      false;
+
+  }
+
+
+
+  function clearSearchState() {
+
+    const search =
+      getSearchElements();
+
+
+    if (!search) {
+
+      return;
+
+    }
+
+
+    if (search.results) {
+
+      search.results.replaceChildren();
+
+      search.results.hidden =
+        true;
+
+    }
+
+
+    if (search.status) {
+
+      search.status.textContent =
+        '';
+
+      search.status.hidden =
+        true;
+
+    }
 
   }
 
@@ -353,6 +443,22 @@
     search.results.replaceChildren();
 
 
+    if (!entries.length) {
+
+      search.results.hidden =
+        true;
+
+
+      setSearchStatus(
+        0
+      );
+
+
+      return;
+
+    }
+
+
     entries.forEach(
       function (entry) {
 
@@ -369,6 +475,11 @@
 
     search.results.hidden =
       false;
+
+
+    setSearchStatus(
+      entries.length
+    );
 
   }
 
@@ -919,10 +1030,7 @@
 
         if (!query) {
 
-          search.results.replaceChildren();
-
-          search.results.hidden =
-            true;
+          clearSearchState();
 
           return;
 
@@ -1005,6 +1113,32 @@
             }
           )
         );
+
+      }
+    );
+
+
+
+    search.input.addEventListener(
+      'input',
+      function () {
+
+        const query =
+          normalizeSearchValue(
+            search.input.value
+          );
+
+
+        if (!query) {
+
+          clearSearchState();
+
+
+          console.log(
+            'GGG Archive Home: Search reset'
+          );
+
+        }
 
       }
     );
