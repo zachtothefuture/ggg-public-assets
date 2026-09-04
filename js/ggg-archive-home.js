@@ -2,11 +2,12 @@
    GGG ARCHIVE HOME — RENDERER
 
    VERSION
-   v1.2
+   v1.3
 
    COMPONENTS
    • Featured Investigation
    • Browse the Archive
+   • Search the Archive
    • Latest Records
 
    PURPOSE
@@ -44,11 +45,6 @@
 
   /* ========================================================
      RECORD TYPE LABELS
-
-     Canonical record types live in archive-records.json.
-
-     These labels control only how those types are presented
-     in Browse the Archive.
   ======================================================== */
 
   const TYPE_LABELS = {
@@ -131,6 +127,138 @@
 
 
     return element;
+
+  }
+
+
+
+  function createRecordCard(
+    recordId,
+    record
+  ) {
+
+    const article =
+      createElement(
+        'article',
+        'ggg-archive-home-record'
+      );
+
+
+    article.dataset.recordId =
+      recordId;
+
+
+
+    /* ======================================================
+       TYPE
+    ====================================================== */
+
+    const type =
+      createElement(
+        'div',
+        'ggg-archive-home-record__type',
+        'print'
+      );
+
+
+    type.textContent =
+      (
+        record.type ||
+        'Record'
+      ).toUpperCase();
+
+
+
+    /* ======================================================
+       TITLE
+    ====================================================== */
+
+    const title =
+      createElement(
+        'h3',
+        'ggg-archive-home-record__title',
+        'print'
+      );
+
+
+    title.textContent =
+      record.title ||
+      recordId;
+
+
+
+    /* ======================================================
+       META
+    ====================================================== */
+
+    const meta =
+      createElement(
+        'div',
+        'ggg-archive-home-record__meta',
+        'ink'
+      );
+
+
+    meta.textContent =
+      [
+        record.collection,
+        record.status
+      ]
+        .filter(Boolean)
+        .join(' · ');
+
+
+
+    /* ======================================================
+       LINK
+    ====================================================== */
+
+    const link =
+      createElement(
+        'a',
+        'ggg-archive-home-record__link',
+        'glass'
+      );
+
+
+    link.textContent =
+      'Open Record';
+
+
+    if (record.url) {
+
+      link.href =
+        record.url;
+
+    }
+
+
+
+    /* ======================================================
+       ASSEMBLE
+    ====================================================== */
+
+    article.append(
+      type,
+      title,
+      meta,
+      link
+    );
+
+
+    return article;
+
+  }
+
+
+
+  function normalizeSearchValue(value) {
+
+    return String(
+      value || ''
+    )
+      .trim()
+      .toLowerCase();
 
   }
 
@@ -331,10 +459,6 @@
       window.GGG.archive.getAllRecords();
 
 
-    /*
-      Count records by canonical type.
-    */
-
     const typeCounts =
       Object.values(records)
         .reduce(function (
@@ -368,11 +492,6 @@
 
         }, {});
 
-
-    /*
-      Preserve canonical type order by using TYPE_LABELS
-      rather than alphabetizing whatever happens to exist.
-    */
 
     const availableTypes =
       Object.keys(TYPE_LABELS)
@@ -495,6 +614,217 @@
 
 
   /* ========================================================
+     SEARCH THE ARCHIVE
+  ======================================================== */
+
+  function initSearch() {
+
+    const section =
+      document.querySelector(
+        '[data-ggg-archive-search]'
+      );
+
+
+    if (!section) {
+
+      return;
+
+    }
+
+
+    const form =
+      section.querySelector(
+        '[data-ggg-search-form]'
+      );
+
+
+    const input =
+      section.querySelector(
+        '[data-ggg-search-input]'
+      );
+
+
+    const results =
+      section.querySelector(
+        '[data-ggg-search-results]'
+      );
+
+
+    if (
+      !form ||
+      !input ||
+      !results
+    ) {
+
+      return;
+
+    }
+
+
+    const records =
+      window.GGG.archive.getAllRecords();
+
+
+
+    form.addEventListener(
+      'submit',
+      function (event) {
+
+        event.preventDefault();
+
+
+        const query =
+          normalizeSearchValue(
+            input.value
+          );
+
+
+        /*
+          Empty search restores the original page state.
+        */
+
+        if (!query) {
+
+          results.replaceChildren();
+
+          results.hidden =
+            true;
+
+          return;
+
+        }
+
+
+
+        /* ==================================================
+           SEARCH RECORDS
+        ================================================== */
+
+        const matches =
+          Object.entries(records)
+
+            .filter(function (entry) {
+
+              const recordId =
+                entry[0];
+
+
+              const record =
+                entry[1] || {};
+
+
+              const keywords =
+                Array.isArray(
+                  record.keywords
+                )
+                  ? record.keywords
+                  : [];
+
+
+              const searchable =
+                [
+                  recordId,
+                  record.title,
+                  record.type,
+                  record.collection,
+                  record.status,
+                  record.summary
+                ]
+                  .concat(
+                    keywords
+                  )
+                  .map(
+                    normalizeSearchValue
+                  )
+                  .join(' ');
+
+
+              return searchable.includes(
+                query
+              );
+
+            })
+
+            .sort(function (a, b) {
+
+              const titleA =
+                normalizeSearchValue(
+                  a[1] &&
+                  a[1].title
+                );
+
+
+              const titleB =
+                normalizeSearchValue(
+                  b[1] &&
+                  b[1].title
+                );
+
+
+              return titleA.localeCompare(
+                titleB
+              );
+
+            });
+
+
+
+        /* ==================================================
+           RENDER RESULTS
+        ================================================== */
+
+        results.replaceChildren();
+
+
+        matches.forEach(
+          function (entry) {
+
+            results.appendChild(
+              createRecordCard(
+                entry[0],
+                entry[1]
+              )
+            );
+
+          }
+        );
+
+
+        /*
+          A zero-result search remains visible but empty.
+          We'll give that state its own designed treatment
+          once the search interaction itself is proven.
+        */
+
+        results.hidden =
+          false;
+
+
+        console.log(
+          'GGG Archive Home: Search',
+          query,
+          matches.map(
+            function (entry) {
+
+              return entry[0];
+
+            }
+          )
+        );
+
+      }
+    );
+
+
+    console.log(
+      'GGG Archive Home: Search ready'
+    );
+
+  }
+
+
+
+  /* ========================================================
      LATEST RECORDS
   ======================================================== */
 
@@ -577,131 +907,18 @@
     grid.replaceChildren();
 
 
-    latest.forEach(function (item) {
+    latest.forEach(
+      function (item) {
 
-      const record =
-        item.record;
-
-
-
-      /* ====================================================
-         CARD
-      ==================================================== */
-
-      const article =
-        createElement(
-          'article',
-          'ggg-archive-home-record'
+        grid.appendChild(
+          createRecordCard(
+            item.id,
+            item.record
+          )
         );
-
-
-      article.dataset.recordId =
-        item.id;
-
-
-
-      /* ====================================================
-         TYPE
-      ==================================================== */
-
-      const type =
-        createElement(
-          'div',
-          'ggg-archive-home-record__type',
-          'print'
-        );
-
-
-      type.textContent =
-        (
-          record.type ||
-          'Record'
-        ).toUpperCase();
-
-
-
-      /* ====================================================
-         TITLE
-      ==================================================== */
-
-      const title =
-        createElement(
-          'h3',
-          'ggg-archive-home-record__title',
-          'print'
-        );
-
-
-      title.textContent =
-        record.title ||
-        item.id;
-
-
-
-      /* ====================================================
-         META
-      ==================================================== */
-
-      const meta =
-        createElement(
-          'div',
-          'ggg-archive-home-record__meta',
-          'ink'
-        );
-
-
-      meta.textContent =
-        [
-          record.collection,
-          record.status
-        ]
-          .filter(Boolean)
-          .join(' · ');
-
-
-
-      /* ====================================================
-         LINK
-      ==================================================== */
-
-      const link =
-        createElement(
-          'a',
-          'ggg-archive-home-record__link',
-          'glass'
-        );
-
-
-      link.textContent =
-        'Open Record';
-
-
-      if (record.url) {
-
-        link.href =
-          record.url;
 
       }
-
-
-
-      /* ====================================================
-         ASSEMBLE
-      ==================================================== */
-
-      article.append(
-        type,
-        title,
-        meta,
-        link
-      );
-
-
-      grid.appendChild(
-        article
-      );
-
-    });
+    );
 
 
     console.log(
@@ -726,6 +943,8 @@
     renderFeaturedInvestigation();
 
     renderBrowse();
+
+    initSearch();
 
     renderLatestRecords();
 
