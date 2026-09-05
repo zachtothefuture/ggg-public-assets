@@ -2,14 +2,14 @@
    GGG ARCHIVE HOME — RENDERER
 
    VERSION
-   v2.3 — Mobile Search Result Reveal
+   v2.4 — Archive Picker System
 
    COMPONENTS
    • Featured Investigation
    • Archive Index
-   • Browse by Record Type
-   • Browse by Collection
    • Search the Archive
+   • Record Type Picker
+   • Collection Picker
    • Latest Records
    • Open Investigations
    • Recent Activity
@@ -21,10 +21,20 @@
    • Collection
    • All Records
 
+   PICKER INTERACTION
+   • Record Type + Collection compact controls
+   • Shared modal / mobile bottom sheet
+   • Options generated from canonical Archive records
+   • Current selection reflected in picker controls
+   • One browse filter active at a time
+   • Escape / backdrop / close-button support
+   • Focus returns to originating picker
+
    SEARCH INTERACTION
    • Custom clear control
    • Clear hides Archive Index
    • Clear returns focus to input
+   • Search resets browse picker selections
    • Mobile submit dismisses keyboard
    • Mobile submit reveals results
 
@@ -61,9 +71,30 @@
   const MOBILE_SEARCH_SCROLL_DELAY =
     180;
 
+  const PICKER_RESULT_SCROLL_DELAY =
+    120;
+
 
   let attempts =
     0;
+
+
+
+  /* ========================================================
+     PICKER STATE
+  ======================================================== */
+
+  let selectedRecordType =
+    'all';
+
+  let selectedCollection =
+    'all';
+
+  let activePicker =
+    null;
+
+  let lastPickerTrigger =
+    null;
 
 
 
@@ -195,9 +226,14 @@
     return date.toLocaleDateString(
       'en-US',
       {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric'
+        month:
+          'long',
+
+        day:
+          'numeric',
+
+        year:
+          'numeric'
       }
     );
 
@@ -348,7 +384,7 @@
 
 
   /* ========================================================
-     ARCHIVE INDEX
+     ARCHIVE INDEX ELEMENTS
   ======================================================== */
 
   function getIndexElements() {
@@ -399,6 +435,41 @@
       results:
         section.querySelector(
           '[data-ggg-index-results]'
+        ),
+
+      typeTrigger:
+        section.querySelector(
+          '[data-ggg-picker-trigger="type"]'
+        ),
+
+      collectionTrigger:
+        section.querySelector(
+          '[data-ggg-picker-trigger="collection"]'
+        ),
+
+      typeValue:
+        section.querySelector(
+          '[data-ggg-picker-value="type"]'
+        ),
+
+      collectionValue:
+        section.querySelector(
+          '[data-ggg-picker-value="collection"]'
+        ),
+
+      picker:
+        section.querySelector(
+          '[data-ggg-archive-picker]'
+        ),
+
+      pickerTitle:
+        section.querySelector(
+          '[data-ggg-picker-title]'
+        ),
+
+      pickerOptions:
+        section.querySelector(
+          '[data-ggg-picker-options]'
         )
 
     };
@@ -406,6 +477,10 @@
   }
 
 
+
+  /* ========================================================
+     SEARCH CLEAR CONTROL
+  ======================================================== */
 
   function updateSearchClearControl() {
 
@@ -438,6 +513,10 @@
   }
 
 
+
+  /* ========================================================
+     ARCHIVE INDEX ROW
+  ======================================================== */
 
   function createIndexRow(
     recordId,
@@ -536,6 +615,10 @@
 
 
 
+  /* ========================================================
+     ARCHIVE INDEX VISIBILITY
+  ======================================================== */
+
   function hideArchiveIndex() {
 
     const elements =
@@ -620,6 +703,10 @@
   }
 
 
+
+  /* ========================================================
+     INDEX STATUS
+  ======================================================== */
 
   function getIndexStatusText(
     mode,
@@ -724,6 +811,10 @@
 
 
 
+  /* ========================================================
+     RENDER ARCHIVE INDEX
+  ======================================================== */
+
   function renderArchiveIndex(
     entries,
     options
@@ -812,6 +903,10 @@
 
 
 
+  /* ========================================================
+     RESULT REVEAL
+  ======================================================== */
+
   function scrollToArchiveIndex() {
 
     const elements =
@@ -820,7 +915,8 @@
 
     if (
       !elements ||
-      !elements.section
+      !elements.index ||
+      elements.index.hidden
     ) {
 
       return;
@@ -828,7 +924,7 @@
     }
 
 
-    elements.section.scrollIntoView({
+    elements.index.scrollIntoView({
       behavior:
         'smooth',
 
@@ -892,11 +988,1061 @@
             'smooth',
 
           block:
-            'nearest'
+            'start'
         });
 
       },
       MOBILE_SEARCH_SCROLL_DELAY
+    );
+
+  }
+
+
+
+  function revealPickerResults() {
+
+    window.setTimeout(
+      function () {
+
+        scrollToArchiveIndex();
+
+      },
+      PICKER_RESULT_SCROLL_DELAY
+    );
+
+  }
+
+
+
+  /* ========================================================
+     PICKER VALUE DISPLAY
+  ======================================================== */
+
+  function updatePickerValues() {
+
+    const elements =
+      getIndexElements();
+
+
+    if (!elements) {
+
+      return;
+
+    }
+
+
+    if (elements.typeValue) {
+
+      if (
+        selectedRecordType ===
+        'all'
+      ) {
+
+        elements.typeValue.textContent =
+          'ALL RECORDS';
+
+      } else {
+
+        elements.typeValue.textContent =
+          TYPE_LABELS[
+            selectedRecordType
+          ] ||
+          selectedRecordType;
+
+      }
+
+    }
+
+
+    if (elements.collectionValue) {
+
+      if (
+        selectedCollection ===
+        'all'
+      ) {
+
+        elements.collectionValue.textContent =
+          'ALL COLLECTIONS';
+
+      } else {
+
+        elements.collectionValue.textContent =
+          selectedCollection;
+
+      }
+
+    }
+
+  }
+
+
+
+  function resetPickerSelections() {
+
+    selectedRecordType =
+      'all';
+
+    selectedCollection =
+      'all';
+
+
+    updatePickerValues();
+
+  }
+
+
+
+  /* ========================================================
+     PICKER DATA
+  ======================================================== */
+
+  function getRecordTypeOptions() {
+
+    const records =
+      window.GGG.archive.getAllRecords();
+
+
+    const counts =
+      Object.values(records)
+        .reduce(
+          function (
+            result,
+            record
+          ) {
+
+            if (
+              !record ||
+              !record.type
+            ) {
+
+              return result;
+
+            }
+
+
+            if (!result[record.type]) {
+
+              result[record.type] =
+                0;
+
+            }
+
+
+            result[record.type] +=
+              1;
+
+
+            return result;
+
+          },
+          {}
+        );
+
+
+    const options =
+      [
+        {
+          value:
+            'all',
+
+          label:
+            'All Records',
+
+          count:
+            Object.keys(records).length
+        }
+      ];
+
+
+    Object.keys(TYPE_LABELS)
+      .filter(
+        function (type) {
+
+          return Boolean(
+            counts[type]
+          );
+
+        }
+      )
+      .forEach(
+        function (type) {
+
+          options.push({
+            value:
+              type,
+
+            label:
+              TYPE_LABELS[type],
+
+            count:
+              counts[type]
+          });
+
+        }
+      );
+
+
+    return options;
+
+  }
+
+
+
+  function getCollectionOptions() {
+
+    const records =
+      window.GGG.archive.getAllRecords();
+
+
+    const counts =
+      Object.values(records)
+        .reduce(
+          function (
+            result,
+            record
+          ) {
+
+            if (
+              !record ||
+              !record.collection
+            ) {
+
+              return result;
+
+            }
+
+
+            const collection =
+              String(
+                record.collection
+              ).trim();
+
+
+            if (!collection) {
+
+              return result;
+
+            }
+
+
+            if (!result[collection]) {
+
+              result[collection] =
+                0;
+
+            }
+
+
+            result[collection] +=
+              1;
+
+
+            return result;
+
+          },
+          {}
+        );
+
+
+    const options =
+      [
+        {
+          value:
+            'all',
+
+          label:
+            'All Collections',
+
+          count:
+            Object.keys(records).length
+        }
+      ];
+
+
+    Object.keys(counts)
+      .sort(
+        function (a, b) {
+
+          return a.localeCompare(
+            b
+          );
+
+        }
+      )
+      .forEach(
+        function (collection) {
+
+          options.push({
+            value:
+              collection,
+
+            label:
+              collection,
+
+            count:
+              counts[collection]
+          });
+
+        }
+      );
+
+
+    return options;
+
+  }
+
+
+
+  /* ========================================================
+     CREATE PICKER OPTION
+  ======================================================== */
+
+  function createPickerOption(
+    pickerType,
+    option
+  ) {
+
+    const button =
+      createElement(
+        'button',
+        'ggg-archive-picker__option',
+        'ink'
+      );
+
+
+    button.type =
+      'button';
+
+
+    button.dataset.gggPickerOption =
+      option.value;
+
+
+    button.dataset.gggPickerType =
+      pickerType;
+
+
+
+    const selectedValue =
+      (
+        pickerType === 'type'
+          ? selectedRecordType
+          : selectedCollection
+      );
+
+
+    button.setAttribute(
+      'aria-selected',
+      (
+        selectedValue ===
+        option.value
+          ? 'true'
+          : 'false'
+      )
+    );
+
+
+
+    const label =
+      createElement(
+        'span'
+      );
+
+
+    label.textContent =
+      option.label;
+
+
+
+    const meta =
+      createElement(
+        'span',
+        'ggg-archive-picker__option-meta'
+      );
+
+
+
+    const count =
+      createElement(
+        'span',
+        'ggg-archive-picker__option-count',
+        'print'
+      );
+
+
+    count.textContent =
+      String(
+        option.count
+      );
+
+
+
+    const arrow =
+      createElement(
+        'span',
+        'ggg-archive-picker__option-arrow'
+      );
+
+
+    arrow.textContent =
+      '→';
+
+
+    arrow.setAttribute(
+      'aria-hidden',
+      'true'
+    );
+
+
+    meta.append(
+      count,
+      arrow
+    );
+
+
+    button.append(
+      label,
+      meta
+    );
+
+
+    const countLabel =
+      (
+        option.count === 1
+          ? ' record'
+          : ' records'
+      );
+
+
+    button.setAttribute(
+      'aria-label',
+      option.label +
+      ', ' +
+      option.count +
+      countLabel
+    );
+
+
+    return button;
+
+  }
+
+
+
+  /* ========================================================
+     OPEN PICKER
+  ======================================================== */
+
+  function openArchivePicker(
+    pickerType,
+    trigger
+  ) {
+
+    const elements =
+      getIndexElements();
+
+
+    if (
+      !elements ||
+      !elements.picker ||
+      !elements.pickerTitle ||
+      !elements.pickerOptions
+    ) {
+
+      return;
+
+    }
+
+
+    activePicker =
+      pickerType;
+
+
+    lastPickerTrigger =
+      trigger ||
+      null;
+
+
+
+    let options =
+      [];
+
+
+    if (pickerType === 'type') {
+
+      elements.pickerTitle.textContent =
+        'RECORD TYPE';
+
+
+      options =
+        getRecordTypeOptions();
+
+    } else {
+
+      elements.pickerTitle.textContent =
+        'COLLECTIONS';
+
+
+      options =
+        getCollectionOptions();
+
+    }
+
+
+
+    elements.pickerOptions.replaceChildren();
+
+
+    options.forEach(
+      function (option) {
+
+        elements.pickerOptions.appendChild(
+          createPickerOption(
+            pickerType,
+            option
+          )
+        );
+
+      }
+    );
+
+
+
+    elements.picker.hidden =
+      false;
+
+
+    document.documentElement.classList.add(
+      'ggg-archive-picker-open'
+    );
+
+
+    document.body.classList.add(
+      'ggg-archive-picker-open'
+    );
+
+
+
+    if (trigger) {
+
+      trigger.setAttribute(
+        'aria-expanded',
+        'true'
+      );
+
+    }
+
+
+
+    const activeOption =
+      elements.pickerOptions.querySelector(
+        '[aria-selected="true"]'
+      );
+
+
+    const firstOption =
+      elements.pickerOptions.querySelector(
+        '[data-ggg-picker-option]'
+      );
+
+
+    window.requestAnimationFrame(
+      function () {
+
+        const focusTarget =
+          activeOption ||
+          firstOption;
+
+
+        if (
+          focusTarget &&
+          typeof focusTarget.focus ===
+            'function'
+        ) {
+
+          focusTarget.focus();
+
+        }
+
+      }
+    );
+
+
+    console.log(
+      'GGG Archive Home: Picker opened',
+      pickerType
+    );
+
+  }
+
+
+
+  /* ========================================================
+     CLOSE PICKER
+  ======================================================== */
+
+  function closeArchivePicker(
+    restoreFocus
+  ) {
+
+    const elements =
+      getIndexElements();
+
+
+    if (
+      !elements ||
+      !elements.picker
+    ) {
+
+      return;
+
+    }
+
+
+    elements.picker.hidden =
+      true;
+
+
+    document.documentElement.classList.remove(
+      'ggg-archive-picker-open'
+    );
+
+
+    document.body.classList.remove(
+      'ggg-archive-picker-open'
+    );
+
+
+
+    if (elements.typeTrigger) {
+
+      elements.typeTrigger.setAttribute(
+        'aria-expanded',
+        'false'
+      );
+
+    }
+
+
+    if (elements.collectionTrigger) {
+
+      elements.collectionTrigger.setAttribute(
+        'aria-expanded',
+        'false'
+      );
+
+    }
+
+
+
+    if (
+      restoreFocus &&
+      lastPickerTrigger &&
+      typeof lastPickerTrigger.focus ===
+        'function'
+    ) {
+
+      lastPickerTrigger.focus();
+
+    }
+
+
+    activePicker =
+      null;
+
+
+    lastPickerTrigger =
+      null;
+
+  }
+
+
+
+  /* ========================================================
+     CLEAR SEARCH FOR BROWSE
+  ======================================================== */
+
+  function clearSearchForBrowse() {
+
+    const elements =
+      getIndexElements();
+
+
+    if (
+      !elements ||
+      !elements.input
+    ) {
+
+      return;
+
+    }
+
+
+    elements.input.value =
+      '';
+
+
+    if (
+      typeof elements.input.blur ===
+      'function'
+    ) {
+
+      elements.input.blur();
+
+    }
+
+
+    updateSearchClearControl();
+
+  }
+
+
+
+  /* ========================================================
+     APPLY RECORD TYPE
+  ======================================================== */
+
+  function applyRecordType(
+    type
+  ) {
+
+    const records =
+      window.GGG.archive.getAllRecords();
+
+
+    let matches =
+      Object.entries(records);
+
+
+    selectedRecordType =
+      type ||
+      'all';
+
+
+    selectedCollection =
+      'all';
+
+
+    if (
+      selectedRecordType !==
+      'all'
+    ) {
+
+      matches =
+        matches.filter(
+          function (entry) {
+
+            return (
+              entry[1] &&
+              entry[1].type ===
+                selectedRecordType
+            );
+
+          }
+        );
+
+    }
+
+
+    sortRecordsByTitle(
+      matches
+    );
+
+
+    clearSearchForBrowse();
+
+    updatePickerValues();
+
+
+    renderArchiveIndex(
+      matches,
+      {
+        mode:
+          (
+            selectedRecordType ===
+            'all'
+              ? 'all'
+              : 'type'
+          ),
+
+        value:
+          (
+            selectedRecordType ===
+            'all'
+              ? ''
+              : selectedRecordType
+          )
+      }
+    );
+
+  }
+
+
+
+  /* ========================================================
+     APPLY COLLECTION
+  ======================================================== */
+
+  function applyCollection(
+    collection
+  ) {
+
+    const records =
+      window.GGG.archive.getAllRecords();
+
+
+    let matches =
+      Object.entries(records);
+
+
+    selectedCollection =
+      collection ||
+      'all';
+
+
+    selectedRecordType =
+      'all';
+
+
+    if (
+      selectedCollection !==
+      'all'
+    ) {
+
+      matches =
+        matches.filter(
+          function (entry) {
+
+            return (
+              entry[1] &&
+              entry[1].collection ===
+                selectedCollection
+            );
+
+          }
+        );
+
+    }
+
+
+    sortRecordsByTitle(
+      matches
+    );
+
+
+    clearSearchForBrowse();
+
+    updatePickerValues();
+
+
+    renderArchiveIndex(
+      matches,
+      {
+        mode:
+          (
+            selectedCollection ===
+            'all'
+              ? 'all'
+              : 'collection'
+          ),
+
+        value:
+          (
+            selectedCollection ===
+            'all'
+              ? ''
+              : selectedCollection
+          )
+      }
+    );
+
+  }
+
+
+
+  /* ========================================================
+     INITIALIZE ARCHIVE PICKERS
+  ======================================================== */
+
+  function initArchivePickers() {
+
+    const elements =
+      getIndexElements();
+
+
+    if (
+      !elements ||
+      !elements.picker
+    ) {
+
+      return;
+
+    }
+
+
+    updatePickerValues();
+
+
+
+    if (elements.typeTrigger) {
+
+      elements.typeTrigger.setAttribute(
+        'aria-expanded',
+        'false'
+      );
+
+
+      elements.typeTrigger.addEventListener(
+        'click',
+        function () {
+
+          openArchivePicker(
+            'type',
+            elements.typeTrigger
+          );
+
+        }
+      );
+
+    }
+
+
+
+    if (elements.collectionTrigger) {
+
+      elements.collectionTrigger.setAttribute(
+        'aria-expanded',
+        'false'
+      );
+
+
+      elements.collectionTrigger.addEventListener(
+        'click',
+        function () {
+
+          openArchivePicker(
+            'collection',
+            elements.collectionTrigger
+          );
+
+        }
+      );
+
+    }
+
+
+
+    elements.picker.addEventListener(
+      'click',
+      function (event) {
+
+        const closeControl =
+          event.target.closest(
+            '[data-ggg-picker-close]'
+          );
+
+
+        if (
+          closeControl &&
+          elements.picker.contains(
+            closeControl
+          )
+        ) {
+
+          closeArchivePicker(
+            true
+          );
+
+
+          return;
+
+        }
+
+
+
+        const option =
+          event.target.closest(
+            '[data-ggg-picker-option]'
+          );
+
+
+        if (
+          !option ||
+          !elements.picker.contains(
+            option
+          )
+        ) {
+
+          return;
+
+        }
+
+
+        const pickerType =
+          option.dataset.gggPickerType;
+
+
+        const value =
+          option.dataset.gggPickerOption;
+
+
+        if (pickerType === 'type') {
+
+          applyRecordType(
+            value
+          );
+
+        } else if (
+          pickerType ===
+          'collection'
+        ) {
+
+          applyCollection(
+            value
+          );
+
+        }
+
+
+        closeArchivePicker(
+          false
+        );
+
+
+        revealPickerResults();
+
+      }
+    );
+
+
+
+    document.addEventListener(
+      'keydown',
+      function (event) {
+
+        if (
+          event.key !== 'Escape' ||
+          !activePicker
+        ) {
+
+          return;
+
+        }
+
+
+        event.preventDefault();
+
+
+        closeArchivePicker(
+          true
+        );
+
+      }
+    );
+
+
+    console.log(
+      'GGG Archive Home: Archive Pickers ready'
     );
 
   }
@@ -1061,313 +2207,6 @@
 
 
   /* ========================================================
-     BROWSE BY RECORD TYPE
-  ======================================================== */
-
-  function renderBrowse() {
-
-    const section =
-      document.querySelector(
-        '[data-ggg-browse]'
-      );
-
-
-    if (!section) {
-
-      return;
-
-    }
-
-
-    const navigation =
-      section.querySelector(
-        '[data-ggg-browse-types]'
-      );
-
-
-    if (!navigation) {
-
-      return;
-
-    }
-
-
-    const records =
-      window.GGG.archive.getAllRecords();
-
-
-    const typeCounts =
-      Object.values(records)
-        .reduce(function (
-          counts,
-          record
-        ) {
-
-          if (
-            !record ||
-            !record.type
-          ) {
-
-            return counts;
-
-          }
-
-
-          if (!counts[record.type]) {
-
-            counts[record.type] =
-              0;
-
-          }
-
-
-          counts[record.type] +=
-            1;
-
-
-          return counts;
-
-        }, {});
-
-
-    const availableTypes =
-      Object.keys(TYPE_LABELS)
-        .filter(function (type) {
-
-          return Boolean(
-            typeCounts[type]
-          );
-
-        });
-
-
-    navigation.replaceChildren();
-
-
-
-    const allRecords =
-      createElement(
-        'a'
-      );
-
-
-    allRecords.href =
-      '#';
-
-
-    allRecords.textContent =
-      'All Records';
-
-
-    allRecords.dataset.gggBrowseType =
-      'all';
-
-
-    allRecords.dataset.recordCount =
-      String(
-        Object.keys(records).length
-      );
-
-
-    allRecords.setAttribute(
-      'aria-label',
-      'All Records, ' +
-      Object.keys(records).length +
-      ' records'
-    );
-
-
-    navigation.appendChild(
-      allRecords
-    );
-
-
-
-    availableTypes.forEach(
-      function (type) {
-
-        const link =
-          createElement(
-            'a'
-          );
-
-
-        const count =
-          typeCounts[type];
-
-
-        link.href =
-          '#';
-
-
-        link.textContent =
-          TYPE_LABELS[type];
-
-
-        link.dataset.gggBrowseType =
-          type;
-
-
-        link.dataset.recordCount =
-          String(count);
-
-
-        link.setAttribute(
-          'aria-label',
-          TYPE_LABELS[type] +
-          ', ' +
-          count +
-          (
-            count === 1
-              ? ' record'
-              : ' records'
-          )
-        );
-
-
-        navigation.appendChild(
-          link
-        );
-
-      }
-    );
-
-
-    console.log(
-      'GGG Archive Home: Browse loaded',
-      typeCounts
-    );
-
-  }
-
-
-
-  function initBrowseInteraction() {
-
-    const navigation =
-      document.querySelector(
-        '[data-ggg-browse-types]'
-      );
-
-
-    if (!navigation) {
-
-      return;
-
-    }
-
-
-    navigation.addEventListener(
-      'click',
-      function (event) {
-
-        const link =
-          event.target.closest(
-            '[data-ggg-browse-type]'
-          );
-
-
-        if (
-          !link ||
-          !navigation.contains(link)
-        ) {
-
-          return;
-
-        }
-
-
-        event.preventDefault();
-
-
-        const type =
-          link.dataset.gggBrowseType;
-
-
-        const records =
-          window.GGG.archive.getAllRecords();
-
-
-        let matches =
-          Object.entries(records);
-
-
-        if (
-          type &&
-          type !== 'all'
-        ) {
-
-          matches =
-            matches.filter(
-              function (entry) {
-
-                return (
-                  entry[1] &&
-                  entry[1].type ===
-                    type
-                );
-
-              }
-            );
-
-        }
-
-
-        sortRecordsByTitle(
-          matches
-        );
-
-
-        const index =
-          getIndexElements();
-
-
-        if (
-          index &&
-          index.input
-        ) {
-
-          index.input.value =
-            '';
-
-          index.input.blur();
-
-          updateSearchClearControl();
-
-        }
-
-
-        renderArchiveIndex(
-          matches,
-          {
-            mode:
-              (
-                type === 'all'
-                  ? 'all'
-                  : 'type'
-              ),
-
-            value:
-              type
-          }
-        );
-
-
-        scrollToArchiveIndex();
-
-      }
-    );
-
-
-    console.log(
-      'GGG Archive Home: Browse interaction ready'
-    );
-
-  }
-
-
-
-  /* ========================================================
      SEARCH THE ARCHIVE
   ======================================================== */
 
@@ -1427,50 +2266,55 @@
         }
 
 
+        resetPickerSelections();
+
+
         const matches =
           Object.entries(records)
 
-            .filter(function (entry) {
+            .filter(
+              function (entry) {
 
-              const recordId =
-                entry[0];
-
-
-              const record =
-                entry[1] || {};
+                const recordId =
+                  entry[0];
 
 
-              const keywords =
-                Array.isArray(
-                  record.keywords
-                )
-                  ? record.keywords
-                  : [];
+                const record =
+                  entry[1] || {};
 
 
-              const searchable =
-                [
-                  recordId,
-                  record.title,
-                  record.type,
-                  record.collection,
-                  record.status,
-                  record.summary
-                ]
-                  .concat(
-                    keywords
+                const keywords =
+                  Array.isArray(
+                    record.keywords
                   )
-                  .map(
-                    normalizeSearchValue
-                  )
-                  .join(' ');
+                    ? record.keywords
+                    : [];
 
 
-              return searchable.includes(
-                query
-              );
+                const searchable =
+                  [
+                    recordId,
+                    record.title,
+                    record.type,
+                    record.collection,
+                    record.status,
+                    record.summary
+                  ]
+                    .concat(
+                      keywords
+                    )
+                    .map(
+                      normalizeSearchValue
+                    )
+                    .join(' ');
 
-            });
+
+                return searchable.includes(
+                  query
+                );
+
+              }
+            );
 
 
         sortRecordsByTitle(
@@ -1602,40 +2446,46 @@
     const latest =
       Object.entries(records)
 
-        .map(function (entry) {
+        .map(
+          function (entry) {
 
-          return {
+            return {
 
-            id:
-              entry[0],
+              id:
+                entry[0],
 
-            record:
-              entry[1]
+              record:
+                entry[1]
 
-          };
+            };
 
-        })
+          }
+        )
 
-        .filter(function (item) {
+        .filter(
+          function (item) {
 
-          return (
-            item.record &&
-            item.record.dateAdded &&
-            /^\d{4}-\d{2}-\d{2}$/.test(
-              item.record.dateAdded
-            )
-          );
-
-        })
-
-        .sort(function (a, b) {
-
-          return b.record.dateAdded
-            .localeCompare(
-              a.record.dateAdded
+            return (
+              item.record &&
+              item.record.dateAdded &&
+              /^\d{4}-\d{2}-\d{2}$/.test(
+                item.record.dateAdded
+              )
             );
 
-        })
+          }
+        )
+
+        .sort(
+          function (a, b) {
+
+            return b.record.dateAdded
+              .localeCompare(
+                a.record.dateAdded
+              );
+
+          }
+        )
 
         .slice(
           0,
@@ -1662,305 +2512,13 @@
 
     console.log(
       'GGG Archive Home: Latest Records loaded',
-      latest.map(function (item) {
+      latest.map(
+        function (item) {
 
-        return item.id;
+          return item.id;
 
-      })
-    );
-
-  }
-
-
-
-  /* ========================================================
-     BROWSE BY COLLECTION
-  ======================================================== */
-
-  function renderCollections() {
-
-    const grid =
-      document.querySelector(
-        '[data-ggg-collections-grid]'
-      );
-
-
-    if (!grid) {
-
-      return;
-
-    }
-
-
-    const records =
-      window.GGG.archive.getAllRecords();
-
-
-    const collectionCounts =
-      Object.values(records)
-        .reduce(function (
-          counts,
-          record
-        ) {
-
-          if (
-            !record ||
-            !record.collection
-          ) {
-
-            return counts;
-
-          }
-
-
-          const collection =
-            String(
-              record.collection
-            ).trim();
-
-
-          if (!collection) {
-
-            return counts;
-
-          }
-
-
-          if (!counts[collection]) {
-
-            counts[collection] =
-              0;
-
-          }
-
-
-          counts[collection] +=
-            1;
-
-
-          return counts;
-
-        }, {});
-
-
-    const collections =
-      Object.keys(
-        collectionCounts
+        }
       )
-        .sort(function (a, b) {
-
-          return a.localeCompare(
-            b
-          );
-
-        });
-
-
-    grid.replaceChildren();
-
-
-    collections.forEach(
-      function (collection) {
-
-        const link =
-          createElement(
-            'a',
-            'ggg-archive-home-collection'
-          );
-
-
-        link.href =
-          '#';
-
-
-        link.dataset.gggCollection =
-          collection;
-
-
-        link.dataset.recordCount =
-          String(
-            collectionCounts[
-              collection
-            ]
-          );
-
-
-        const label =
-          createElement(
-            'span',
-            '',
-            'ink'
-          );
-
-
-        label.textContent =
-          collection;
-
-
-
-        const arrow =
-          createElement(
-            'span'
-          );
-
-
-        arrow.textContent =
-          '→';
-
-
-        arrow.setAttribute(
-          'aria-hidden',
-          'true'
-        );
-
-
-
-        const count =
-          collectionCounts[
-            collection
-          ];
-
-
-        link.setAttribute(
-          'aria-label',
-          collection +
-          ', ' +
-          count +
-          (
-            count === 1
-              ? ' record'
-              : ' records'
-          )
-        );
-
-
-        link.append(
-          label,
-          arrow
-        );
-
-
-        grid.appendChild(
-          link
-        );
-
-      }
-    );
-
-
-    console.log(
-      'GGG Archive Home: Collections loaded',
-      collectionCounts
-    );
-
-  }
-
-
-
-  function initCollectionInteraction() {
-
-    const grid =
-      document.querySelector(
-        '[data-ggg-collections-grid]'
-      );
-
-
-    if (!grid) {
-
-      return;
-
-    }
-
-
-    grid.addEventListener(
-      'click',
-      function (event) {
-
-        const link =
-          event.target.closest(
-            '[data-ggg-collection]'
-          );
-
-
-        if (
-          !link ||
-          !grid.contains(link)
-        ) {
-
-          return;
-
-        }
-
-
-        event.preventDefault();
-
-
-        const collection =
-          link.dataset.gggCollection;
-
-
-        const records =
-          window.GGG.archive.getAllRecords();
-
-
-        const matches =
-          Object.entries(records)
-
-            .filter(function (entry) {
-
-              return (
-                entry[1] &&
-                entry[1].collection ===
-                  collection
-              );
-
-            });
-
-
-        sortRecordsByTitle(
-          matches
-        );
-
-
-        const index =
-          getIndexElements();
-
-
-        if (
-          index &&
-          index.input
-        ) {
-
-          index.input.value =
-            '';
-
-          index.input.blur();
-
-          updateSearchClearControl();
-
-        }
-
-
-        renderArchiveIndex(
-          matches,
-          {
-            mode:
-              'collection',
-
-            value:
-              collection
-          }
-        );
-
-
-        scrollToArchiveIndex();
-
-      }
-    );
-
-
-    console.log(
-      'GGG Archive Home: Collection interaction ready'
     );
 
   }
@@ -2206,27 +2764,29 @@
     const sortedActivity =
       activity
         .slice()
-        .sort(function (a, b) {
+        .sort(
+          function (a, b) {
 
-          const dateA =
-            (
-              a &&
-              a.date
-            ) || '';
-
-
-          const dateB =
-            (
-              b &&
-              b.date
-            ) || '';
+            const dateA =
+              (
+                a &&
+                a.date
+              ) || '';
 
 
-          return dateB.localeCompare(
-            dateA
-          );
+            const dateB =
+              (
+                b &&
+                b.date
+              ) || '';
 
-        });
+
+            return dateB.localeCompare(
+              dateA
+            );
+
+          }
+        );
 
 
     if (!sortedActivity.length) {
@@ -2690,11 +3250,9 @@
 
     renderFeaturedInvestigation();
 
-    renderBrowse();
-
-    renderCollections();
-
     initSearch();
+
+    initArchivePickers();
 
     renderLatestRecords();
 
@@ -2703,11 +3261,6 @@
     renderRecentActivity();
 
     renderStatistics();
-
-
-    initBrowseInteraction();
-
-    initCollectionInteraction();
 
   }
 
@@ -2722,7 +3275,8 @@
     if (
       !window.GGG ||
       !window.GGG.archive ||
-      typeof window.GGG.archive.init !== 'function'
+      typeof window.GGG.archive.init !==
+        'function'
     ) {
 
       attempts +=
