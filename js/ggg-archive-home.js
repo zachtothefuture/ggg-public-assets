@@ -2023,8 +2023,35 @@
       }
     );
 
+    if (!investigations.length) {
 
-    console.log(
+     const empty =
+       createElement(
+         'div',
+         'ggg-archive-home-open__empty',
+         'print'
+       );
+
+
+     empty.textContent =
+       'NO OPEN INVESTIGATIONS';
+
+
+     records.appendChild(
+       empty
+     );
+
+
+     console.log(
+       'GGG Archive Home: Open Investigations loaded — none open'
+     );
+
+
+     return;
+
+    }
+    
+     console.log(
       'GGG Archive Home: Open Investigations loaded',
       investigations.map(
         function (investigation) {
