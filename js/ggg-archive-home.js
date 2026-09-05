@@ -2112,7 +2112,31 @@
 
         });
 
+    if (!sortedActivity.length) {
 
+      const empty =
+       createElement(
+         'div',
+         'ggg-archive-home-activity__empty',
+         'print'
+       );
+
+      empty.textContent =
+       'NO RECENT ARCHIVE CHANGES';
+
+      log.appendChild(
+       empty
+      );
+
+      console.log(
+       'GGG Archive Home: Recent Activity loaded — no recent changes'
+      );
+
+
+      return;
+
+    }
+     
     sortedActivity.forEach(
       function (entry) {
 
