@@ -947,13 +947,11 @@
     }
 
 
-    if (
-      summary &&
-      record.summary
-    ) {
+    if (summary) {
 
-      summary.textContent =
-        record.summary;
+     summary.textContent =
+       record.summary ||
+       '';
 
     }
 
