@@ -2,7 +2,7 @@
    GGG ARCHIVE HOME — RENDERER
 
    VERSION
-   v2.2
+   v2.3 — Mobile Search Result Reveal
 
    COMPONENTS
    • Featured Investigation
@@ -25,6 +25,8 @@
    • Custom clear control
    • Clear hides Archive Index
    • Clear returns focus to input
+   • Mobile submit dismisses keyboard
+   • Mobile submit reveals results
 
    PURPOSE
    Renders Archive Home components from the shared Archive
@@ -52,6 +54,12 @@
 
   const LATEST_RECORD_LIMIT =
     3;
+
+  const MOBILE_BREAKPOINT =
+    700;
+
+  const MOBILE_SEARCH_SCROLL_DELAY =
+    180;
 
 
   let attempts =
@@ -222,6 +230,18 @@
 
       }
     );
+
+  }
+
+
+
+  function isMobileArchiveView() {
+
+    return window.matchMedia(
+      '(max-width: ' +
+      MOBILE_BREAKPOINT +
+      'px)'
+    ).matches;
 
   }
 
@@ -820,6 +840,69 @@
 
 
 
+  function revealMobileSearchResults() {
+
+    const elements =
+      getIndexElements();
+
+
+    if (
+      !elements ||
+      !elements.index
+    ) {
+
+      return;
+
+    }
+
+
+    if (
+      elements.input &&
+      typeof elements.input.blur ===
+        'function'
+    ) {
+
+      elements.input.blur();
+
+    }
+
+
+    if (!isMobileArchiveView()) {
+
+      return;
+
+    }
+
+
+    window.setTimeout(
+      function () {
+
+        if (
+          !elements.index ||
+          elements.index.hidden
+        ) {
+
+          return;
+
+        }
+
+
+        elements.index.scrollIntoView({
+          behavior:
+            'smooth',
+
+          block:
+            'nearest'
+        });
+
+      },
+      MOBILE_SEARCH_SCROLL_DELAY
+    );
+
+  }
+
+
+
   /* ========================================================
      FEATURED INVESTIGATION
   ======================================================== */
@@ -949,9 +1032,9 @@
 
     if (summary) {
 
-     summary.textContent =
-       record.summary ||
-       '';
+      summary.textContent =
+        record.summary ||
+        '';
 
     }
 
@@ -1247,6 +1330,8 @@
           index.input.value =
             '';
 
+          index.input.blur();
+
           updateSearchClearControl();
 
         }
@@ -1403,6 +1488,9 @@
               rawQuery
           }
         );
+
+
+        revealMobileSearchResults();
 
 
         console.log(
@@ -1583,7 +1671,6 @@
 
   }
 
-  
 
 
   /* ========================================================
@@ -1847,6 +1934,8 @@
           index.input.value =
             '';
 
+          index.input.blur();
+
           updateSearchClearControl();
 
         }
@@ -1924,6 +2013,35 @@
 
 
     container.replaceChildren();
+
+
+    if (!investigations.length) {
+
+      const empty =
+        createElement(
+          'div',
+          'ggg-archive-home-open__empty',
+          'print'
+        );
+
+
+      empty.textContent =
+        'NO OPEN INVESTIGATIONS';
+
+
+      container.appendChild(
+        empty
+      );
+
+
+      console.log(
+        'GGG Archive Home: Open Investigations loaded — none open'
+      );
+
+
+      return;
+
+    }
 
 
     investigations.forEach(
@@ -2021,35 +2139,8 @@
       }
     );
 
-    if (!investigations.length) {
 
-     const empty =
-       createElement(
-         'div',
-         'ggg-archive-home-open__empty',
-         'print'
-       );
-
-
-     empty.textContent =
-       'NO OPEN INVESTIGATIONS';
-
-
-     records.appendChild(
-       empty
-     );
-
-
-     console.log(
-       'GGG Archive Home: Open Investigations loaded — none open'
-     );
-
-
-     return;
-
-    }
-    
-     console.log(
+    console.log(
       'GGG Archive Home: Open Investigations loaded',
       investigations.map(
         function (investigation) {
@@ -2137,31 +2228,36 @@
 
         });
 
+
     if (!sortedActivity.length) {
 
       const empty =
-       createElement(
-         'div',
-         'ggg-archive-home-activity__empty',
-         'print'
-       );
+        createElement(
+          'div',
+          'ggg-archive-home-activity__empty',
+          'print'
+        );
+
 
       empty.textContent =
-       'NO RECENT ARCHIVE CHANGES';
+        'NO RECENT ARCHIVE CHANGES';
+
 
       log.appendChild(
-       empty
+        empty
       );
 
+
       console.log(
-       'GGG Archive Home: Recent Activity loaded — no recent changes'
+        'GGG Archive Home: Recent Activity loaded — no recent changes'
       );
 
 
       return;
 
     }
-     
+
+
     sortedActivity.forEach(
       function (entry) {
 
