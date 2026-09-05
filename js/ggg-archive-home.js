@@ -2,15 +2,15 @@
    GGG ARCHIVE HOME — RENDERER
 
    VERSION
-   v2.1
+   v2.2
 
    COMPONENTS
    • Featured Investigation
    • Archive Index
-   • Browse the Archive
+   • Browse by Record Type
+   • Browse by Collection
    • Search the Archive
    • Latest Records
-   • Collections
    • Open Investigations
    • Recent Activity
    • Archive Statistics
@@ -980,7 +980,7 @@
 
 
   /* ========================================================
-     BROWSE THE ARCHIVE
+     BROWSE BY RECORD TYPE
   ======================================================== */
 
   function renderBrowse() {
@@ -1588,13 +1588,15 @@
 
 
   /* ========================================================
-     COLLECTIONS
+     BROWSE BY COLLECTION
   ======================================================== */
 
-  const grid =
-     document.querySelector(
-       '[data-ggg-collections-grid]'
-     );
+  function renderCollections() {
+
+    const grid =
+      document.querySelector(
+        '[data-ggg-collections-grid]'
+      );
 
 
     if (!grid) {
@@ -1709,6 +1711,7 @@
           collection;
 
 
+
         const arrow =
           createElement(
             'span'
@@ -1723,6 +1726,7 @@
           'aria-hidden',
           'true'
         );
+
 
 
         const count =
@@ -1975,6 +1979,7 @@
           '#';
 
 
+
         const question =
           createElement(
             'span',
@@ -1985,6 +1990,7 @@
 
         question.textContent =
           investigation.question;
+
 
 
         const arrow =
@@ -2154,6 +2160,7 @@
           recordId;
 
 
+
         const time =
           createElement(
             'time',
@@ -2172,6 +2179,7 @@
           );
 
 
+
         const activityType =
           createElement(
             'span',
@@ -2182,6 +2190,7 @@
 
         activityType.textContent =
           entry.type;
+
 
 
         const link =
@@ -2457,6 +2466,7 @@
           statistic.label;
 
 
+
         const value =
           createElement(
             'dd',
@@ -2469,6 +2479,7 @@
           String(
             statistic.value
           );
+
 
 
         const description =
@@ -2535,11 +2546,11 @@
 
     renderBrowse();
 
+    renderCollections();
+
     initSearch();
 
     renderLatestRecords();
-
-    renderCollections();
 
     renderOpenInvestigations();
 
