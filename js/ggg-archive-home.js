@@ -1591,25 +1591,10 @@
      COLLECTIONS
   ======================================================== */
 
-  function renderCollections() {
-
-    const section =
-      document.querySelector(
-        '[data-ggg-collections]'
-      );
-
-
-    if (!section) {
-
-      return;
-
-    }
-
-
-    const grid =
-      section.querySelector(
-        '[data-ggg-collections-grid]'
-      );
+  const grid =
+     document.querySelector(
+       '[data-ggg-collections-grid]'
+     );
 
 
     if (!grid) {
