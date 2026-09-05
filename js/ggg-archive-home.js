@@ -2,7 +2,7 @@
    GGG ARCHIVE HOME — RENDERER
 
    VERSION
-   v2.0
+   v2.1
 
    COMPONENTS
    • Featured Investigation
@@ -20,6 +20,11 @@
    • Record Type
    • Collection
    • All Records
+
+   SEARCH INTERACTION
+   • Custom clear control
+   • Clear hides Archive Index
+   • Clear returns focus to input
 
    PURPOSE
    Renders Archive Home components from the shared Archive
@@ -356,6 +361,11 @@
           '[data-ggg-search-input]'
         ),
 
+      clear:
+        section.querySelector(
+          '[data-ggg-search-clear]'
+        ),
+
       index:
         section.querySelector(
           '[data-ggg-index]'
@@ -372,6 +382,38 @@
         )
 
     };
+
+  }
+
+
+
+  function updateSearchClearControl() {
+
+    const elements =
+      getIndexElements();
+
+
+    if (
+      !elements ||
+      !elements.input ||
+      !elements.clear
+    ) {
+
+      return;
+
+    }
+
+
+    const hasValue =
+      Boolean(
+        String(
+          elements.input.value || ''
+        ).length
+      );
+
+
+    elements.clear.hidden =
+      !hasValue;
 
   }
 
@@ -508,6 +550,52 @@
         true;
 
     }
+
+  }
+
+
+
+  function clearArchiveSearch(
+    shouldFocus
+  ) {
+
+    const elements =
+      getIndexElements();
+
+
+    if (
+      !elements ||
+      !elements.input
+    ) {
+
+      return;
+
+    }
+
+
+    elements.input.value =
+      '';
+
+
+    hideArchiveIndex();
+
+    updateSearchClearControl();
+
+
+    if (
+      shouldFocus &&
+      typeof elements.input.focus ===
+        'function'
+    ) {
+
+      elements.input.focus();
+
+    }
+
+
+    console.log(
+      'GGG Archive Home: Archive Index reset'
+    );
 
   }
 
@@ -1161,6 +1249,8 @@
           index.input.value =
             '';
 
+          updateSearchClearControl();
+
         }
 
 
@@ -1219,6 +1309,10 @@
       window.GGG.archive.getAllRecords();
 
 
+    updateSearchClearControl();
+
+
+
     elements.form.addEventListener(
       'submit',
       function (event) {
@@ -1236,6 +1330,9 @@
           normalizeSearchValue(
             rawQuery
           );
+
+
+        updateSearchClearControl();
 
 
         if (!query) {
@@ -1337,6 +1434,9 @@
           );
 
 
+        updateSearchClearControl();
+
+
         if (!query) {
 
           hideArchiveIndex();
@@ -1350,6 +1450,23 @@
 
       }
     );
+
+
+
+    if (elements.clear) {
+
+      elements.clear.addEventListener(
+        'click',
+        function () {
+
+          clearArchiveSearch(
+            true
+          );
+
+        }
+      );
+
+    }
 
 
     console.log(
@@ -1741,6 +1858,8 @@
 
           index.input.value =
             '';
+
+          updateSearchClearControl();
 
         }
 
