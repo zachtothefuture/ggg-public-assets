@@ -1585,83 +1585,7 @@
 
   }
 
-    /* ========================================================
-     VIEW ALL RECORDS
-  ======================================================== */
-
-  function initViewAllRecordsInteraction() {
-
-    const link =
-      document.querySelector(
-        '[data-ggg-view-all-records]'
-      );
-
-
-    if (!link) {
-
-      return;
-
-    }
-
-
-    link.addEventListener(
-      'click',
-      function (event) {
-
-        event.preventDefault();
-
-
-        const records =
-          window.GGG.archive.getAllRecords();
-
-
-        const entries =
-          Object.entries(records);
-
-
-        sortRecordsByTitle(
-          entries
-        );
-
-
-        const index =
-          getIndexElements();
-
-
-        if (
-          index &&
-          index.input
-        ) {
-
-          index.input.value =
-            '';
-
-          updateSearchClearControl();
-
-        }
-
-
-        renderArchiveIndex(
-          entries,
-          {
-            mode:
-              'all'
-          }
-        );
-
-
-        scrollToArchiveIndex();
-
-      }
-    );
-
-
-    console.log(
-      'GGG Archive Home: View All Records interaction ready'
-    );
-
-  } 
-
+  
 
 
   /* ========================================================
@@ -2639,8 +2563,6 @@
     initBrowseInteraction();
 
     initCollectionInteraction();
-
-    initViewAllRecordsInteraction(); 
 
   }
 
