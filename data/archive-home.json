@@ -1,6 +1,8 @@
 {
   "version": "1.0",
-  "featuredInvestigation": null,
+  "featuredInvestigation": {
+    "record": "GGG-ART-2026-0001"
+  },
   "openInvestigations": [
     {
       "question": "Who was J.H. Mattson?",
