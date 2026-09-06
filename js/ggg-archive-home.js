@@ -2,7 +2,7 @@
    GGG ARCHIVE HOME — RENDERER
 
    VERSION
-   v2.5 — Body-Level Picker Portal
+   v2.6 — Visual Viewport Picker
 
    COMPONENTS
    • Featured Investigation
@@ -15,38 +15,21 @@
    • Recent Activity
    • Archive Statistics
 
-   ARCHIVE INDEX INPUTS
-   • Search Query
-   • Record Type
-   • Collection
-   • All Records
-
-   PICKER INTERACTION
-   • Record Type + Collection compact controls
+   PICKER SYSTEM
    • Shared modal / mobile bottom sheet
-   • Options generated from canonical Archive records
-   • Current selection reflected in picker controls
+   • Picker mounted directly to document.body
+   • Escapes Squarespace stacking contexts
+   • Tracks Safari Visual Viewport
+   • Adapts to expanded / collapsed browser chrome
+   • Options scroll internally when necessary
    • One browse filter active at a time
-   • Escape / backdrop / close-button support
-   • Focus returns to originating picker
-
-   MOBILE FIX
-   • Picker is moved to document.body
-   • Escapes Squarespace / Archive stacking contexts
-   • Fixed positioning resolves against viewport
-   • Prevents page content from painting above picker
 
    SEARCH INTERACTION
    • Custom clear control
    • Clear hides Archive Index
-   • Clear returns focus to input
-   • Search resets browse picker selections
+   • Search resets picker selections
    • Mobile submit dismisses keyboard
    • Mobile submit reveals results
-
-   PURPOSE
-   Renders Archive Home components from the shared Archive
-   data API.
 
    DEPENDS ON
    • ggg-archive.js
@@ -101,6 +84,9 @@
 
   let lastPickerTrigger =
     null;
+
+  let viewportListenersReady =
+    false;
 
 
 
@@ -390,6 +376,147 @@
 
 
   /* ========================================================
+     VISUAL VIEWPORT
+
+     Safari changes its usable viewport as browser chrome
+     expands and collapses.
+
+     These values are exposed to CSS:
+
+     --ggg-archive-visual-height
+     --ggg-archive-visual-top
+     --ggg-archive-visual-bottom
+  ======================================================== */
+
+  function updateArchiveVisualViewport() {
+
+    const root =
+      document.documentElement;
+
+
+    const viewport =
+      window.visualViewport;
+
+
+    const layoutHeight =
+      window.innerHeight;
+
+
+    const visualHeight =
+      viewport
+        ? viewport.height
+        : layoutHeight;
+
+
+    const visualTop =
+      viewport
+        ? viewport.offsetTop
+        : 0;
+
+
+    const visualBottom =
+      Math.max(
+        0,
+        layoutHeight -
+        (
+          visualHeight +
+          visualTop
+        )
+      );
+
+
+    root.style.setProperty(
+      '--ggg-archive-visual-height',
+      visualHeight + 'px'
+    );
+
+
+    root.style.setProperty(
+      '--ggg-archive-visual-top',
+      visualTop + 'px'
+    );
+
+
+    root.style.setProperty(
+      '--ggg-archive-visual-bottom',
+      visualBottom + 'px'
+    );
+
+  }
+
+
+
+  function initArchiveVisualViewport() {
+
+    if (viewportListenersReady) {
+
+      updateArchiveVisualViewport();
+
+      return;
+
+    }
+
+
+    viewportListenersReady =
+      true;
+
+
+    updateArchiveVisualViewport();
+
+
+    window.addEventListener(
+      'resize',
+      updateArchiveVisualViewport,
+      {
+        passive:
+          true
+      }
+    );
+
+
+    window.addEventListener(
+      'orientationchange',
+      updateArchiveVisualViewport,
+      {
+        passive:
+          true
+      }
+    );
+
+
+    if (window.visualViewport) {
+
+      window.visualViewport.addEventListener(
+        'resize',
+        updateArchiveVisualViewport,
+        {
+          passive:
+            true
+        }
+      );
+
+
+      window.visualViewport.addEventListener(
+        'scroll',
+        updateArchiveVisualViewport,
+        {
+          passive:
+            true
+        }
+      );
+
+    }
+
+
+    console.log(
+      'GGG Archive Home: Visual Viewport ready'
+    );
+
+  }
+
+
+
+  /* ========================================================
      ARCHIVE INDEX ELEMENTS
   ======================================================== */
 
@@ -486,12 +613,6 @@
 
   /* ========================================================
      PICKER PORTAL
-
-     Moves the shared picker directly beneath <body>.
-
-     This prevents Squarespace layout transforms,
-     Archive component stacking contexts and mobile Safari
-     compositing layers from trapping the fixed dialog.
   ======================================================== */
 
   function mountArchivePickerPortal() {
@@ -802,7 +923,6 @@
     }
 
 
-
     if (mode === 'type') {
 
       if (count === 1) {
@@ -826,7 +946,6 @@
     }
 
 
-
     if (mode === 'collection') {
 
       if (count === 1) {
@@ -846,7 +965,6 @@
       );
 
     }
-
 
 
     if (count === 1) {
@@ -931,27 +1049,6 @@
 
     elements.index.hidden =
       false;
-
-
-    console.log(
-      'GGG Archive Home: Archive Index rendered',
-      {
-        mode:
-          mode,
-
-        value:
-          value,
-
-        records:
-          entries.map(
-            function (entry) {
-
-              return entry[0];
-
-            }
-          )
-      }
-    );
 
   }
 
@@ -1087,43 +1184,29 @@
 
     if (elements.typeValue) {
 
-      if (
-        selectedRecordType ===
-        'all'
-      ) {
-
-        elements.typeValue.textContent =
-          'ALL RECORDS';
-
-      } else {
-
-        elements.typeValue.textContent =
-          TYPE_LABELS[
-            selectedRecordType
-          ] ||
-          selectedRecordType;
-
-      }
+      elements.typeValue.textContent =
+        (
+          selectedRecordType === 'all'
+            ? 'ALL RECORDS'
+            : (
+              TYPE_LABELS[
+                selectedRecordType
+              ] ||
+              selectedRecordType
+            )
+        );
 
     }
 
 
     if (elements.collectionValue) {
 
-      if (
-        selectedCollection ===
-        'all'
-      ) {
-
-        elements.collectionValue.textContent =
-          'ALL COLLECTIONS';
-
-      } else {
-
-        elements.collectionValue.textContent =
-          selectedCollection;
-
-      }
+      elements.collectionValue.textContent =
+        (
+          selectedCollection === 'all'
+            ? 'ALL COLLECTIONS'
+            : selectedCollection
+        );
 
     }
 
@@ -1174,16 +1257,11 @@
             }
 
 
-            if (!result[record.type]) {
-
-              result[record.type] =
-                0;
-
-            }
-
-
-            result[record.type] +=
-              1;
+            result[record.type] =
+              (
+                result[record.type] ||
+                0
+              ) + 1;
 
 
             return result;
@@ -1279,16 +1357,11 @@
             }
 
 
-            if (!result[collection]) {
-
-              result[collection] =
-                0;
-
-            }
-
-
-            result[collection] +=
-              1;
+            result[collection] =
+              (
+                result[collection] ||
+                0
+              ) + 1;
 
 
             return result;
@@ -1348,7 +1421,7 @@
 
 
   /* ========================================================
-     CREATE PICKER OPTION
+     PICKER OPTION
   ======================================================== */
 
   function createPickerOption(
@@ -1458,20 +1531,16 @@
     );
 
 
-    const countLabel =
-      (
-        option.count === 1
-          ? ' record'
-          : ' records'
-      );
-
-
     button.setAttribute(
       'aria-label',
       option.label +
       ', ' +
       option.count +
-      countLabel
+      (
+        option.count === 1
+          ? ' record'
+          : ' records'
+      )
     );
 
 
@@ -1506,6 +1575,9 @@
     }
 
 
+    updateArchiveVisualViewport();
+
+
     activePicker =
       pickerType;
 
@@ -1516,30 +1588,20 @@
 
 
 
-    let options =
-      [];
+    const options =
+      (
+        pickerType === 'type'
+          ? getRecordTypeOptions()
+          : getCollectionOptions()
+      );
 
 
-    if (pickerType === 'type') {
-
-      elements.pickerTitle.textContent =
-        'RECORD TYPE';
-
-
-      options =
-        getRecordTypeOptions();
-
-    } else {
-
-      elements.pickerTitle.textContent =
-        'COLLECTIONS';
-
-
-      options =
-        getCollectionOptions();
-
-    }
-
+    elements.pickerTitle.textContent =
+      (
+        pickerType === 'type'
+          ? 'RECORD TYPE'
+          : 'COLLECTIONS'
+      );
 
 
     elements.pickerOptions.replaceChildren();
@@ -1559,7 +1621,6 @@
     );
 
 
-
     elements.picker.hidden =
       false;
 
@@ -1574,7 +1635,6 @@
     );
 
 
-
     if (trigger) {
 
       trigger.setAttribute(
@@ -1583,7 +1643,6 @@
       );
 
     }
-
 
 
     const activeOption =
@@ -1600,6 +1659,9 @@
 
     window.requestAnimationFrame(
       function () {
+
+        updateArchiveVisualViewport();
+
 
         const focusTarget =
           activeOption ||
@@ -1620,12 +1682,6 @@
         }
 
       }
-    );
-
-
-    console.log(
-      'GGG Archive Home: Picker opened',
-      pickerType
     );
 
   }
@@ -1668,7 +1724,6 @@
     );
 
 
-
     if (elements.typeTrigger) {
 
       elements.typeTrigger.setAttribute(
@@ -1687,7 +1742,6 @@
       );
 
     }
-
 
 
     if (
@@ -1740,14 +1794,7 @@
       '';
 
 
-    if (
-      typeof elements.input.blur ===
-        'function'
-    ) {
-
-      elements.input.blur();
-
-    }
+    elements.input.blur();
 
 
     updateSearchClearControl();
@@ -1760,9 +1807,7 @@
      APPLY RECORD TYPE
   ======================================================== */
 
-  function applyRecordType(
-    type
-  ) {
+  function applyRecordType(type) {
 
     const records =
       window.GGG.archive.getAllRecords();
@@ -1841,9 +1886,7 @@
      APPLY COLLECTION
   ======================================================== */
 
-  function applyCollection(
-    collection
-  ) {
+  function applyCollection(collection) {
 
     const records =
       window.GGG.archive.getAllRecords();
@@ -1919,12 +1962,14 @@
 
 
   /* ========================================================
-     INITIALIZE ARCHIVE PICKERS
+     INITIALIZE PICKERS
   ======================================================== */
 
   function initArchivePickers() {
 
     mountArchivePickerPortal();
+
+    initArchiveVisualViewport();
 
 
     const elements =
@@ -1942,7 +1987,6 @@
 
 
     updatePickerValues();
-
 
 
     if (elements.typeTrigger) {
@@ -1968,7 +2012,6 @@
     }
 
 
-
     if (elements.collectionTrigger) {
 
       elements.collectionTrigger.setAttribute(
@@ -1990,7 +2033,6 @@
       );
 
     }
-
 
 
     elements.picker.addEventListener(
@@ -2018,7 +2060,6 @@
           return;
 
         }
-
 
 
         const option =
@@ -2053,7 +2094,10 @@
             value
           );
 
-        } else if (
+        }
+
+
+        if (
           pickerType ===
           'collection'
         ) {
@@ -2074,7 +2118,6 @@
 
       }
     );
-
 
 
     document.addEventListener(
@@ -2143,10 +2186,6 @@
       !featured.record
     ) {
 
-      console.warn(
-        'GGG Archive Home: No Featured Investigation configured.'
-      );
-
       return;
 
     }
@@ -2163,11 +2202,6 @@
 
 
     if (!record) {
-
-      console.warn(
-        'GGG Archive Home: Featured record not found:',
-        recordId
-      );
 
       return;
 
@@ -2256,19 +2290,12 @@
 
     }
 
-
-    console.log(
-      'GGG Archive Home: Featured Investigation loaded',
-      recordId,
-      record
-    );
-
   }
 
 
 
   /* ========================================================
-     SEARCH THE ARCHIVE
+     SEARCH
   ======================================================== */
 
   function initSearch() {
@@ -2293,7 +2320,6 @@
 
 
     updateSearchClearControl();
-
 
 
     elements.form.addEventListener(
@@ -2396,22 +2422,8 @@
 
         revealMobileSearchResults();
 
-
-        console.log(
-          'GGG Archive Home: Search',
-          rawQuery,
-          matches.map(
-            function (entry) {
-
-              return entry[0];
-
-            }
-          )
-        );
-
       }
     );
-
 
 
     elements.input.addEventListener(
@@ -2431,16 +2443,10 @@
 
           hideArchiveIndex();
 
-
-          console.log(
-            'GGG Archive Home: Archive Index reset'
-          );
-
         }
 
       }
     );
-
 
 
     if (elements.clear) {
@@ -2457,11 +2463,6 @@
       );
 
     }
-
-
-    console.log(
-      'GGG Archive Home: Search ready'
-    );
 
   }
 
@@ -2569,18 +2570,6 @@
       }
     );
 
-
-    console.log(
-      'GGG Archive Home: Latest Records loaded',
-      latest.map(
-        function (item) {
-
-          return item.id;
-
-        }
-      )
-    );
-
   }
 
 
@@ -2652,11 +2641,6 @@
       );
 
 
-      console.log(
-        'GGG Archive Home: Open Investigations loaded — none open'
-      );
-
-
       return;
 
     }
@@ -2687,11 +2671,6 @@
 
 
         if (!record) {
-
-          console.warn(
-            'GGG Archive Home: Open Investigation record not found:',
-            recordId
-          );
 
           return;
 
@@ -2757,18 +2736,6 @@
       }
     );
 
-
-    console.log(
-      'GGG Archive Home: Open Investigations loaded',
-      investigations.map(
-        function (investigation) {
-
-          return investigation.record;
-
-        }
-      )
-    );
-
   }
 
 
@@ -2827,22 +2794,16 @@
         .sort(
           function (a, b) {
 
-            const dateA =
-              (
-                a &&
-                a.date
-              ) || '';
-
-
-            const dateB =
+            return (
               (
                 b &&
                 b.date
-              ) || '';
-
-
-            return dateB.localeCompare(
-              dateA
+              ) || ''
+            ).localeCompare(
+              (
+                a &&
+                a.date
+              ) || ''
             );
 
           }
@@ -2868,11 +2829,6 @@
       );
 
 
-      console.log(
-        'GGG Archive Home: Recent Activity loaded — no recent changes'
-      );
-
-
       return;
 
     }
@@ -2893,22 +2849,13 @@
         }
 
 
-        const recordId =
-          entry.record;
-
-
         const record =
           window.GGG.archive.getRecord(
-            recordId
+            entry.record
           );
 
 
         if (!record) {
-
-          console.warn(
-            'GGG Archive Home: Recent Activity record not found:',
-            recordId
-          );
 
           return;
 
@@ -2920,10 +2867,6 @@
             'div',
             'ggg-archive-home-activity__entry'
           );
-
-
-        row.dataset.recordId =
-          recordId;
 
 
 
@@ -2969,7 +2912,7 @@
 
         link.textContent =
           record.title ||
-          recordId;
+          entry.record;
 
 
         link.href =
@@ -2991,18 +2934,12 @@
       }
     );
 
-
-    console.log(
-      'GGG Archive Home: Recent Activity loaded',
-      sortedActivity
-    );
-
   }
 
 
 
   /* ========================================================
-     ARCHIVE STATISTICS
+     STATISTICS
   ======================================================== */
 
   function renderStatistics() {
@@ -3045,95 +2982,12 @@
       Object.values(records);
 
 
-    const totalRecords =
-      recordList.length;
-
-
-    const artifacts =
-      recordList.filter(
-        function (record) {
-
-          return (
-            record &&
-            record.type ===
-              'Artifact'
-          );
-
-        }
-      ).length;
-
-
-    const people =
-      recordList.filter(
-        function (record) {
-
-          return (
-            record &&
-            record.type ===
-              'Person'
-          );
-
-        }
-      ).length;
-
-
     const documentaryTypes =
       [
         'Document',
         'Audio Recording',
         'Film/Video'
       ];
-
-
-    const documentaryRecords =
-      recordList.filter(
-        function (record) {
-
-          return (
-            record &&
-            documentaryTypes.includes(
-              record.type
-            )
-          );
-
-        }
-      ).length;
-
-
-    const openInvestigations =
-      recordList.filter(
-        function (record) {
-
-          return (
-            record &&
-            record.status ===
-              'Under Investigation'
-          );
-
-        }
-      ).length;
-
-
-    const unresolvedQuestions =
-      (
-        home &&
-        Array.isArray(
-          home.openInvestigations
-        )
-      )
-        ? home.openInvestigations
-            .filter(
-              function (investigation) {
-
-                return Boolean(
-                  investigation &&
-                  investigation.question
-                );
-
-              }
-            )
-            .length
-        : 0;
 
 
     const statistics =
@@ -3144,7 +2998,7 @@
             'Total Records',
 
           value:
-            totalRecords,
+            recordList.length,
 
           description:
             'Catalogued Records'
@@ -3155,7 +3009,17 @@
             'Artifacts',
 
           value:
-            artifacts,
+            recordList.filter(
+              function (record) {
+
+                return (
+                  record &&
+                  record.type ===
+                    'Artifact'
+                );
+
+              }
+            ).length,
 
           description:
             'Physical Objects'
@@ -3166,7 +3030,17 @@
             'People',
 
           value:
-            people,
+            recordList.filter(
+              function (record) {
+
+                return (
+                  record &&
+                  record.type ===
+                    'Person'
+                );
+
+              }
+            ).length,
 
           description:
             'Biographical Records'
@@ -3177,7 +3051,18 @@
             'Documentary Records',
 
           value:
-            documentaryRecords,
+            recordList.filter(
+              function (record) {
+
+                return (
+                  record &&
+                  documentaryTypes.includes(
+                    record.type
+                  )
+                );
+
+              }
+            ).length,
 
           description:
             'Documents · Audio · Film'
@@ -3188,7 +3073,17 @@
             'Open Investigations',
 
           value:
-            openInvestigations,
+            recordList.filter(
+              function (record) {
+
+                return (
+                  record &&
+                  record.status ===
+                    'Under Investigation'
+                );
+
+              }
+            ).length,
 
           description:
             'Currently Active'
@@ -3199,7 +3094,25 @@
             'Unresolved Questions',
 
           value:
-            unresolvedQuestions,
+            (
+              home &&
+              Array.isArray(
+                home.openInvestigations
+              )
+            )
+              ? home.openInvestigations
+                  .filter(
+                    function (investigation) {
+
+                      return Boolean(
+                        investigation &&
+                        investigation.question
+                      );
+
+                    }
+                  )
+                  .length
+              : 0,
 
           description:
             'Awaiting Evidence'
@@ -3271,30 +3184,6 @@
           item
         );
 
-      }
-    );
-
-
-    console.log(
-      'GGG Archive Home: Statistics loaded',
-      {
-        totalRecords:
-          totalRecords,
-
-        artifacts:
-          artifacts,
-
-        people:
-          people,
-
-        documentaryRecords:
-          documentaryRecords,
-
-        openInvestigations:
-          openInvestigations,
-
-        unresolvedQuestions:
-          unresolvedQuestions
       }
     );
 
