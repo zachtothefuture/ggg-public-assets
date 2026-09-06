@@ -2,10 +2,11 @@
    GGG ARCHIVE — DATA API
 
    VERSION
-   v1.1 — Archive Home Data
+   v1.2 — Record Header Hydration
 
-   Shared client-side interface for the Guild Archive graph
-   and Archive Home editorial configuration.
+   Shared client-side interface for the Guild Archive graph,
+   Archive Home editorial configuration, and canonical
+   Archive Record metadata.
 
    Public data sources:
    • archive-records.json
@@ -20,6 +21,18 @@
    • getOutgoingRelationships()
    • getIncomingRelationships()
    • getHomeConfig()
+   • getRecordCollections()
+   • hydrateRecordHeaders()
+
+   Record Header automation:
+   • Record ID     ← data-record-id
+   • Status        ← archive-records.json
+   • Collection(s) ← archive-records.json
+
+   Entry-authored Record Header fields remain local:
+   • Recovered
+   • Current Location
+   • Access Level
 ========================================================== */
 
 
@@ -145,15 +158,309 @@
 
 
   /* ========================================================
+     COLLECTION NORMALIZATION
+
+     Canonical archive-records.json v1.2:
+
+     "collection": [
+       "Kennedy Family",
+       "EP. 101"
+     ]
+
+     Legacy single-string values remain supported.
+  ======================================================== */
+
+  function getRecordCollections(record) {
+
+    if (
+      !record ||
+      !record.collection
+    ) {
+
+      return [];
+
+    }
+
+
+    if (
+      Array.isArray(
+        record.collection
+      )
+    ) {
+
+      return record.collection
+        .map(
+          function (collection) {
+
+            return String(
+              collection || ''
+            ).trim();
+
+          }
+        )
+        .filter(Boolean);
+
+    }
+
+
+    const collection =
+      String(
+        record.collection
+      ).trim();
+
+
+    return collection
+      ? [collection]
+      : [];
+
+  }
+
+
+
+  /* ========================================================
+     RECORD HEADER — COLLECTIONS
+  ======================================================== */
+
+  function renderRecordCollections(
+    container,
+    collections
+  ) {
+
+    container.replaceChildren();
+
+
+    collections.forEach(
+      function (collection) {
+
+        const item =
+          document.createElement(
+            'span'
+          );
+
+
+        item.textContent =
+          collection;
+
+
+        container.appendChild(
+          item
+        );
+
+      }
+    );
+
+  }
+
+
+
+  /* ========================================================
+     RECORD HEADER — HYDRATE ONE
+  ======================================================== */
+
+  function hydrateRecordHeader(header) {
+
+    if (!header) {
+
+      return false;
+
+    }
+
+
+    const recordId =
+      normalizeId(
+        header.getAttribute(
+          'data-record-id'
+        )
+      );
+
+
+    if (!recordId) {
+
+      console.warn(
+        'GGG Archive: Record Header is missing data-record-id.',
+        header
+      );
+
+
+      return false;
+
+    }
+
+
+    const record =
+      records[recordId];
+
+
+    if (!record) {
+
+      console.warn(
+        `GGG Archive: No canonical record found for ${recordId}.`
+      );
+
+
+      return false;
+
+    }
+
+
+
+    /* ------------------------------------------------------
+       VISIBLE RECORD ID
+    ------------------------------------------------------ */
+
+    const idElement =
+      header.querySelector(
+        '[data-ggg-record-id]'
+      );
+
+
+    if (idElement) {
+
+      idElement.textContent =
+        recordId;
+
+    }
+
+
+
+    /* ------------------------------------------------------
+       STATUS
+    ------------------------------------------------------ */
+
+    const statusElement =
+      header.querySelector(
+        '[data-ggg-record-status]'
+      );
+
+
+    if (statusElement) {
+
+      statusElement.textContent =
+        record.status || '';
+
+    }
+
+
+
+    /* ------------------------------------------------------
+       COLLECTIONS
+    ------------------------------------------------------ */
+
+    const collections =
+      getRecordCollections(
+        record
+      );
+
+
+    const collectionContainer =
+      header.querySelector(
+        '[data-ggg-record-collections]'
+      );
+
+
+    if (collectionContainer) {
+
+      renderRecordCollections(
+        collectionContainer,
+        collections
+      );
+
+    }
+
+
+
+    /* ------------------------------------------------------
+       COLLECTION / COLLECTIONS LABEL
+    ------------------------------------------------------ */
+
+    const collectionLabel =
+      header.querySelector(
+        '[data-ggg-record-collection-label]'
+      );
+
+
+    if (collectionLabel) {
+
+      collectionLabel.textContent =
+        collections.length === 1
+          ? 'Collection'
+          : 'Collections';
+
+    }
+
+
+
+    /* ------------------------------------------------------
+       HYDRATION STATE
+
+       Useful for debugging and future CSS if needed.
+    ------------------------------------------------------ */
+
+    header.setAttribute(
+      'data-ggg-record-hydrated',
+      'true'
+    );
+
+
+    return true;
+
+  }
+
+
+
+  /* ========================================================
+     RECORD HEADER — HYDRATE ALL
+
+     Supports one or more Record Headers on a page.
+
+     Archive Entry pages will normally contain one.
+  ======================================================== */
+
+  function hydrateRecordHeaders() {
+
+    const headers =
+      document.querySelectorAll(
+        '.ggg-record-header[data-record-id]'
+      );
+
+
+    if (!headers.length) {
+
+      return;
+
+    }
+
+
+    headers.forEach(
+      function (header) {
+
+        hydrateRecordHeader(
+          header
+        );
+
+      }
+    );
+
+  }
+
+
+
+  /* ========================================================
      INITIALIZE
 
      Loads Archive data once per page.
+
+     Once canonical data is ready, any Archive Record Header
+     on the page is automatically hydrated.
   ======================================================== */
 
   archive.init =
     function () {
 
       if (initialized) {
+
+        hydrateRecordHeaders();
+
 
         return Promise.resolve(
           archive
@@ -218,6 +525,15 @@
               true;
 
 
+
+            /* ------------------------------------------------
+               HYDRATE RECORD ENTRY HEADER
+            ------------------------------------------------ */
+
+            hydrateRecordHeaders();
+
+
+
             return archive;
 
           }
@@ -261,6 +577,47 @@
 
 
       return records[id] || null;
+
+    };
+
+
+
+  /* ========================================================
+     GET RECORD COLLECTIONS
+
+     Always returns an array.
+
+     Example:
+
+     [
+       "Kennedy Family",
+       "EP. 101"
+     ]
+  ======================================================== */
+
+  archive.getRecordCollections =
+    function (recordOrId) {
+
+      let record =
+        recordOrId;
+
+
+      if (
+        typeof recordOrId ===
+        'string'
+      ) {
+
+        record =
+          archive.getRecord(
+            recordOrId
+          );
+
+      }
+
+
+      return getRecordCollections(
+        record
+      );
 
     };
 
@@ -543,6 +900,45 @@
     function () {
 
       return homeConfig;
+
+    };
+
+
+
+  /* ========================================================
+     RECORD HEADER HYDRATION
+
+     Public method so another component can request a
+     re-hydration if Archive Entry markup is ever inserted
+     dynamically after initialization.
+  ======================================================== */
+
+  archive.hydrateRecordHeaders =
+    function () {
+
+      if (!initialized) {
+
+        return archive
+          .init()
+          .then(
+            function () {
+
+              hydrateRecordHeaders();
+
+              return archive;
+
+            }
+          );
+
+      }
+
+
+      hydrateRecordHeaders();
+
+
+      return Promise.resolve(
+        archive
+      );
 
     };
 
