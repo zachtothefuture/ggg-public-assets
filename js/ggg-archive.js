@@ -2,7 +2,7 @@
    GGG ARCHIVE — DATA API
 
    VERSION
-   v1.2 — Record Header Hydration
+   v1.3 — Record Visibility
 
    Shared client-side interface for the Guild Archive graph,
    Archive Home editorial configuration, and canonical
@@ -23,16 +23,31 @@
    • getHomeConfig()
    • getRecordCollections()
    • hydrateRecordHeaders()
+   • getAllRecords()
+   • getAllRelationships()
+   • isReady()
 
-   Record Header automation:
+   Canonical Record Header automation:
    • Record ID     ← data-record-id
+   • Record Type   ← archive-records.json
    • Status        ← archive-records.json
    • Collection(s) ← archive-records.json
 
    Entry-authored Record Header fields remain local:
-   • Recovered
+   • Recovered / Primary Location
    • Current Location
    • Access Level
+
+   Visibility:
+   • public     → available to public Archive interfaces
+   • draft      → hidden
+   • scheduled  → hidden
+
+   Security model:
+   • Only visibility === "public" is exposed by public
+     Archive lookup and discovery methods.
+   • Missing or invalid visibility fails closed.
+   • Relationships to hidden records are suppressed.
 ========================================================== */
 
 
@@ -158,14 +173,115 @@
 
 
   /* ========================================================
+     VISIBILITY
+
+     Canonical archive-records.json v1.3:
+
+     "visibility": "public"
+
+     Public Archive interfaces expose only records explicitly
+     marked public.
+
+     Draft, scheduled, missing, empty, or unknown values are
+     treated as hidden.
+  ======================================================== */
+
+  function isPublicRecord(recordOrId) {
+
+    let record =
+      recordOrId;
+
+
+    if (
+      typeof recordOrId ===
+      'string'
+    ) {
+
+      const id =
+        normalizeId(
+          recordOrId
+        );
+
+
+      record =
+        records[id];
+
+    }
+
+
+    if (!record) {
+
+      return false;
+
+    }
+
+
+    return String(
+      record.visibility || ''
+    )
+      .trim()
+      .toLowerCase() ===
+      'public';
+
+  }
+
+
+
+  function getPublicRecords() {
+
+    const publicRecords =
+      {};
+
+
+    Object.entries(
+      records
+    ).forEach(
+      function (
+        [
+          recordId,
+          record
+        ]
+      ) {
+
+        if (
+          !isPublicRecord(
+            record
+          )
+        ) {
+
+          return;
+
+        }
+
+
+        publicRecords[
+          recordId
+        ] =
+          record;
+
+      }
+    );
+
+
+    return publicRecords;
+
+  }
+
+
+
+  /* ========================================================
      COLLECTION NORMALIZATION
 
-     Canonical archive-records.json v1.2:
+     Canonical archive-records.json v1.3:
 
      "collection": [
        "Kennedy Family",
        "EP. 101"
      ]
+
+     Empty collection:
+
+     "collection": []
 
      Legacy single-string values remain supported.
   ======================================================== */
@@ -255,6 +371,13 @@
 
   /* ========================================================
      RECORD HEADER — HYDRATE ONE
+
+     Header hydration intentionally reads canonical record
+     data directly rather than through getRecord().
+
+     This allows an unpublished Squarespace draft page to
+     hydrate correctly during authoring and QA while the
+     record remains hidden from public Archive discovery.
   ======================================================== */
 
   function hydrateRecordHeader(header) {
@@ -321,22 +444,24 @@
 
     }
 
+
+
     /* ------------------------------------------------------
-         RECORD TYPE
-      ------------------------------------------------------ */
-      
+       RECORD TYPE
+    ------------------------------------------------------ */
+
     const typeElement =
       header.querySelector(
-         '[data-ggg-record-type]'
+        '[data-ggg-record-type]'
       );
-      
-      
+
+
     if (typeElement) {
-      
-       typeElement.textContent =
-         record.type || '';
-      
-    } 
+
+      typeElement.textContent =
+        record.type || '';
+
+    }
 
 
 
@@ -463,6 +588,106 @@
 
 
   /* ========================================================
+     ARCHIVE HOME — PUBLIC CONFIGURATION
+
+     Editorial configuration may reference canonical records.
+
+     Any item pointing to a hidden record is removed before
+     being exposed to public Archive Home components.
+  ======================================================== */
+
+  function getPublicHomeConfig() {
+
+    const output =
+      {
+        ...homeConfig
+      };
+
+
+
+    /* ------------------------------------------------------
+       FEATURED INVESTIGATION
+    ------------------------------------------------------ */
+
+    if (
+      output.featuredInvestigation &&
+      output.featuredInvestigation.record &&
+      !isPublicRecord(
+        output.featuredInvestigation.record
+      )
+    ) {
+
+      output.featuredInvestigation =
+        null;
+
+    }
+
+
+
+    /* ------------------------------------------------------
+       OPEN INVESTIGATIONS
+    ------------------------------------------------------ */
+
+    if (
+      Array.isArray(
+        output.openInvestigations
+      )
+    ) {
+
+      output.openInvestigations =
+        output.openInvestigations.filter(
+          function (item) {
+
+            return (
+              item &&
+              item.record &&
+              isPublicRecord(
+                item.record
+              )
+            );
+
+          }
+        );
+
+    }
+
+
+
+    /* ------------------------------------------------------
+       RECENT ACTIVITY
+    ------------------------------------------------------ */
+
+    if (
+      Array.isArray(
+        output.recentActivity
+      )
+    ) {
+
+      output.recentActivity =
+        output.recentActivity.filter(
+          function (item) {
+
+            return (
+              item &&
+              item.record &&
+              isPublicRecord(
+                item.record
+              )
+            );
+
+          }
+        );
+
+    }
+
+
+    return output;
+
+  }
+
+
+
+  /* ========================================================
      INITIALIZE
 
      Loads Archive data once per page.
@@ -582,6 +807,14 @@
 
   /* ========================================================
      GET RECORD
+
+     PUBLIC LOOKUP
+
+     Returns a canonical record only when explicitly marked:
+
+     "visibility": "public"
+
+     Hidden records resolve to null.
   ======================================================== */
 
   archive.getRecord =
@@ -593,7 +826,22 @@
         );
 
 
-      return records[id] || null;
+      const record =
+        records[id];
+
+
+      if (
+        !isPublicRecord(
+          record
+        )
+      ) {
+
+        return null;
+
+      }
+
+
+      return record;
 
     };
 
@@ -603,6 +851,8 @@
      GET RECORD COLLECTIONS
 
      Always returns an array.
+
+     Public ID lookups respect visibility.
 
      Example:
 
@@ -644,6 +894,9 @@
      OUTGOING RELATIONSHIPS
 
      Relationships authored FROM the supplied record.
+
+     Both the source record and relationship destination
+     must be public.
   ======================================================== */
 
   archive.getOutgoingRelationships =
@@ -655,13 +908,39 @@
         );
 
 
+      if (
+        !isPublicRecord(
+          id
+        )
+      ) {
+
+        return [];
+
+      }
+
+
       return relationships
         .filter(
           function (relationship) {
 
-            return normalizeId(
-              relationship.source
-            ) === id;
+            const source =
+              normalizeId(
+                relationship.source
+              );
+
+
+            const target =
+              normalizeId(
+                relationship.target
+              );
+
+
+            return (
+              source === id &&
+              isPublicRecord(
+                target
+              )
+            );
 
           }
         )
@@ -714,6 +993,8 @@
 
      These are automatically translated into their inverse
      relationship type.
+
+     Both records must be public.
   ======================================================== */
 
   archive.getIncomingRelationships =
@@ -725,13 +1006,39 @@
         );
 
 
+      if (
+        !isPublicRecord(
+          id
+        )
+      ) {
+
+        return [];
+
+      }
+
+
       return relationships
         .filter(
           function (relationship) {
 
-            return normalizeId(
-              relationship.target
-            ) === id;
+            const source =
+              normalizeId(
+                relationship.source
+              );
+
+
+            const target =
+              normalizeId(
+                relationship.target
+              );
+
+
+            return (
+              target === id &&
+              isPublicRecord(
+                source
+              )
+            );
 
           }
         )
@@ -792,20 +1099,40 @@
 
      Returns both direct and automatically derived inverse
      relationships from the supplied record's perspective.
+
+     Hidden records and relationships to hidden records are
+     automatically excluded.
   ======================================================== */
 
   archive.getRelationships =
     function (recordId) {
 
+      const id =
+        normalizeId(
+          recordId
+        );
+
+
+      if (
+        !isPublicRecord(
+          id
+        )
+      ) {
+
+        return [];
+
+      }
+
+
       const outgoing =
         archive.getOutgoingRelationships(
-          recordId
+          id
         );
 
 
       const incoming =
         archive.getIncomingRelationships(
-          recordId
+          id
         );
 
 
@@ -852,7 +1179,11 @@
   /* ========================================================
      RELATED RECORDS
 
-     Resolves relationship targets against archive-records.
+     Resolves relationship targets against public
+     archive-records.
+
+     Draft and scheduled records cannot appear as related
+     records on public Archive Entries.
   ======================================================== */
 
   archive.getRelatedRecords =
@@ -905,9 +1236,12 @@
   /* ========================================================
      ARCHIVE HOME CONFIGURATION
 
-     Returns editorial configuration for Archive Home.
+     Returns public-safe editorial configuration.
 
-     This file contains presentation decisions such as:
+     Entries that reference hidden canonical records are
+     removed automatically.
+
+     This covers:
      • Featured Investigation
      • Open Investigations
      • Recent Activity
@@ -916,7 +1250,7 @@
   archive.getHomeConfig =
     function () {
 
-      return homeConfig;
+      return getPublicHomeConfig();
 
     };
 
@@ -964,13 +1298,15 @@
   /* ========================================================
      DEBUG / INSPECTION
 
-     Helpful during development.
+     Public-facing inspection methods also respect
+     visibility so downstream components cannot accidentally
+     bypass the publication gate.
   ======================================================== */
 
   archive.getAllRecords =
     function () {
 
-      return records;
+      return getPublicRecords();
 
     };
 
@@ -978,7 +1314,32 @@
   archive.getAllRelationships =
     function () {
 
-      return relationships.slice();
+      return relationships.filter(
+        function (relationship) {
+
+          const source =
+            normalizeId(
+              relationship.source
+            );
+
+
+          const target =
+            normalizeId(
+              relationship.target
+            );
+
+
+          return (
+            isPublicRecord(
+              source
+            ) &&
+            isPublicRecord(
+              target
+            )
+          );
+
+        }
+      );
 
     };
 
