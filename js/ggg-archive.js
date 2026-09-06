@@ -321,6 +321,23 @@
 
     }
 
+    /* ------------------------------------------------------
+         RECORD TYPE
+      ------------------------------------------------------ */
+      
+    const typeElement =
+      header.querySelector(
+         '[data-ggg-record-type]'
+      );
+      
+      
+    if (typeElement) {
+      
+       typeElement.textContent =
+         record.type || '';
+      
+    } 
+
 
 
     /* ------------------------------------------------------
