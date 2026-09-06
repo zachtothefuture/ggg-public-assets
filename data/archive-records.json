@@ -9,7 +9,7 @@
 
       "collection": [
         "Kennedy Family",
-        "EP. 101"
+        "Pod ep. 101"
       ],
 
       "status": "Under Investigation",
@@ -35,7 +35,8 @@
       "type": "Artifact",
 
       "collection": [
-        "Mattson Family Collection"
+        "Mattson Family Collection",
+        "Pod ep. 101"
       ],
 
       "status": "Under Investigation",
@@ -61,7 +62,8 @@
       "type": "Person",
 
       "collection": [
-        "Kennedy Family"
+        "Kennedy Family",
+        "Pod ep. 101"
       ],
 
       "status": "Under Investigation",
@@ -75,6 +77,74 @@
       "keywords": [
         "Ronald William Kennedy",
         "Kennedy family"
+      ]
+    }
+
+    "GGG-PER-2026-0002": {
+      "title": "Zachery Kennedy",
+      "type": "Person",
+
+      "collection": [
+        "Kennedy Family",
+        "Pod ep. 101"
+      ],
+
+      "status": "Under Investigation",
+      "url": "/archive/ggg-per-2026-0002",
+
+      "summary": "",
+
+      "dateAdded": "2026-09-02",
+      "dateUpdated": "2026-09-02",
+
+      "keywords": [
+        "Zachery Kennedy",
+        "Kennedy family"
+      ]
+    }
+
+    "GGG-PER-2026-0003": {
+      "title": "Kyle Selig",
+      "type": "Person",
+
+      "collection": [
+        "Kennedy Family",
+        "Pod ep. 101"
+      ],
+
+      "status": "Under Investigation",
+      "url": "/archive/ggg-per-2026-0003",
+
+      "summary": "",
+
+      "dateAdded": "2026-09-02",
+      "dateUpdated": "2026-09-02",
+
+      "keywords": [
+        "Kyle Selig",
+        "Kennedy family"
+      ]
+    }
+
+    "GGG-PER-2026-0004": {
+      "title": "Erin Bowles",
+      "type": "Person",
+
+      "collection": [
+        "Pod ep. 101"
+      ],
+
+      "status": "Under Investigation",
+      "url": "/archive/ggg-per-2026-0004",
+
+      "summary": "",
+
+      "dateAdded": "2026-09-02",
+      "dateUpdated": "2026-09-02",
+
+      "keywords": [
+        "Erin Bowles",
+        "Archivist"
       ]
     }
 
