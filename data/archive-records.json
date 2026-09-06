@@ -1,12 +1,17 @@
 {
-  "version": "1.1",
+  "version": "1.2",
 
   "records": {
 
     "GGG-ART-2026-0001": {
       "title": "Cannon Safe",
       "type": "Artifact",
-      "collection": "Kennedy Family",
+
+      "collection": [
+        "Kennedy Family",
+        "EP. 101"
+      ],
+
       "status": "Under Investigation",
       "url": "/archive/ggg-art-2026-0001",
 
@@ -24,10 +29,15 @@
       ]
     },
 
+
     "GGG-ART-2026-0002": {
       "title": "J.H. Mattson's Coin Box",
       "type": "Artifact",
-      "collection": "Mattson Family Collection",
+
+      "collection": [
+        "Mattson Family Collection"
+      ],
+
       "status": "Under Investigation",
       "url": "/archive/ggg-art-2026-0002",
 
@@ -45,10 +55,15 @@
       ]
     },
 
+
     "GGG-PER-2026-0001": {
       "title": "Ronald William Kennedy",
       "type": "Person",
-      "collection": "Kennedy Family",
+
+      "collection": [
+        "Kennedy Family"
+      ],
+
       "status": "Under Investigation",
       "url": "/archive/ggg-per-2026-0001",
 
