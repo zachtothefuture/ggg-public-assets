@@ -2,7 +2,7 @@
    GGG ARCHIVE HOME — RENDERER
 
    VERSION
-   v2.4 — Archive Picker System
+   v2.5 — Body-Level Picker Portal
 
    COMPONENTS
    • Featured Investigation
@@ -29,6 +29,12 @@
    • One browse filter active at a time
    • Escape / backdrop / close-button support
    • Focus returns to originating picker
+
+   MOBILE FIX
+   • Picker is moved to document.body
+   • Escapes Squarespace / Archive stacking contexts
+   • Fixed positioning resolves against viewport
+   • Prevents page content from painting above picker
 
    SEARCH INTERACTION
    • Custom clear control
@@ -458,21 +464,69 @@
         ),
 
       picker:
-        section.querySelector(
+        document.querySelector(
           '[data-ggg-archive-picker]'
         ),
 
       pickerTitle:
-        section.querySelector(
+        document.querySelector(
           '[data-ggg-picker-title]'
         ),
 
       pickerOptions:
-        section.querySelector(
+        document.querySelector(
           '[data-ggg-picker-options]'
         )
 
     };
+
+  }
+
+
+
+  /* ========================================================
+     PICKER PORTAL
+
+     Moves the shared picker directly beneath <body>.
+
+     This prevents Squarespace layout transforms,
+     Archive component stacking contexts and mobile Safari
+     compositing layers from trapping the fixed dialog.
+  ======================================================== */
+
+  function mountArchivePickerPortal() {
+
+    const picker =
+      document.querySelector(
+        '[data-ggg-archive-picker]'
+      );
+
+
+    if (!picker) {
+
+      return;
+
+    }
+
+
+    if (
+      picker.parentElement ===
+      document.body
+    ) {
+
+      return;
+
+    }
+
+
+    document.body.appendChild(
+      picker
+    );
+
+
+    console.log(
+      'GGG Archive Home: Picker mounted to body'
+    );
 
   }
 
@@ -1305,8 +1359,7 @@
     const button =
       createElement(
         'button',
-        'ggg-archive-picker__option',
-        'ink'
+        'ggg-archive-picker__option'
       );
 
 
@@ -1365,8 +1418,7 @@
     const count =
       createElement(
         'span',
-        'ggg-archive-picker__option-count',
-        'print'
+        'ggg-archive-picker__option-count'
       );
 
 
@@ -1560,7 +1612,10 @@
             'function'
         ) {
 
-          focusTarget.focus();
+          focusTarget.focus({
+            preventScroll:
+              true
+          });
 
         }
 
@@ -1642,7 +1697,10 @@
         'function'
     ) {
 
-      lastPickerTrigger.focus();
+      lastPickerTrigger.focus({
+        preventScroll:
+          true
+      });
 
     }
 
@@ -1684,7 +1742,7 @@
 
     if (
       typeof elements.input.blur ===
-      'function'
+        'function'
     ) {
 
       elements.input.blur();
@@ -1865,6 +1923,9 @@
   ======================================================== */
 
   function initArchivePickers() {
+
+    mountArchivePickerPortal();
+
 
     const elements =
       getIndexElements();
@@ -2271,7 +2332,6 @@
 
         const matches =
           Object.entries(records)
-
             .filter(
               function (entry) {
 
