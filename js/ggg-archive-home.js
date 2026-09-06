@@ -2,7 +2,7 @@
    GGG ARCHIVE HOME — RENDERER
 
    VERSION
-   v2.6 — Visual Viewport Picker
+   v2.7 — Multi-Collection Records
 
    COMPONENTS
    • Featured Investigation
@@ -23,6 +23,14 @@
    • Adapts to expanded / collapsed browser chrome
    • Options scroll internally when necessary
    • One browse filter active at a time
+
+   COLLECTION MODEL
+   • collection is canonically an array
+   • records may belong to multiple collections
+   • legacy string values remain supported
+   • search indexes every collection
+   • picker counts every membership
+   • filtering matches array membership
 
    SEARCH INTERACTION
    • Custom clear control
@@ -191,6 +199,74 @@
 
 
 
+  /* ========================================================
+     COLLECTION NORMALIZATION
+
+     Canonical v1.2:
+     collection = array of strings
+
+     Backward compatibility:
+     legacy string values are accepted and converted
+     internally to a one-item array.
+  ======================================================== */
+
+  function getRecordCollections(record) {
+
+    if (
+      !record ||
+      !record.collection
+    ) {
+
+      return [];
+
+    }
+
+
+    if (
+      Array.isArray(
+        record.collection
+      )
+    ) {
+
+      return record.collection
+        .map(
+          function (collection) {
+
+            return String(
+              collection || ''
+            ).trim();
+
+          }
+        )
+        .filter(Boolean);
+
+    }
+
+
+    const collection =
+      String(
+        record.collection
+      ).trim();
+
+
+    return collection
+      ? [collection]
+      : [];
+
+  }
+
+
+
+  function getRecordCollectionLabel(record) {
+
+    return getRecordCollections(
+      record
+    ).join(' · ');
+
+  }
+
+
+
   function formatArchiveDate(value) {
 
     if (
@@ -331,11 +407,14 @@
 
 
     meta.textContent =
-      [
-        record.collection,
-        record.status
-      ]
-        .filter(Boolean)
+      getRecordCollections(
+        record
+      )
+        .concat(
+          record.status
+            ? [record.status]
+            : []
+        )
         .join(' · ');
 
 
@@ -377,15 +456,6 @@
 
   /* ========================================================
      VISUAL VIEWPORT
-
-     Safari changes its usable viewport as browser chrome
-     expands and collapses.
-
-     These values are exposed to CSS:
-
-     --ggg-archive-visual-height
-     --ggg-archive-visual-top
-     --ggg-archive-visual-bottom
   ======================================================== */
 
   function updateArchiveVisualViewport() {
@@ -870,11 +940,6 @@
 
     }
 
-
-    console.log(
-      'GGG Archive Home: Archive Index reset'
-    );
-
   }
 
 
@@ -1230,7 +1295,7 @@
 
 
   /* ========================================================
-     PICKER DATA
+     RECORD TYPE OPTIONS
   ======================================================== */
 
   function getRecordTypeOptions() {
@@ -1320,6 +1385,12 @@
 
 
 
+  /* ========================================================
+     COLLECTION OPTIONS
+
+     A record increments every collection it belongs to.
+  ======================================================== */
+
   function getCollectionOptions() {
 
     const records =
@@ -1334,34 +1405,20 @@
             record
           ) {
 
-            if (
-              !record ||
-              !record.collection
-            ) {
+            getRecordCollections(
+              record
+            )
+              .forEach(
+                function (collection) {
 
-              return result;
+                  result[collection] =
+                    (
+                      result[collection] ||
+                      0
+                    ) + 1;
 
-            }
-
-
-            const collection =
-              String(
-                record.collection
-              ).trim();
-
-
-            if (!collection) {
-
-              return result;
-
-            }
-
-
-            result[collection] =
-              (
-                result[collection] ||
-                0
-              ) + 1;
+                }
+              );
 
 
             return result;
@@ -1794,7 +1851,14 @@
       '';
 
 
-    elements.input.blur();
+    if (
+      typeof elements.input.blur ===
+        'function'
+    ) {
+
+      elements.input.blur();
+
+    }
 
 
     updateSearchClearControl();
@@ -1884,6 +1948,9 @@
 
   /* ========================================================
      APPLY COLLECTION
+
+     A record matches if the selected collection exists
+     anywhere in its collection array.
   ======================================================== */
 
   function applyCollection(collection) {
@@ -1914,10 +1981,10 @@
         matches.filter(
           function (entry) {
 
-            return (
-              entry[1] &&
-              entry[1].collection ===
-                selectedCollection
+            return getRecordCollections(
+              entry[1]
+            ).includes(
+              selectedCollection
             );
 
           }
@@ -2296,6 +2363,8 @@
 
   /* ========================================================
      SEARCH
+
+     Every collection name participates in discovery.
   ======================================================== */
 
   function initSearch() {
@@ -2382,10 +2451,14 @@
                     recordId,
                     record.title,
                     record.type,
-                    record.collection,
                     record.status,
                     record.summary
                   ]
+                    .concat(
+                      getRecordCollections(
+                        record
+                      )
+                    )
                     .concat(
                       keywords
                     )
