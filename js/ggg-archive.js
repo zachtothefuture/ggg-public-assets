@@ -310,7 +310,7 @@
 
     const idElement =
       header.querySelector(
-        '[data-ggg-record-id]'
+        '[data-ggg-record-id-value]'
       );
 
 
