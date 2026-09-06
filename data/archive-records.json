@@ -1,26 +1,18 @@
 {
   "version": "1.3",
-
   "records": {
-
     "GGG-ART-2026-0001": {
       "title": "Cannon Safe",
       "type": "Artifact",
-
       "collection": [
         "Kennedy Family"
       ],
-
       "status": "Under Investigation",
       "visibility": "public",
-
       "url": "/archive/ggg-art-2026-0001",
-
       "summary": "Recovered from Kennedy family storage after its whereabouts became uncertain, the safe contained a concealed compartment and materials whose full history remains under investigation.",
-
       "dateAdded": "2026-09-03",
       "dateUpdated": "2026-09-04",
-
       "keywords": [
         "Cannon",
         "Model 6030",
@@ -29,26 +21,18 @@
         "concealed compartment"
       ]
     },
-
-
     "GGG-ART-2026-0002": {
       "title": "J.H. Mattson's Coin Box",
       "type": "Artifact",
-
       "collection": [
         "Mattson Family Collection"
       ],
-
       "status": "Under Investigation",
       "visibility": "public",
-
       "url": "/archive/ggg-art-2026-0002",
-
       "summary": "",
-
       "dateAdded": "2026-09-04",
       "dateUpdated": "2026-09-04",
-
       "keywords": [
         "J.H. Mattson",
         "coin box",
@@ -57,26 +41,18 @@
         "Mattson"
       ]
     },
-
-
     "GGG-ART-2026-0003": {
       "title": "The Guild of Ghostly Grounds Pin",
       "type": "Artifact",
-
       "collection": [
         "GGG Collection"
       ],
-
       "status": "Under Investigation",
       "visibility": "public",
-
       "url": "/archive/ggg-art-2026-0003",
-
       "summary": "",
-
       "dateAdded": "2026-09-04",
       "dateUpdated": "2026-09-04",
-
       "keywords": [
         "GGG",
         "pin",
@@ -84,103 +60,70 @@
         "tokens"
       ]
     },
-
-
     "GGG-PER-2026-0001": {
       "title": "Ronald William Kennedy",
       "type": "Person",
-
       "collection": [
         "Kennedy Family"
       ],
-
       "status": "Under Investigation",
       "visibility": "public",
-
       "url": "/archive/ggg-per-2026-0001",
-
       "summary": "",
-
       "dateAdded": "2026-09-02",
       "dateUpdated": "2026-09-02",
-
       "keywords": [
         "Ronald William Kennedy",
         "Kennedy family"
       ]
     },
-
-
     "GGG-PER-2026-0002": {
       "title": "Zachery Kennedy",
       "type": "Person",
-
       "collection": [
         "Kennedy Family"
       ],
-
       "status": "Under Investigation",
       "visibility": "public",
-
       "url": "/archive/ggg-per-2026-0002",
-
       "summary": "",
-
       "dateAdded": "2026-09-02",
       "dateUpdated": "2026-09-02",
-
       "keywords": [
         "Zachery Kennedy"
       ]
     },
-
-
     "GGG-PER-2026-0003": {
       "title": "Kyle Selig",
       "type": "Person",
-
       "collection": [
         "Kennedy Family"
       ],
-
       "status": "Under Investigation",
       "visibility": "public",
-
       "url": "/archive/ggg-per-2026-0003",
-
       "summary": "",
-
       "dateAdded": "2026-09-02",
       "dateUpdated": "2026-09-02",
-
       "keywords": [
         "Kyle Selig",
         "Kennedy family"
       ]
     },
-
-
     "GGG-PER-2026-0004": {
       "title": "Erin Bowles",
       "type": "Person",
-
       "collection": [],
-
       "status": "Under Investigation",
       "visibility": "public",
-
       "url": "/archive/ggg-per-2026-0004",
-
       "summary": "",
-
       "dateAdded": "2026-09-02",
       "dateUpdated": "2026-09-02",
-
       "keywords": [
         "Erin Bowles",
         "Archivist"
       ]
     }
-
   }
 }
