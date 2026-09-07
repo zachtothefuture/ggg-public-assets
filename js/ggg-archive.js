@@ -2,11 +2,11 @@
    GGG ARCHIVE — DATA API
 
    VERSION
-   v1.3 — Record Visibility
+   v1.4 — Record Card Hydration
 
    Shared client-side interface for the Guild Archive graph,
-   Archive Home editorial configuration, and canonical
-   Archive Record metadata.
+   Archive Home editorial configuration, canonical Archive
+   Record metadata, and reusable Archive Record cards.
 
    Public data sources:
    • archive-records.json
@@ -23,6 +23,7 @@
    • getHomeConfig()
    • getRecordCollections()
    • hydrateRecordHeaders()
+   • hydrateRecordCards()
    • getAllRecords()
    • getAllRelationships()
    • isReady()
@@ -37,7 +38,14 @@
    Entry-authored Record Header fields remain local:
    • Recovered / Primary Location
    • Current Location
-   • Access Level
+
+   Record Card automation:
+   • Record IDs    ← data-ggg-archive-records
+   • Record Type   ← archive-records.json
+   • Title         ← archive-records.json
+   • Metadata      ← collection, then status fallback
+   • URL           ← archive-records.json
+   • Count         ← successfully resolved public records
 
    Visibility:
    • public     → available to public Archive interfaces
@@ -49,6 +57,7 @@
      Archive lookup and discovery methods.
    • Missing or invalid visibility fails closed.
    • Relationships to hidden records are suppressed.
+   • Record card groups use the same public visibility gate.
 ========================================================== */
 
 
@@ -176,7 +185,7 @@
   /* ========================================================
      VISIBILITY
 
-     Canonical archive-records.json v1.3:
+     Canonical archive-records.json:
 
      "visibility": "public"
 
@@ -273,7 +282,7 @@
   /* ========================================================
      COLLECTION NORMALIZATION
 
-     Canonical archive-records.json v1.3:
+     Canonical archive-records.json:
 
      "collection": [
        "Kennedy Family",
@@ -482,22 +491,24 @@
         record.status || '';
 
     }
-     
+
+
+
     /* ------------------------------------------------------
-      ACCESS LEVEL
+       ACCESS LEVEL
     ------------------------------------------------------ */
-   
+
     const accessElement =
       header.querySelector(
         '[data-ggg-record-access]'
       );
-   
-   
+
+
     if (accessElement) {
-   
+
       accessElement.textContent =
         record.accessLevel || '';
-   
+
     }
 
 
@@ -552,8 +563,6 @@
 
     /* ------------------------------------------------------
        HYDRATION STATE
-
-       Useful for debugging and future CSS if needed.
     ------------------------------------------------------ */
 
     header.setAttribute(
@@ -596,6 +605,465 @@
 
         hydrateRecordHeader(
           header
+        );
+
+      }
+    );
+
+  }
+
+
+
+  /* ========================================================
+     ARCHIVE RECORD CARDS — ID PARSING
+
+     Example:
+
+     data-ggg-archive-records="
+       GGG-PER-2026-0001,
+       GGG-ART-2026-0001,
+       GGG-ART-2026-0002
+     "
+
+     Whitespace and line breaks are ignored.
+     Authored order is preserved.
+  ======================================================== */
+
+  function parseArchiveRecordIds(value) {
+
+    return String(
+      value || ''
+    )
+      .split(',')
+      .map(
+        function (recordId) {
+
+          return normalizeId(
+            recordId
+          );
+
+        }
+      )
+      .filter(Boolean);
+
+  }
+
+
+
+  /* ========================================================
+     ARCHIVE RECORD CARDS — CREATE ONE
+
+     Produces the canonical Archive Home record-card markup.
+
+     Card metadata preference:
+
+     1. Collection(s)
+     2. Status fallback
+
+     URLs always come from the canonical record manifest.
+  ======================================================== */
+
+  function createArchiveRecordCard(
+    recordId,
+    record
+  ) {
+
+    const article =
+      document.createElement(
+        'article'
+      );
+
+
+    article.className =
+      'ggg-archive-home-record';
+
+
+    article.setAttribute(
+      'data-record-id',
+      recordId
+    );
+
+
+
+    /* ------------------------------------------------------
+       TYPE
+    ------------------------------------------------------ */
+
+    const type =
+      document.createElement(
+        'div'
+      );
+
+
+    type.className =
+      'ggg-archive-home-record__type';
+
+
+    type.setAttribute(
+      'data-ggg-material',
+      'print'
+    );
+
+
+    type.textContent =
+      String(
+        record.type ||
+        'Record'
+      ).toUpperCase();
+
+
+    article.appendChild(
+      type
+    );
+
+
+
+    /* ------------------------------------------------------
+       TITLE
+    ------------------------------------------------------ */
+
+    const title =
+      document.createElement(
+        'h3'
+      );
+
+
+    title.className =
+      'ggg-archive-home-record__title';
+
+
+    title.setAttribute(
+      'data-ggg-material',
+      'print'
+    );
+
+
+    title.textContent =
+      record.title ||
+      'Untitled Record';
+
+
+    article.appendChild(
+      title
+    );
+
+
+
+    /* ------------------------------------------------------
+       META
+    ------------------------------------------------------ */
+
+    const collections =
+      getRecordCollections(
+        record
+      );
+
+
+    const metaText =
+      collections.length
+        ? collections.join(
+            ' · '
+          )
+        : String(
+            record.status || ''
+          ).trim();
+
+
+    if (metaText) {
+
+      const meta =
+        document.createElement(
+          'div'
+        );
+
+
+      meta.className =
+        'ggg-archive-home-record__meta';
+
+
+      meta.setAttribute(
+        'data-ggg-material',
+        'ink'
+      );
+
+
+      meta.textContent =
+        metaText;
+
+
+      article.appendChild(
+        meta
+      );
+
+    }
+
+
+
+    /* ------------------------------------------------------
+       LINK
+    ------------------------------------------------------ */
+
+    const link =
+      document.createElement(
+        'a'
+      );
+
+
+    link.className =
+      'ggg-archive-home-record__link';
+
+
+    link.href =
+      record.url;
+
+
+    link.setAttribute(
+      'data-ggg-material',
+      'glass'
+    );
+
+
+    link.setAttribute(
+      'aria-label',
+      `Open Archive record: ${
+        record.title ||
+        recordId
+      }`
+    );
+
+
+    link.textContent =
+      'Open Record';
+
+
+    article.appendChild(
+      link
+    );
+
+
+    return article;
+
+  }
+
+
+
+  /* ========================================================
+     ARCHIVE RECORD CARDS — HYDRATE ONE GROUP
+
+     Required parent attribute:
+
+     data-ggg-archive-records
+
+     Preferred child targets:
+
+     data-ggg-archive-record-grid
+     data-ggg-archive-record-count
+
+     Current Podcast class names are retained as fallbacks
+     for compatibility.
+
+     Public visibility is enforced through archive.getRecord().
+
+     Missing, hidden, or URL-less records are skipped and
+     reported in the console.
+
+     If no records resolve, the component is hidden.
+  ======================================================== */
+
+  function hydrateRecordCardGroup(
+    component
+  ) {
+
+    if (!component) {
+
+      return false;
+
+    }
+
+
+    const recordIds =
+      parseArchiveRecordIds(
+        component.getAttribute(
+          'data-ggg-archive-records'
+        )
+      );
+
+
+    const grid =
+      component.querySelector(
+        '[data-ggg-archive-record-grid]'
+      ) ||
+      component.querySelector(
+        '.ggg-podcast-investigation__grid'
+      );
+
+
+    const count =
+      component.querySelector(
+        '[data-ggg-archive-record-count]'
+      ) ||
+      component.querySelector(
+        '.ggg-podcast-investigation__count'
+      );
+
+
+    if (!grid) {
+
+      console.warn(
+        'GGG Archive: Record card group is missing a grid target.',
+        component
+      );
+
+
+      return false;
+
+    }
+
+
+    const resolved =
+      [];
+
+
+    recordIds.forEach(
+      function (recordId) {
+
+        const record =
+          archive.getRecord(
+            recordId
+          );
+
+
+        if (!record) {
+
+          console.warn(
+            `GGG Archive: Public record not found for ${recordId}.`
+          );
+
+
+          return;
+
+        }
+
+
+        if (!record.url) {
+
+          console.warn(
+            `GGG Archive: Record ${recordId} is missing a canonical URL.`
+          );
+
+
+          return;
+
+        }
+
+
+        resolved.push({
+
+          id:
+            recordId,
+
+          record:
+            record
+
+        });
+
+      }
+    );
+
+
+    grid.replaceChildren();
+
+
+    resolved.forEach(
+      function (item) {
+
+        grid.appendChild(
+          createArchiveRecordCard(
+            item.id,
+            item.record
+          )
+        );
+
+      }
+    );
+
+
+
+    /* ------------------------------------------------------
+       COUNT
+    ------------------------------------------------------ */
+
+    if (count) {
+
+      const total =
+        resolved.length;
+
+
+      count.textContent =
+        `${total} RELATED ${
+          total === 1
+            ? 'RECORD'
+            : 'RECORDS'
+        }`;
+
+    }
+
+
+
+    /* ------------------------------------------------------
+       EMPTY STATE
+
+       Do not expose an empty public component if every
+       authored record is missing or hidden.
+    ------------------------------------------------------ */
+
+    component.hidden =
+      resolved.length === 0;
+
+
+
+    /* ------------------------------------------------------
+       HYDRATION STATE
+    ------------------------------------------------------ */
+
+    component.setAttribute(
+      'data-ggg-archive-records-hydrated',
+      'true'
+    );
+
+
+    return true;
+
+  }
+
+
+
+  /* ========================================================
+     ARCHIVE RECORD CARDS — HYDRATE ALL
+
+     Finds every ID-driven Archive Record group on the page.
+  ======================================================== */
+
+  function hydrateRecordCardGroups() {
+
+    const components =
+      document.querySelectorAll(
+        '[data-ggg-archive-records]'
+      );
+
+
+    if (!components.length) {
+
+      return;
+
+    }
+
+
+    components.forEach(
+      function (component) {
+
+        hydrateRecordCardGroup(
+          component
         );
 
       }
@@ -710,8 +1178,10 @@
 
      Loads Archive data once per page.
 
-     Once canonical data is ready, any Archive Record Header
-     on the page is automatically hydrated.
+     Once canonical data is ready:
+
+     • Archive Record Headers are hydrated.
+     • ID-driven Archive Record card groups are hydrated.
   ======================================================== */
 
   archive.init =
@@ -720,6 +1190,8 @@
       if (initialized) {
 
         hydrateRecordHeaders();
+
+        hydrateRecordCardGroups();
 
 
         return Promise.resolve(
@@ -787,10 +1259,12 @@
 
 
             /* ------------------------------------------------
-               HYDRATE RECORD ENTRY HEADER
+               HYDRATE ARCHIVE COMPONENTS
             ------------------------------------------------ */
 
             hydrateRecordHeaders();
+
+            hydrateRecordCardGroups();
 
 
 
@@ -1303,6 +1777,51 @@
 
 
       hydrateRecordHeaders();
+
+
+      return Promise.resolve(
+        archive
+      );
+
+    };
+
+
+
+  /* ========================================================
+     RECORD CARD HYDRATION
+
+     Public method so any page or dynamically inserted
+     component can request ID-driven Archive Record cards.
+
+     Example:
+
+     data-ggg-archive-records="
+       GGG-PER-2026-0001,
+       GGG-ART-2026-0001
+     "
+  ======================================================== */
+
+  archive.hydrateRecordCards =
+    function () {
+
+      if (!initialized) {
+
+        return archive
+          .init()
+          .then(
+            function () {
+
+              hydrateRecordCardGroups();
+
+              return archive;
+
+            }
+          );
+
+      }
+
+
+      hydrateRecordCardGroups();
 
 
       return Promise.resolve(
