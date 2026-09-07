@@ -32,6 +32,7 @@
    • Record Type   ← archive-records.json
    • Status        ← archive-records.json
    • Collection(s) ← archive-records.json
+   • Access Level  ← archive-records.json
 
    Entry-authored Record Header fields remain local:
    • Recovered / Primary Location
@@ -480,6 +481,23 @@
       statusElement.textContent =
         record.status || '';
 
+    }
+     
+    /* ------------------------------------------------------
+      ACCESS LEVEL
+    ------------------------------------------------------ */
+   
+    const accessElement =
+      header.querySelector(
+        '[data-ggg-record-access]'
+      );
+   
+   
+    if (accessElement) {
+   
+      accessElement.textContent =
+        record.accessLevel || '';
+   
     }
 
 
