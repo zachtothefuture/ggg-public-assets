@@ -1,5 +1,5 @@
 {
-  "version": "1.0",
+  "version": "1.1",
   "types": {
     "owned": {
       "label": "OWNED",
@@ -58,17 +58,9 @@
     {
       "source": "GGG-PER-2026-0001",
       "type": "owned",
-      "target": "GGG-ART-2026-0001"
-    },
-    {
-      "source": "GGG-POD-2026-0001",
-      "type": "documents",
-      "target": "GGG-PER-2026-0001"
-    },
-    {
-      "source": "GGG-POD-2026-0001",
-      "type": "documents",
-      "target": "GGG-ART-2026-0001"
+      "target": [
+        "GGG-ART-2026-0001"
+      ]
     }
   ]
 }
