@@ -2,7 +2,7 @@
    GGG ARCHIVE — DATA API
 
    VERSION
-   v1.4 — Record Card Hydration
+   v1.5 — Relationship Target Arrays
 
    Shared client-side interface for the Guild Archive graph,
    Archive Home editorial configuration, canonical Archive
@@ -46,6 +46,28 @@
    • Metadata      ← collection, then status fallback
    • URL           ← archive-records.json
    • Count         ← successfully resolved public records
+
+   Relationship authoring:
+   • source = one canonical Record ID
+   • type   = one canonical relationship type
+   • target = one or more canonical Record IDs
+
+   Canonical v1.1 relationship example:
+
+   {
+     "source": "GGG-POD-2026-0001",
+     "type": "documents",
+     "target": [
+       "GGG-PER-2026-0001",
+       "GGG-ART-2026-0001"
+     ]
+   }
+
+   Target arrays are normalized at load time into individual
+   internal relationships. Downstream Archive components never
+   need to know whether the manifest used one or many targets.
+
+   Legacy single-string target values remain supported.
 
    Visibility:
    • public     → available to public Archive interfaces
@@ -177,6 +199,160 @@
         .trim()
         .toLowerCase()
     ] || null;
+
+  }
+
+
+
+  /* ========================================================
+     RELATIONSHIP NORMALIZATION
+
+     Canonical archive-relationships.json v1.1:
+
+     {
+       "source": "GGG-POD-2026-0001",
+       "type": "documents",
+       "target": [
+         "GGG-PER-2026-0001",
+         "GGG-ART-2026-0001"
+       ]
+     }
+
+     Authoring model:
+     • source = one Record ID
+     • type   = one relationship type
+     • target = array of one or more Record IDs
+
+     Internal model:
+     Each source → target relationship becomes its own object.
+
+     Example:
+
+     POD-0001 → documents → PER-0001
+     POD-0001 → documents → ART-0001
+
+     Legacy support:
+     A single-string target is also accepted and normalized
+     into the same internal representation.
+
+     Invalid entries are skipped rather than exposed to
+     downstream Archive components.
+  ======================================================== */
+
+  function normalizeRelationships(input) {
+
+    if (
+      !Array.isArray(
+        input
+      )
+    ) {
+
+      return [];
+
+    }
+
+
+    const normalized =
+      [];
+
+
+    input.forEach(
+      function (relationship) {
+
+        if (
+          !relationship ||
+          typeof relationship !==
+          'object'
+        ) {
+
+          return;
+
+        }
+
+
+        const source =
+          normalizeId(
+            relationship.source
+          );
+
+
+        const type =
+          String(
+            relationship.type || ''
+          )
+            .trim()
+            .toLowerCase();
+
+
+        if (
+          !source ||
+          !type
+        ) {
+
+          console.warn(
+            'GGG Archive: Skipping invalid relationship.',
+            relationship
+          );
+
+
+          return;
+
+        }
+
+
+        const authoredTargets =
+          Array.isArray(
+            relationship.target
+          )
+            ? relationship.target
+            : [
+                relationship.target
+              ];
+
+
+        authoredTargets.forEach(
+          function (targetValue) {
+
+            const target =
+              normalizeId(
+                targetValue
+              );
+
+
+            if (!target) {
+
+              console.warn(
+                'GGG Archive: Skipping relationship with invalid target.',
+                relationship
+              );
+
+
+              return;
+
+            }
+
+
+            normalized.push({
+
+              source:
+                source,
+
+              type:
+                type,
+
+              target:
+                target
+
+            });
+
+          }
+        );
+
+      }
+    );
+
+
+    return normalized;
 
   }
 
@@ -1178,6 +1354,9 @@
 
      Loads Archive data once per page.
 
+     Relationship target arrays are normalized before any
+     public relationship methods are exposed.
+
      Once canonical data is ready:
 
      • Archive Record Headers are hydrated.
@@ -1242,11 +1421,9 @@
 
 
             relationships =
-              Array.isArray(
+              normalizeRelationships(
                 relationshipManifest.relationships
-              )
-                ? relationshipManifest.relationships
-                : [];
+              );
 
 
             homeConfig =
@@ -1387,6 +1564,9 @@
 
      Relationships authored FROM the supplied record.
 
+     Manifest target arrays have already been expanded into
+     individual internal relationships during initialization.
+
      Both the source record and relationship destination
      must be public.
   ======================================================== */
@@ -1482,6 +1662,9 @@
 
      Relationships authored elsewhere that point TO the
      supplied record.
+
+     Manifest target arrays have already been expanded into
+     individual internal relationships during initialization.
 
      These are automatically translated into their inverse
      relationship type.
@@ -1838,6 +2021,35 @@
      Public-facing inspection methods also respect
      visibility so downstream components cannot accidentally
      bypass the publication gate.
+
+     getAllRelationships() returns normalized individual
+     relationships, not the grouped authoring form used in
+     archive-relationships.json.
+
+     Example authored relationship:
+
+     {
+       "source": "GGG-POD-2026-0001",
+       "type": "documents",
+       "target": [
+         "GGG-PER-2026-0001",
+         "GGG-ART-2026-0001"
+       ]
+     }
+
+     Returned internally as:
+
+     {
+       source: "GGG-POD-2026-0001",
+       type: "documents",
+       target: "GGG-PER-2026-0001"
+     }
+
+     {
+       source: "GGG-POD-2026-0001",
+       type: "documents",
+       target: "GGG-ART-2026-0001"
+     }
   ======================================================== */
 
   archive.getAllRecords =
