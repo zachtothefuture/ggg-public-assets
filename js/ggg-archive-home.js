@@ -350,103 +350,79 @@
     recordId,
     record
   ) {
-
-    const article =
-      createElement(
-        'article',
+   
+    const link =
+     createElement(
+        'a',
         'ggg-archive-home-record'
-      );
-
-
-    article.dataset.recordId =
-      recordId;
-
-
-
+    );
+   
+    link.dataset.recordId =
+       recordId;
+   
+    link.href =
+       record.url ||
+       '#';
+   
     const type =
       createElement(
-        'div',
-        'ggg-archive-home-record__type',
-        'print'
+       'span',
+       'ggg-archive-home-record__type',
+       'print'
       );
-
-
+   
+   
     type.textContent =
       (
         record.type ||
         'Record'
       ).toUpperCase();
-
-
-
-    const title =
+   
+    const id =
       createElement(
-        'h3',
-        'ggg-archive-home-record__title',
+        'span',
+        'ggg-archive-home-record__id',
         'print'
       );
-
-
+   
+    id.textContent =
+      recordId;
+   
+    const title =
+      createElement(
+        'span',
+        'ggg-archive-home-record__title',
+        'ink'
+      );
+   
     title.textContent =
       record.title ||
       recordId;
-
-
-
-    const meta =
+   
+    const arrow =
       createElement(
-        'div',
-        'ggg-archive-home-record__meta',
-        'ink'
+        'span',
+        'ggg-archive-home-record__arrow'
       );
-
-
-    meta.textContent =
-      getRecordCollections(
-        record
-      )
-        .concat(
-          record.status
-            ? [record.status]
-            : []
-        )
-        .join(' · ');
-
-
-
-    const link =
-      createElement(
-        'a',
-        'ggg-archive-home-record__link',
-        'glass'
-      );
-
-
-    link.textContent =
-      'Open Record';
-
-
-    if (record.url) {
-
-      link.href =
-        record.url;
-
-    }
-
-
-
-    article.append(
-      type,
-      title,
-      meta,
-      link
+   
+    arrow.textContent =
+      '→';
+   
+    arrow.setAttribute(
+      'aria-hidden',
+      'true'
     );
-
-
-    return article;
-
+   
+    link.append(
+      type,
+      id,
+      title,
+      arrow
+    );
+   
+    return link;
+   
   }
-
 
 
   /* ========================================================
