@@ -41,6 +41,14 @@
       "label": "RECOVERED HERE",
       "inverse": "recovery-location"
     },
+    "documents": {
+      "label": "DOCUMENTS",
+      "inverse": "documented-in"
+    },
+    "documented-in": {
+      "label": "DOCUMENTED IN",
+      "inverse": "documents"
+    },
     "related": {
       "label": "RELATED",
       "inverse": "related"
@@ -50,6 +58,16 @@
     {
       "source": "GGG-PER-2026-0001",
       "type": "owned",
+      "target": "GGG-ART-2026-0001"
+    },
+    {
+      "source": "GGG-POD-2026-0001",
+      "type": "documents",
+      "target": "GGG-PER-2026-0001"
+    },
+    {
+      "source": "GGG-POD-2026-0001",
+      "type": "documents",
       "target": "GGG-ART-2026-0001"
     }
   ]
