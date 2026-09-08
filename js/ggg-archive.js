@@ -2,11 +2,12 @@
    GGG ARCHIVE — DATA API
 
    VERSION
-   v1.5 — Relationship Target Arrays
+   v1.6 — Associated Records Hydration
 
    Shared client-side interface for the Guild Archive graph,
    Archive Home editorial configuration, canonical Archive
-   Record metadata, and reusable Archive Record cards.
+   Record metadata, reusable Archive Record cards, and
+   graph-driven Associated Records.
 
    Public data sources:
    • archive-records.json
@@ -24,6 +25,7 @@
    • getRecordCollections()
    • hydrateRecordHeaders()
    • hydrateRecordCards()
+   • hydrateAssociatedRecords()
    • getAllRecords()
    • getAllRelationships()
    • isReady()
@@ -44,6 +46,15 @@
    • Record Type   ← archive-records.json
    • Title         ← archive-records.json
    • Metadata      ← collection, then status fallback
+   • URL           ← archive-records.json
+   • Count         ← successfully resolved public records
+
+   Associated Records automation:
+   • Current ID    ← canonical Record Header
+   • Relationships ← archive-relationships.json
+   • Record Type   ← archive-records.json
+   • Title         ← archive-records.json
+   • Relationship  ← canonical relationship vocabulary
    • URL           ← archive-records.json
    • Count         ← successfully resolved public records
 
@@ -80,6 +91,7 @@
    • Missing or invalid visibility fails closed.
    • Relationships to hidden records are suppressed.
    • Record card groups use the same public visibility gate.
+   • Associated Records use the same public visibility gate.
 ========================================================== */
 
 
@@ -791,6 +803,45 @@
 
 
   /* ========================================================
+     CURRENT ARCHIVE RECORD ID
+
+     Archive Entry components inherit the canonical page
+     identity from the Record Header.
+
+     The Record ID should therefore be authored once:
+
+     .ggg-record-header[data-record-id]
+
+     Components such as Associated Records do not need their
+     own duplicate Record ID.
+  ======================================================== */
+
+  function getCurrentArchiveRecordId() {
+
+    const header =
+      document.querySelector(
+        '.ggg-record-header[data-record-id]'
+      );
+
+
+    if (!header) {
+
+      return '';
+
+    }
+
+
+    return normalizeId(
+      header.getAttribute(
+        'data-record-id'
+      )
+    );
+
+  }
+
+
+
+  /* ========================================================
      ARCHIVE RECORD CARDS — ID PARSING
 
      Example:
@@ -1188,9 +1239,6 @@
 
     /* ------------------------------------------------------
        EMPTY STATE
-
-       Do not expose an empty public component if every
-       authored record is missing or hidden.
     ------------------------------------------------------ */
 
     component.hidden =
@@ -1216,8 +1264,6 @@
 
   /* ========================================================
      ARCHIVE RECORD CARDS — HYDRATE ALL
-
-     Finds every ID-driven Archive Record group on the page.
   ======================================================== */
 
   function hydrateRecordCardGroups() {
@@ -1239,6 +1285,448 @@
       function (component) {
 
         hydrateRecordCardGroup(
+          component
+        );
+
+      }
+    );
+
+  }
+
+
+
+  /* ========================================================
+     ASSOCIATED RECORDS — CREATE ONE ROW
+
+     Produces markup compatible with:
+
+     MANUAL — RECORDS
+
+     Row content:
+     • Record Type   ← archive-records.json
+     • Title         ← archive-records.json
+     • Relationship  ← archive-relationships.json
+     • URL           ← archive-records.json
+
+     Relationship labels are always presented from the
+     perspective of the current Archive Record.
+  ======================================================== */
+
+  function createAssociatedRecordRow(
+    item
+  ) {
+
+    const record =
+      item.record;
+
+
+    const link =
+      document.createElement(
+        'a'
+      );
+
+
+    link.className =
+      'ggg-record';
+
+
+    link.href =
+      record.url;
+
+
+    link.setAttribute(
+      'data-record-id',
+      item.id
+    );
+
+
+    link.setAttribute(
+      'aria-label',
+      `Open Archive record: ${
+        record.title ||
+        item.id
+      }`
+    );
+
+
+
+    /* ------------------------------------------------------
+       RECORD TYPE
+    ------------------------------------------------------ */
+
+    const type =
+      document.createElement(
+        'div'
+      );
+
+
+    type.className =
+      'ggg-record__type';
+
+
+    type.setAttribute(
+      'data-ggg-material',
+      'print'
+    );
+
+
+    type.textContent =
+      String(
+        record.type ||
+        'Record'
+      ).toUpperCase();
+
+
+    link.appendChild(
+      type
+    );
+
+
+
+    /* ------------------------------------------------------
+       TITLE
+    ------------------------------------------------------ */
+
+    const title =
+      document.createElement(
+        'div'
+      );
+
+
+    title.className =
+      'ggg-record__title';
+
+
+    title.setAttribute(
+      'data-ggg-material',
+      'print'
+    );
+
+
+    title.textContent =
+      record.title ||
+      'Untitled Record';
+
+
+    link.appendChild(
+      title
+    );
+
+
+
+    /* ------------------------------------------------------
+       RELATIONSHIP
+    ------------------------------------------------------ */
+
+    const meta =
+      document.createElement(
+        'div'
+      );
+
+
+    meta.className =
+      'ggg-record__meta';
+
+
+    meta.setAttribute(
+      'data-ggg-material',
+      'ink'
+    );
+
+
+    meta.textContent =
+      item.relationshipLabel ||
+      item.relationship ||
+      'Related';
+
+
+    link.appendChild(
+      meta
+    );
+
+
+
+    /* ------------------------------------------------------
+       ARROW
+    ------------------------------------------------------ */
+
+    const arrow =
+      document.createElement(
+        'div'
+      );
+
+
+    arrow.className =
+      'ggg-record__arrow';
+
+
+    arrow.setAttribute(
+      'aria-hidden',
+      'true'
+    );
+
+
+    arrow.textContent =
+      '→';
+
+
+    link.appendChild(
+      arrow
+    );
+
+
+    return link;
+
+  }
+
+
+
+  /* ========================================================
+     ASSOCIATED RECORDS — HYDRATE ONE
+
+     Canonical placeholder:
+
+     <div
+       class="ggg-records ggg-archive-records"
+       data-associated-records="auto"
+     >
+     </div>
+
+     The current Record ID is inherited from the canonical
+     Record Header.
+
+     The component is fully graph-driven:
+     • Current ID comes from Record Header
+     • Relationships come from archive-relationships.json
+     • Direct relationships are resolved
+     • Inverse relationships are derived automatically
+     • Record metadata comes from archive-records.json
+     • Hidden records are suppressed
+     • Count is generated automatically
+
+     No record rows should be manually authored inside an
+     auto-associated component.
+  ======================================================== */
+
+  function hydrateAssociatedRecordsComponent(
+    component
+  ) {
+
+    if (!component) {
+
+      return false;
+
+    }
+
+
+    const recordId =
+      getCurrentArchiveRecordId();
+
+
+    if (!recordId) {
+
+      console.warn(
+        'GGG Archive: Associated Records could not determine the current Record ID.',
+        component
+      );
+
+
+      component.hidden =
+        true;
+
+
+      return false;
+
+    }
+
+
+    const relatedRecords =
+      archive
+        .getRelatedRecords(
+          recordId
+        )
+        .filter(
+          function (item) {
+
+            return (
+              item &&
+              item.record &&
+              item.record.url
+            );
+
+          }
+        );
+
+
+    component.replaceChildren();
+
+
+
+    /* ------------------------------------------------------
+       EMPTY STATE
+
+       If the graph resolves no public relationships, hide
+       the component rather than exposing an empty frame.
+    ------------------------------------------------------ */
+
+    if (!relatedRecords.length) {
+
+      component.hidden =
+        true;
+
+
+      component.setAttribute(
+        'data-associated-records-hydrated',
+        'true'
+      );
+
+
+      return true;
+
+    }
+
+
+
+    /* ------------------------------------------------------
+       HEADER
+    ------------------------------------------------------ */
+
+    const header =
+      document.createElement(
+        'div'
+      );
+
+
+    header.className =
+      'ggg-records__header';
+
+
+
+    const label =
+      document.createElement(
+        'div'
+      );
+
+
+    label.className =
+      'ggg-records__label';
+
+
+    label.setAttribute(
+      'data-ggg-material',
+      'print'
+    );
+
+
+    label.textContent =
+      'ASSOCIATED RECORDS';
+
+
+
+    const count =
+      document.createElement(
+        'div'
+      );
+
+
+    count.className =
+      'ggg-records__count';
+
+
+    count.setAttribute(
+      'data-ggg-material',
+      'print'
+    );
+
+
+    count.textContent =
+      `${relatedRecords.length} ${
+        relatedRecords.length === 1
+          ? 'RECORD'
+          : 'RECORDS'
+      }`;
+
+
+    header.appendChild(
+      label
+    );
+
+
+    header.appendChild(
+      count
+    );
+
+
+    component.appendChild(
+      header
+    );
+
+
+
+    /* ------------------------------------------------------
+       RECORD ROWS
+    ------------------------------------------------------ */
+
+    relatedRecords.forEach(
+      function (item) {
+
+        component.appendChild(
+          createAssociatedRecordRow(
+            item
+          )
+        );
+
+      }
+    );
+
+
+
+    /* ------------------------------------------------------
+       HYDRATION STATE
+    ------------------------------------------------------ */
+
+    component.hidden =
+      false;
+
+
+    component.setAttribute(
+      'data-associated-records-hydrated',
+      'true'
+    );
+
+
+    return true;
+
+  }
+
+
+
+  /* ========================================================
+     ASSOCIATED RECORDS — HYDRATE ALL
+
+     Finds every graph-driven Associated Records placeholder
+     on the current page.
+  ======================================================== */
+
+  function hydrateAssociatedRecords() {
+
+    const components =
+      document.querySelectorAll(
+        '[data-associated-records="auto"]'
+      );
+
+
+    if (!components.length) {
+
+      return;
+
+    }
+
+
+    components.forEach(
+      function (component) {
+
+        hydrateAssociatedRecordsComponent(
           component
         );
 
@@ -1361,6 +1849,7 @@
 
      • Archive Record Headers are hydrated.
      • ID-driven Archive Record card groups are hydrated.
+     • Graph-driven Associated Records are hydrated.
   ======================================================== */
 
   archive.init =
@@ -1371,6 +1860,8 @@
         hydrateRecordHeaders();
 
         hydrateRecordCardGroups();
+
+        hydrateAssociatedRecords();
 
 
         return Promise.resolve(
@@ -1442,6 +1933,8 @@
             hydrateRecordHeaders();
 
             hydrateRecordCardGroups();
+
+            hydrateAssociatedRecords();
 
 
 
@@ -1522,13 +2015,6 @@
      Always returns an array.
 
      Public ID lookups respect visibility.
-
-     Example:
-
-     [
-       "Kennedy Family",
-       "EP. 101"
-     ]
   ======================================================== */
 
   archive.getRecordCollections =
@@ -1662,9 +2148,6 @@
 
      Relationships authored elsewhere that point TO the
      supplied record.
-
-     Manifest target arrays have already been expanded into
-     individual internal relationships during initialization.
 
      These are automatically translated into their inverse
      relationship type.
@@ -1910,16 +2393,6 @@
 
   /* ========================================================
      ARCHIVE HOME CONFIGURATION
-
-     Returns public-safe editorial configuration.
-
-     Entries that reference hidden canonical records are
-     removed automatically.
-
-     This covers:
-     • Featured Investigation
-     • Open Investigations
-     • Recent Activity
   ======================================================== */
 
   archive.getHomeConfig =
@@ -1933,10 +2406,6 @@
 
   /* ========================================================
      RECORD HEADER HYDRATION
-
-     Public method so another component can request a
-     re-hydration if Archive Entry markup is ever inserted
-     dynamically after initialization.
   ======================================================== */
 
   archive.hydrateRecordHeaders =
@@ -1972,16 +2441,6 @@
 
   /* ========================================================
      RECORD CARD HYDRATION
-
-     Public method so any page or dynamically inserted
-     component can request ID-driven Archive Record cards.
-
-     Example:
-
-     data-ggg-archive-records="
-       GGG-PER-2026-0001,
-       GGG-ART-2026-0001
-     "
   ======================================================== */
 
   archive.hydrateRecordCards =
@@ -2016,40 +2475,54 @@
 
 
   /* ========================================================
+     ASSOCIATED RECORDS HYDRATION
+
+     Public method so dynamically inserted Archive Entry
+     content can request graph-driven Associated Records.
+
+     The current Record ID is inherited from the canonical
+     Record Header.
+  ======================================================== */
+
+  archive.hydrateAssociatedRecords =
+    function () {
+
+      if (!initialized) {
+
+        return archive
+          .init()
+          .then(
+            function () {
+
+              hydrateAssociatedRecords();
+
+              return archive;
+
+            }
+          );
+
+      }
+
+
+      hydrateAssociatedRecords();
+
+
+      return Promise.resolve(
+        archive
+      );
+
+    };
+
+
+
+  /* ========================================================
      DEBUG / INSPECTION
 
-     Public-facing inspection methods also respect
-     visibility so downstream components cannot accidentally
-     bypass the publication gate.
+     Public-facing inspection methods respect visibility.
 
      getAllRelationships() returns normalized individual
-     relationships, not the grouped authoring form used in
-     archive-relationships.json.
-
-     Example authored relationship:
-
-     {
-       "source": "GGG-POD-2026-0001",
-       "type": "documents",
-       "target": [
-         "GGG-PER-2026-0001",
-         "GGG-ART-2026-0001"
-       ]
-     }
-
-     Returned internally as:
-
-     {
-       source: "GGG-POD-2026-0001",
-       type: "documents",
-       target: "GGG-PER-2026-0001"
-     }
-
-     {
-       source: "GGG-POD-2026-0001",
-       type: "documents",
-       target: "GGG-ART-2026-0001"
-     }
+     relationships rather than the grouped authoring form
+     stored in archive-relationships.json.
   ======================================================== */
 
   archive.getAllRecords =
