@@ -738,96 +738,259 @@
     recordId,
     record
   ) {
-
+   
     const link =
       createElement(
         'a',
         'ggg-archive-home-index__row'
       );
-
-
-    link.dataset.recordId =
-      recordId;
-
-
+   
     link.href =
       record.url ||
       '#';
-
-
-
-    const type =
-      createElement(
-        'span',
-        'ggg-archive-home-index__type',
-        'print'
-      );
-
-
-    type.textContent =
-      (
-        record.type ||
-        'Record'
-      ).toUpperCase();
-
-
-
-    const id =
-      createElement(
-        'span',
-        'ggg-archive-home-index__id',
-        'print'
-      );
-
-
-    id.textContent =
+   
+    link.dataset.recordId =
       recordId;
-
-
-
-    const title =
+   
+    /* ========================================================
+        THUMBNAIL
+    ======================================================== */
+   
+    const media =
       createElement(
-        'span',
-        'ggg-archive-home-index__title',
-        'ink'
+        'div',
+        'ggg-archive-home-index__media'
       );
-
-
-    title.textContent =
-      record.title ||
-      recordId;
-
-
-
-    const arrow =
-      createElement(
-        'span',
-        'ggg-archive-home-index__arrow'
-      );
-
-
-    arrow.textContent =
-      '→';
-
-
-    arrow.setAttribute(
+   
+    media.setAttribute(
       'aria-hidden',
       'true'
     );
+   
+    const thumbnail =
+      String(
+        record.thumbnail ||
+        ''
+      ).trim();
+   
+    if (thumbnail) {
+   
+      const image =
+        document.createElement(
+           'img'
+        );
 
-
-
-    link.append(
-      type,
-      id,
-      title,
-      arrow
-    );
-
-
-    return link;
-
-  }
+      image.className =
+        'ggg-archive-home-index__image';
+   
+      image.src =
+        thumbnail;
+   
+      image.alt =
+        '';
+   
+      image.loading =
+        'lazy';
+   
+      image.decoding =
+        'async';
+       
+      image.setAttribute(
+        'data-ggg-material',
+        'photo'
+      );
+   
+      image.addEventListener(
+        'load',
+        () => {
+   
+           media.classList.add(
+             'has-image'
+           );
+   
+        }
+      );
+   
+      image.addEventListener(
+        'error',
+        () => {
+   
+          image.remove();
+   
+          media.classList.remove(
+            'has-image'
+          );
+   
+        }
+      );
+   
+      media.appendChild(
+        image
+      );
+   
+     }
+   
+   
+   
+     /* ========================================================
+        RECORD INFORMATION
+     ======================================================== */
+   
+     const content =
+       createElement(
+         'div',
+         'ggg-archive-home-index__content'
+       );
+   
+   
+   
+     const eyebrow =
+       createElement(
+         'div',
+         'ggg-archive-home-index__eyebrow'
+       );
+   
+   
+   
+     const type =
+       createElement(
+         'span',
+         'ggg-archive-home-index__type',
+         'print'
+       );
+   
+   
+     type.textContent =
+       (
+         record.type ||
+         'Record'
+       ).toUpperCase();
+   
+   
+   
+     const id =
+       createElement(
+         'span',
+         'ggg-archive-home-index__id',
+         'print'
+       );
+   
+   
+     id.textContent =
+       recordId;
+   
+   
+   
+     eyebrow.append(
+       type,
+       id
+     );
+   
+   
+   
+     const title =
+       createElement(
+         'div',
+         'ggg-archive-home-index__title',
+         'ink'
+       );
+   
+   
+     title.textContent =
+       record.title ||
+       recordId;
+   
+   
+   
+     const meta =
+       createElement(
+         'div',
+         'ggg-archive-home-index__meta',
+         'print'
+       );
+   
+   
+     const collections =
+       window.GGG.archive
+         .getRecordCollections(record);
+   
+   
+     const metaParts =
+       [];
+   
+   
+     if (collections.length) {
+   
+       metaParts.push(
+         collections.join(' · ')
+       );
+   
+     }
+   
+   
+     if (record.status) {
+   
+       metaParts.push(
+         record.status
+       );
+   
+     }
+   
+   
+     meta.textContent =
+       metaParts.join(' — ');
+   
+   
+   
+     content.append(
+       eyebrow,
+       title
+     );
+   
+   
+     if (meta.textContent) {
+   
+       content.appendChild(
+         meta
+       );
+   
+     }
+   
+   
+   
+     /* ========================================================
+        ARROW
+     ======================================================== */
+   
+     const arrow =
+       createElement(
+         'span',
+         'ggg-archive-home-index__arrow'
+       );
+   
+   
+     arrow.textContent =
+       '→';
+   
+   
+     arrow.setAttribute(
+       'aria-hidden',
+       'true'
+     );
+   
+   
+   
+     link.append(
+       media,
+       content,
+       arrow
+     );
+   
+   
+     return link;
+   
+   }   
+  
 
 
 
