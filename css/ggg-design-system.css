@@ -434,12 +434,6 @@ img{border:0;border-radius:0;display:block;height:100%;width:100%}@media screen 
 .audio-block{background:var(--ggg-mat);border:1px solid var(--ggg-border-light);border-bottom:0;border-radius:var(--ggg-radius-mount) var(--ggg-radius-mount) 0 0;box-shadow:var(--ggg-shadow-mount);box-sizing:border-box;margin:6px 0 0!important;overflow:hidden;padding:var(--ggg-space-sm)!important;width:auto!important}article.h-entry
 .blog-item-content
 .image-block+.audio-block{border-radius:0;border-top:0;box-shadow:none;margin-top:0!important}article.h-entry
-.blog-item-content
-.image-block:has(+.audio-block)
-.image-block-outer-wrapper,article.h-entry
-.blog-item-content
-.image-block:has(+.audio-block)
-.sqs-block-image-content{box-shadow:none}article.h-entry
 .audio-block
 .sqs-audio-embed,article.h-entry
 .audio-block
