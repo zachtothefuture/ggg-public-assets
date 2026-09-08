@@ -1022,139 +1022,169 @@
 
 
     /* ======================================================
-       RESUME AFTER TEXT ENTRY
-    ====================================================== */
+   RESUME AFTER TEXT ENTRY
+====================================================== */
 
-    resumeFromTextEntry() {
-
-      if (
-        !this.inputSuspended
-      ) {
-
-        return;
-
-      }
-
-
-      this.inputSuspended =
-        false;
-
-
-      document.body.classList.remove(
-        'ggg-lighting-input-active'
-      );
-
-
-      /*
-         Important for mobile browsers:
-
-         Measure after the keyboard / input accessory
-         viewport has had time to settle.
-      */
-
-      this.syncViewportState();
-
-
-      this.headerProgress =
-        this.getHeaderProgress();
-
-
-      if (
-        this.mobile
-      ) {
-
-        this.targetX =
-          this.viewportWidth *
-          .5;
-
-
-        const startY =
-          this.viewportHeight *
-          CONFIG.headerLightStartY;
-
-
-        const restY =
-          this.viewportHeight *
-          CONFIG.mobileBaseY;
-
-
-        this.targetY =
-          startY +
-          (
-            restY -
-            startY
-          ) *
-          this.headerProgress;
-
-
-        this.lightX =
-          this.targetX;
-
-
-        this.lightY =
-          this.targetY;
-
-
-        this.previousX =
-          this.targetX;
-
-
-        this.previousY =
-          this.targetY;
-
-
-        this.mobileOffsetY =
-          0;
-
-
-        this.scrollVelocity =
-          0;
-
-      } else {
-
-        this.previousX =
-          this.targetX;
-
-
-        this.previousY =
-          this.targetY;
-
-
-        this.velocityX =
-          0;
-
-
-        this.velocityY =
-          0;
-
-      }
-
-
-      this.invalidateGeometry();
-
-
-      this.light.style.removeProperty(
-        'display'
-      );
-
-
-      if (
-        this.enabled
-      ) {
-
-        this.light.classList.add(
-          'is-active'
-        );
-
-
-        this.scheduleBatteryEvent();
-
-
-        this.requestFrame();
-
-      }
-
-    }
+   resumeFromTextEntry() {
+   
+     if (
+       !this.inputSuspended
+     ) {
+   
+       return;
+   
+     }
+   
+   
+     this.inputSuspended =
+       false;
+   
+   
+     document.body.classList.remove(
+       'ggg-lighting-input-active'
+     );
+   
+   
+     /*
+        Important for mobile browsers:
+   
+        Measure after the keyboard / input accessory
+        viewport has had time to settle.
+     */
+   
+     this.syncViewportState();
+   
+   
+     this.headerProgress =
+       this.getHeaderProgress();
+   
+   
+     if (
+       this.mobile
+     ) {
+   
+       this.targetX =
+         this.viewportWidth *
+         .5;
+   
+   
+       const startY =
+         this.viewportHeight *
+         CONFIG.headerLightStartY;
+   
+   
+       const restY =
+         this.viewportHeight *
+         CONFIG.mobileBaseY;
+   
+   
+       this.targetY =
+         startY +
+         (
+           restY -
+           startY
+         ) *
+         this.headerProgress;
+   
+   
+       this.lightX =
+         this.targetX;
+   
+   
+       this.lightY =
+         this.targetY;
+   
+   
+       this.previousX =
+         this.targetX;
+   
+   
+       this.previousY =
+         this.targetY;
+   
+   
+       this.mobileOffsetY =
+         0;
+   
+   
+       this.scrollVelocity =
+         0;
+   
+     } else {
+   
+       this.previousX =
+         this.targetX;
+   
+   
+       this.previousY =
+         this.targetY;
+   
+   
+       this.velocityX =
+         0;
+   
+   
+       this.velocityY =
+         0;
+   
+     }
+   
+   
+     this.invalidateGeometry();
+   
+   
+   
+     /* ------------------------------------------------------
+        RESTORE LIGHTING STATE
+   
+        Text-entry suspension must never override the user's
+        lighting preference.
+   
+        If lighting was enabled before text entry, restore it.
+   
+        If lighting is disabled, keep the master lighting layer
+        hidden. Revealing an inactive .ggg-light would expose
+        its intentional solid-black blackout state.
+     ------------------------------------------------------ */
+   
+     if (
+       this.enabled
+     ) {
+   
+       this.light.style.removeProperty(
+         'display'
+       );
+   
+   
+       this.light.classList.add(
+         'is-active'
+       );
+   
+   
+       this.scheduleBatteryEvent();
+   
+   
+       this.requestFrame();
+   
+     } else {
+   
+       this.light.classList.remove(
+         'is-active'
+       );
+   
+   
+       this.light.style.display =
+         'none';
+   
+     }
+   
+   
+     this.updateDocumentState();
+   
+   
+     this.emitState();
+   
+   }
 
 
     /* ======================================================
