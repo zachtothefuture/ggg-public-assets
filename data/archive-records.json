@@ -218,6 +218,84 @@
         "Grandmother",
         "Artist"
       ]
+    },
+    "GGG-PER-2026-0007": {
+      "title": "Francis Kennedy",
+      "type": "Person",
+      "collection": [
+        "Kennedy Family"
+      ],
+      "status": "Under Investigation",
+      "visibility": "public",
+      "accessLevel": "Public",
+      "url": "/archive/ggg-per-2026-0007",
+      "thumbnail": "",
+      "summary": "",
+      "dateAdded": "2026-09-02",
+      "dateUpdated": "2026-09-02",
+      "keywords": [
+        "Grandma",
+        "Grandmother",
+        "Artist"
+      ]
+    },
+    "GGG-PER-2026-0008": {
+      "title": "Esther Tavenner",
+      "type": "Person",
+      "collection": [
+        "Kennedy Family"
+      ],
+      "status": "Under Investigation",
+      "visibility": "public",
+      "accessLevel": "Public",
+      "url": "/archive/ggg-per-2026-0008",
+      "thumbnail": "",
+      "summary": "",
+      "dateAdded": "2026-09-02",
+      "dateUpdated": "2026-09-02",
+      "keywords": [
+        "Grandma",
+        "Grandmother",
+        "Artist"
+      ]
+    },
+    "GGG-PER-2026-0009": {
+      "title": "The Cousins",
+      "type": "Person",
+      "collection": [
+        "Kennedy Family"
+      ],
+      "status": "Under Investigation",
+      "visibility": "public",
+      "accessLevel": "Public",
+      "url": "/archive/ggg-per-2026-0009",
+      "thumbnail": "",
+      "summary": "",
+      "dateAdded": "2026-09-02",
+      "dateUpdated": "2026-09-02",
+      "keywords": [
+        "Family",
+        "Artist"
+      ]
+    },
+    "GGG-PER-2026-0010": {
+      "title": "Redacted",
+      "type": "Person",
+      "collection": [
+        "Kennedy Family"
+      ],
+      "status": "Under Investigation",
+      "visibility": "public",
+      "accessLevel": "Restricted",
+      "url": "/archive/ggg-per-2026-0010",
+      "thumbnail": "",
+      "summary": "",
+      "dateAdded": "2026-09-02",
+      "dateUpdated": "2026-09-02",
+      "keywords": [
+        "Family",
+        "Bleep"
+      ]
     }
   }
 }
