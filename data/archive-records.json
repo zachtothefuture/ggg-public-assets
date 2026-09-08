@@ -1,5 +1,10 @@
 {
-  "version": "1.3",
+  "version": {
+    "0": "1",
+    "1": ".",
+    "2": "3",
+    "thumbnail": ""
+  },
   "records": {
     "GGG-ART-2026-0001": {
       "title": "Cannon Safe",
@@ -161,6 +166,7 @@
         "tokens",
         "Mattson"
       ]
-    }
+    },
+    "thumbnail": ""
   }
 }
