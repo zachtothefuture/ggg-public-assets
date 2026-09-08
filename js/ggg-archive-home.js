@@ -2,7 +2,7 @@
    GGG ARCHIVE HOME — RENDERER
 
    VERSION
-   v2.7 — Multi-Collection Records
+   v2.8 — Stable Search Position
 
    COMPONENTS
    • Featured Investigation
@@ -37,7 +37,8 @@
    • Clear hides Archive Index
    • Search resets picker selections
    • Mobile submit dismisses keyboard
-   • Mobile submit reveals results
+   • Search results do not force-scroll the page
+   • Picker results do not force-scroll the page
 
    DEPENDS ON
    • ggg-archive.js
@@ -64,12 +65,6 @@
 
   const MOBILE_BREAKPOINT =
     700;
-
-  const MOBILE_SEARCH_SCROLL_DELAY =
-    180;
-
-  const PICKER_RESULT_SCROLL_DELAY =
-    120;
 
 
   let attempts =
@@ -1120,10 +1115,12 @@
 
 
   /* ========================================================
-     RESULT REVEAL
+     MOBILE SEARCH COMPLETION
+
+     Dismiss the keyboard without changing page position.
   ======================================================== */
 
-  function scrollToArchiveIndex() {
+  function finishMobileSearch() {
 
     const elements =
       getIndexElements();
@@ -1131,50 +1128,10 @@
 
     if (
       !elements ||
-      !elements.index ||
-      elements.index.hidden
+      !elements.input
     ) {
 
       return;
-
-    }
-
-
-    elements.index.scrollIntoView({
-      behavior:
-        'smooth',
-
-      block:
-        'start'
-    });
-
-  }
-
-
-
-  function revealMobileSearchResults() {
-
-    const elements =
-      getIndexElements();
-
-
-    if (
-      !elements ||
-      !elements.index
-    ) {
-
-      return;
-
-    }
-
-
-    if (
-      elements.input &&
-      typeof elements.input.blur ===
-        'function'
-    ) {
-
-      elements.input.blur();
 
     }
 
@@ -1186,45 +1143,14 @@
     }
 
 
-    window.setTimeout(
-      function () {
+    if (
+      typeof elements.input.blur ===
+        'function'
+    ) {
 
-        if (
-          !elements.index ||
-          elements.index.hidden
-        ) {
+      elements.input.blur();
 
-          return;
-
-        }
-
-
-        elements.index.scrollIntoView({
-          behavior:
-            'smooth',
-
-          block:
-            'start'
-        });
-
-      },
-      MOBILE_SEARCH_SCROLL_DELAY
-    );
-
-  }
-
-
-
-  function revealPickerResults() {
-
-    window.setTimeout(
-      function () {
-
-        scrollToArchiveIndex();
-
-      },
-      PICKER_RESULT_SCROLL_DELAY
-    );
+    }
 
   }
 
@@ -1948,9 +1874,6 @@
 
   /* ========================================================
      APPLY COLLECTION
-
-     A record matches if the selected collection exists
-     anywhere in its collection array.
   ======================================================== */
 
   function applyCollection(collection) {
@@ -2180,9 +2103,6 @@
           false
         );
 
-
-        revealPickerResults();
-
       }
     );
 
@@ -2363,8 +2283,6 @@
 
   /* ========================================================
      SEARCH
-
-     Every collection name participates in discovery.
   ======================================================== */
 
   function initSearch() {
@@ -2493,7 +2411,7 @@
         );
 
 
-        revealMobileSearchResults();
+        finishMobileSearch();
 
       }
     );
