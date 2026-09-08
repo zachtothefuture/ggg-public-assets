@@ -161,6 +161,29 @@
         "tokens",
         "Mattson"
       ]
+    },
+    "GGG-PER-2026-0006": {
+      "title": "Sharon Selig",
+      "type": "Person",
+      "collection": [
+        "Kennedy Family"
+      ],
+      "status": "Under Investigation",
+      "visibility": "public",
+      "accessLevel": "Public",
+      "url": "/archive/ggg-per-2026-0006",
+      "thumbnail": "",
+      "summary": "",
+      "dateAdded": "2026-09-02",
+      "dateUpdated": "2026-09-02",
+      "keywords": [
+        "Sharon",
+        "Mom",
+        "Aunt",
+        "Daughter",
+        "Grandmother",
+        "Artist"
+      ]
     }
   }
 }
