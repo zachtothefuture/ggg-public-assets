@@ -61,6 +61,14 @@
       "target": [
         "GGG-ART-2026-0001"
       ]
+    },
+    {
+      "source": "GGG-POD-2026-0001",
+      "type": "documents",
+      "target": [
+        "GGG-PER-2026-0001",
+        "GGG-ART-2026-0001"
+      ]
     }
   ]
 }

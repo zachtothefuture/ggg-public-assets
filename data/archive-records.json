@@ -1,6 +1,27 @@
 {
   "version": "1.3",
   "records": {
+    "GGG-POD-2026-0001": {
+      "title": "Zach & Kyle Open The Safe",
+      "type": "Podcast",
+      "collection": [
+        "The Guild of Ghostly Grounds Podcast"
+      ],
+      "status": "Active",
+      "visibility": "public",
+      "accessLevel": "Public",
+      "url": "/archive/ggg-pod-2026-0001",
+      "thumbnail": "",
+      "summary": "",
+      "dateAdded": "2026-10-08",
+      "dateUpdated": "2026-10-08",
+      "keywords": [
+        "The Guild of Ghostly Grounds",
+        "podcast",
+        "Episode 101",
+        "Zach & Kyle Open The Safe"
+      ]
+    },
     "GGG-ART-2026-0001": {
       "title": "Cannon Safe",
       "type": "Artifact",
