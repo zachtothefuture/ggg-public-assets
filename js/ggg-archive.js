@@ -856,224 +856,181 @@
      Authored order is preserved.
   ======================================================== */
 
-  function parseArchiveRecordIds(value) {
-
-    return String(
-      value || ''
-    )
-      .split(',')
-      .map(
-        function (recordId) {
-
-          return normalizeId(
-            recordId
-          );
-
-        }
-      )
-      .filter(Boolean);
-
-  }
-
-
-
-  /* ========================================================
-     ARCHIVE RECORD CARDS — CREATE ONE
-
-     Produces the canonical Archive Home record-card markup.
-
-     Card metadata preference:
-
-     1. Collection(s)
-     2. Status fallback
-
-     URLs always come from the canonical record manifest.
-  ======================================================== */
-
-  function createArchiveRecordCard(
-    recordId,
-    record
-  ) {
-
-    const article =
-      document.createElement(
-        'article'
-      );
-
-
-    article.className =
-      'ggg-archive-home-record';
-
-
-    article.setAttribute(
-      'data-record-id',
-      recordId
-    );
-
-
-
-    /* ------------------------------------------------------
-       TYPE
-    ------------------------------------------------------ */
-
-    const type =
-      document.createElement(
-        'div'
-      );
-
-
-    type.className =
-      'ggg-archive-home-record__type';
-
-
-    type.setAttribute(
-      'data-ggg-material',
-      'print'
-    );
-
-
-    type.textContent =
-      String(
-        record.type ||
-        'Record'
-      ).toUpperCase();
-
-
-    article.appendChild(
-      type
-    );
-
-
-
-    /* ------------------------------------------------------
-       TITLE
-    ------------------------------------------------------ */
-
-    const title =
-      document.createElement(
-        'h3'
-      );
-
-
-    title.className =
-      'ggg-archive-home-record__title';
-
-
-    title.setAttribute(
-      'data-ggg-material',
-      'print'
-    );
-
-
-    title.textContent =
-      record.title ||
-      'Untitled Record';
-
-
-    article.appendChild(
-      title
-    );
-
-
-
-    /* ------------------------------------------------------
-       META
-    ------------------------------------------------------ */
-
-    const collections =
-      getRecordCollections(
-        record
-      );
-
-
-    const metaText =
-      collections.length
-        ? collections.join(
-            ' · '
-          )
-        : String(
-            record.status || ''
-          ).trim();
-
-
-    if (metaText) {
-
-      const meta =
-        document.createElement(
-          'div'
-        );
-
-
-      meta.className =
-        'ggg-archive-home-record__meta';
-
-
-      meta.setAttribute(
-        'data-ggg-material',
-        'ink'
-      );
-
-
-      meta.textContent =
-        metaText;
-
-
-      article.appendChild(
-        meta
-      );
-
-    }
-
-
-
-    /* ------------------------------------------------------
-       LINK
-    ------------------------------------------------------ */
-
-    const link =
-      document.createElement(
-        'a'
-      );
-
-
-    link.className =
-      'ggg-archive-home-record__link';
-
-
-    link.href =
-      record.url;
-
-
-    link.setAttribute(
-      'data-ggg-material',
-      'glass'
-    );
-
-
-    link.setAttribute(
-      'aria-label',
-      `Open Archive record: ${
-        record.title ||
-        recordId
-      }`
-    );
-
-
-    link.textContent =
-      'Open Record';
-
-
-    article.appendChild(
-      link
-    );
-
-
-    return article;
-
-  }
-
-
-
+     function parseArchiveRecordIds(value) {
+   
+       return String(
+         value || ''
+       )
+         .split(',')
+         .map(
+           function (recordId) {
+   
+             return normalizeId(
+               recordId
+             );
+   
+           }
+         )
+         .filter(Boolean);
+   
+     }
+   
+   
+   
+     function createArchiveRecordCard(
+     recordId,
+     record
+   ) {
+   
+     const link =
+       document.createElement(
+         'a'
+       );
+   
+   
+     link.className =
+       'ggg-archive-home-record';
+   
+   
+     link.dataset.recordId =
+       recordId;
+   
+   
+     link.href =
+       record.url ||
+       '#';
+   
+   
+   
+     /* ------------------------------------------------------
+        TYPE
+     ------------------------------------------------------ */
+   
+     const type =
+       document.createElement(
+         'span'
+       );
+   
+   
+     type.className =
+       'ggg-archive-home-record__type';
+   
+   
+     type.setAttribute(
+       'data-ggg-material',
+       'print'
+     );
+   
+   
+     type.textContent =
+       (
+         record.type ||
+         'Record'
+       ).toUpperCase();
+   
+   
+   
+     /* ------------------------------------------------------
+        RECORD ID
+     ------------------------------------------------------ */
+   
+     const id =
+       document.createElement(
+         'span'
+       );
+   
+   
+     id.className =
+       'ggg-archive-home-record__id';
+   
+   
+     id.setAttribute(
+       'data-ggg-material',
+       'print'
+     );
+   
+   
+     id.textContent =
+       recordId;
+   
+   
+   
+     /* ------------------------------------------------------
+        TITLE
+     ------------------------------------------------------ */
+   
+     const title =
+       document.createElement(
+         'span'
+       );
+   
+   
+     title.className =
+       'ggg-archive-home-record__title';
+   
+   
+     title.setAttribute(
+       'data-ggg-material',
+       'ink'
+     );
+   
+   
+     title.textContent =
+       record.title ||
+       recordId;
+   
+   
+   
+     /* ------------------------------------------------------
+        ARROW
+     ------------------------------------------------------ */
+   
+     const arrow =
+       document.createElement(
+         'span'
+       );
+   
+   
+     arrow.className =
+       'ggg-archive-home-record__arrow';
+   
+   
+     arrow.textContent =
+       '→';
+   
+   
+     arrow.setAttribute(
+       'aria-hidden',
+       'true'
+     );
+   
+   
+   
+     /* ------------------------------------------------------
+        ACCESSIBILITY
+     ------------------------------------------------------ */
+   
+     link.setAttribute(
+       'aria-label',
+       `Open Archive record: ${
+         record.title ||
+         recordId
+       }`
+     );
+   
+   
+   
+     link.append(
+       type,
+       id,
+       title,
+       arrow
+     );
+   
+   
+     return link;
+   
+   }
   /* ========================================================
      ARCHIVE RECORD CARDS — HYDRATE ONE GROUP
 
