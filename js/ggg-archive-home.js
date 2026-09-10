@@ -346,85 +346,170 @@
 
 
 
-  function createRecordCard(
-    recordId,
-    record
-  ) {
+  /* ========================================================
+   ARCHIVE RECORD CARDS — CREATE ONE
+
+   Produces the canonical Archive record-row markup shared
+   with Archive Home Latest Records.
+
+   Structure:
+
+   TYPE | RECORD ID | TITLE | →
+======================================================== */
+
+   function createArchiveRecordCard(
+     recordId,
+     record
+   ) {
    
-    const link =
-     createElement(
-        'a',
-        'ggg-archive-home-record'
-    );
+     const link =
+       document.createElement(
+         'a'
+       );
    
-    link.dataset.recordId =
+   
+     link.className =
+       'ggg-archive-home-record';
+   
+   
+     link.dataset.recordId =
        recordId;
    
-    link.href =
-       record.url ||
-       '#';
    
-    const type =
-      createElement(
-       'span',
-       'ggg-archive-home-record__type',
+     link.href =
+       record.url;
+   
+   
+   
+     /* ------------------------------------------------------
+        TYPE
+     ------------------------------------------------------ */
+   
+     const type =
+       document.createElement(
+         'span'
+       );
+   
+   
+     type.className =
+       'ggg-archive-home-record__type';
+   
+   
+     type.setAttribute(
+       'data-ggg-material',
        'print'
-      );
+     );
    
    
-    type.textContent =
-      (
-        record.type ||
-        'Record'
-      ).toUpperCase();
+     type.textContent =
+       (
+         record.type ||
+         'Record'
+       ).toUpperCase();
    
-    const id =
-      createElement(
-        'span',
-        'ggg-archive-home-record__id',
-        'print'
-      );
    
-    id.textContent =
-      recordId;
    
-    const title =
-      createElement(
-        'span',
-        'ggg-archive-home-record__title',
-        'ink'
-      );
+     /* ------------------------------------------------------
+        RECORD ID
+     ------------------------------------------------------ */
    
-    title.textContent =
-      record.title ||
-      recordId;
+     const id =
+       document.createElement(
+         'span'
+       );
    
-    const arrow =
-      createElement(
-        'span',
-        'ggg-archive-home-record__arrow'
-      );
    
-    arrow.textContent =
-      '→';
+     id.className =
+       'ggg-archive-home-record__id';
    
-    arrow.setAttribute(
-      'aria-hidden',
-      'true'
-    );
    
-    link.append(
-      type,
-      id,
-      title,
-      arrow
-    );
+     id.setAttribute(
+       'data-ggg-material',
+       'print'
+     );
    
-    return link;
    
-  }
-
-
+     id.textContent =
+       recordId;
+   
+   
+   
+     /* ------------------------------------------------------
+        TITLE
+     ------------------------------------------------------ */
+   
+     const title =
+       document.createElement(
+         'span'
+       );
+   
+   
+     title.className =
+       'ggg-archive-home-record__title';
+   
+   
+     title.setAttribute(
+       'data-ggg-material',
+       'ink'
+     );
+   
+   
+     title.textContent =
+       record.title ||
+       recordId;
+   
+   
+   
+     /* ------------------------------------------------------
+        ARROW
+     ------------------------------------------------------ */
+   
+     const arrow =
+       document.createElement(
+         'span'
+       );
+   
+   
+     arrow.className =
+       'ggg-archive-home-record__arrow';
+   
+   
+     arrow.textContent =
+       '→';
+   
+   
+     arrow.setAttribute(
+       'aria-hidden',
+       'true'
+     );
+   
+   
+   
+     /* ------------------------------------------------------
+        ACCESSIBILITY
+     ------------------------------------------------------ */
+   
+     link.setAttribute(
+       'aria-label',
+       `Open Archive record: ${
+         record.title ||
+         recordId
+       }`
+     );
+   
+   
+   
+     link.append(
+       type,
+       id,
+       title,
+       arrow
+     );
+   
+   
+     return link;
+   
+   }
   /* ========================================================
      VISUAL VIEWPORT
   ======================================================== */
