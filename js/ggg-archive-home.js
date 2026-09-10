@@ -128,6 +128,9 @@
 
     'Audio Recording':
       'Audio',
+    
+    'Podcast':
+      'Podcasts',
 
     'Film/Video':
       'Film & Video',
@@ -3201,6 +3204,7 @@
       [
         'Document',
         'Audio Recording',
+        'Podcast',
         'Film/Video'
       ];
 
@@ -3280,7 +3284,7 @@
             ).length,
 
           description:
-            'Documents · Audio · Film'
+            'Documents · Audio · Podcasts · Film'
         },
 
         {
