@@ -2776,7 +2776,7 @@
       function (item) {
 
         grid.appendChild(
-          createRecordCard(
+          createArchiveRecordCard(
             item.id,
             item.record
           )
