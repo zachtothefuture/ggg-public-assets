@@ -41,11 +41,11 @@
    • Recovered / Primary Location
    • Current Location
 
-   Record Card automation:
+   Record Row automation:
    • Record IDs    ← data-ggg-archive-records
    • Record Type   ← archive-records.json
+   • Record ID     ← canonical ID
    • Title         ← archive-records.json
-   • Metadata      ← collection, then status fallback
    • URL           ← archive-records.json
    • Count         ← successfully resolved public records
 
