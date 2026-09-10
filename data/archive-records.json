@@ -188,7 +188,6 @@
         "Episode 101",
         "Episode 102",
         "J.H. Mattson",
-        "J.H. Mattson",
         "coin box",
         "coins",
         "tokens",
@@ -295,6 +294,163 @@
       "keywords": [
         "Family",
         "Bleep"
+      ]
+    },
+    "GGG-PER-2026-0011": {
+      "title": "Camacho",
+      "type": "Person",
+      "collection": [],
+      "status": "Investigation Closed",
+      "visibility": "public",
+      "accessLevel": "Public",
+      "url": "/archive/ggg-per-2026-0011",
+      "thumbnail": "",
+      "summary": "",
+      "dateAdded": "2026-09-02",
+      "dateUpdated": "2026-09-02",
+      "keywords": [
+        "Contractor",
+        "Camacho"
+      ]
+    },
+    "GGG-PER-2026-0012": {
+      "title": "Michelle Veintimilla",
+      "type": "Person",
+      "collection": [],
+      "status": "Investigation Closed",
+      "visibility": "public",
+      "accessLevel": "Public",
+      "url": "/archive/ggg-per-2026-0012",
+      "thumbnail": "",
+      "summary": "",
+      "dateAdded": "2026-09-02",
+      "dateUpdated": "2026-09-02",
+      "keywords": [
+        "Actor"
+      ]
+    },
+    "GGG-PER-2026-0013": {
+      "title": "“Dave” from OfferUp",
+      "type": "Person",
+      "collection": [],
+      "status": "Investigation Closed",
+      "visibility": "public",
+      "accessLevel": "Public",
+      "url": "/archive/ggg-per-2026-0013",
+      "thumbnail": "",
+      "summary": "",
+      "dateAdded": "2026-09-02",
+      "dateUpdated": "2026-09-02",
+      "keywords": [
+        "OfferUp"
+      ]
+    },
+    "GGG-PER-2026-0014": {
+      "title": "Matt the Locksmith",
+      "type": "Person",
+      "collection": [],
+      "status": "Investigation Closed",
+      "visibility": "public",
+      "accessLevel": "Public",
+      "url": "/archive/ggg-per-2026-0014",
+      "thumbnail": "",
+      "summary": "",
+      "dateAdded": "2026-09-02",
+      "dateUpdated": "2026-09-02",
+      "keywords": [
+        "Locksmith"
+      ]
+    },
+    "GGG-PER-2026-0015": {
+      "title": "Matt the Neighbor",
+      "type": "Person",
+      "collection": [],
+      "status": "Investigation Closed",
+      "visibility": "public",
+      "accessLevel": "Public",
+      "url": "/archive/ggg-per-2026-0015",
+      "thumbnail": "",
+      "summary": "",
+      "dateAdded": "2026-09-02",
+      "dateUpdated": "2026-09-02",
+      "keywords": [
+        "Neighbor"
+      ]
+    },
+    "GGG-PER-2026-0016": {
+      "title": "Ashlee Simpson",
+      "type": "Person",
+      "collection": [],
+      "status": "Investigation Closed",
+      "visibility": "public",
+      "accessLevel": "Public",
+      "url": "/archive/ggg-per-2026-0016",
+      "thumbnail": "",
+      "summary": "",
+      "dateAdded": "2026-09-02",
+      "dateUpdated": "2026-09-02",
+      "keywords": [
+        "Ashlee Simpson",
+        "Pop Star"
+      ]
+    },
+    "GGG-PER-2026-0017": {
+      "title": "Chris Lane",
+      "type": "Person",
+      "collection": [],
+      "status": "Under Investigation",
+      "visibility": "public",
+      "accessLevel": "Public",
+      "url": "/archive/ggg-per-2026-0017",
+      "thumbnail": "",
+      "summary": "",
+      "dateAdded": "2026-09-02",
+      "dateUpdated": "2026-09-02",
+      "keywords": [
+        "Chris Lane",
+        "Fast Lane",
+        "Composer"
+      ]
+    },
+    "GGG-PER-2026-0018": {
+      "title": "Chris Jones",
+      "type": "Person",
+      "collection": [],
+      "status": "Under Investigation",
+      "visibility": "public",
+      "accessLevel": "Public",
+      "url": "/archive/ggg-per-2026-0018",
+      "thumbnail": "",
+      "summary": "",
+      "dateAdded": "2026-09-02",
+      "dateUpdated": "2026-09-02",
+      "keywords": [
+        "Chris Jones",
+        "Attorney"
+      ]
+    },
+    "GGG-PER-2026-0019": {
+      "title": "Linda Kennedy",
+      "type": "Person",
+      "collection": [
+        "Kennedy Family"
+      ],
+      "status": "Under Investigation",
+      "visibility": "public",
+      "accessLevel": "Public",
+      "url": "/archive/ggg-per-2026-0019",
+      "thumbnail": "",
+      "summary": "",
+      "dateAdded": "2026-09-02",
+      "dateUpdated": "2026-09-02",
+      "keywords": [
+        "Episode 101",
+        "Linda",
+        "Mom",
+        "Aunt",
+        "Daughter",
+        "Grandmother",
+        "Witch"
       ]
     }
   }
