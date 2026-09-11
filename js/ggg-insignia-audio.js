@@ -108,15 +108,15 @@
           !Number.isFinite(audio.duration) ||
           audio.duration <= 0
         ) {
-
-          progress.style.strokeDashoffset =
-            '100';
-
+      
+          progress.style.strokeDasharray =
+            '0 100';
+      
           return;
-
+      
         }
-
-
+      
+      
         const ratio =
           Math.min(
             Math.max(
@@ -126,17 +126,22 @@
             ),
             1
           );
-
-
-        const offset =
-          100 - (ratio * 100);
-
-
-        progress.style.strokeDashoffset =
-          String(offset);
-
+      
+      
+        const elapsed =
+          ratio * 100;
+      
+      
+        const remaining =
+          100 - elapsed;
+      
+      
+        progress.style.strokeDasharray =
+          elapsed +
+          ' ' +
+          remaining;
+      
       }
-
 
       /* ====================================================
          PLAY / PAUSE
