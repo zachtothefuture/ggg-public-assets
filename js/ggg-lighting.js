@@ -2580,164 +2580,329 @@
 
 
     /* ======================================================
-       HIDDEN LIGHT REVEALS
-    ====================================================== */
+   HIDDEN LIGHT REVEALS
+====================================================== */
 
-    prepareLightReveals() {
-
-      document
-        .querySelectorAll(
-          '.ggg-light-reveal--characters'
-        )
-        .forEach(
-          element => {
-
-            const text =
-              element.textContent
-                .trim();
-
-
-            if (
-              !text
-            ) {
-
-              return;
-
-            }
-
-
-            element.setAttribute(
-              'aria-label',
-              text
-            );
-
-
-            element.textContent =
-              '';
-
-
-            const characters =
-              [];
-
-
-            Array.from(
-              text
-            ).forEach(
-              character => {
-
-                if (
-                  character === ' '
-                ) {
-
-                  const space =
-                    document.createElement(
-                      'span'
-                    );
-
-
-                  space.className =
-                    'ggg-light-reveal__space';
-
-
-                  space.setAttribute(
-                    'aria-hidden',
-                    'true'
-                  );
-
-
-                  space.textContent =
-                    ' ';
-
-
-                  element.appendChild(
-                    space
-                  );
-
-
-                  return;
-
-                }
-
-
-                const span =
-                  document.createElement(
-                    'span'
-                  );
-
-
-                span.className =
-                  'ggg-light-reveal__char';
-
-
-                span.setAttribute(
-                  'aria-hidden',
-                  'true'
-                );
-
-
-                span.textContent =
-                  character;
-
-
-                element.appendChild(
-                  span
-                );
-
-
-                characters.push({
-
-                  element:
-                    span,
-
-                  revealDelay:
-                    Math.random() *
-                    CONFIG.revealDuration,
-
-                  hideDelay:
-                    Math.random() *
-                    CONFIG.revealHideDuration,
-
-                  visible:
-                    false
-
-                });
-
-              }
-            );
-
-
-            const material =
-              this.materialMap.get(
-                element
-              ) ||
-              null;
-
-
-            this.lightReveals.push({
-
-              element,
-
-              material,
-
-              characters,
-
-              state:
-                'waiting',
-
-              armed:
-                true,
-
-              phaseStart:
-                0
-
-            });
-
-          }
-        );
-
-    }
-
-
+   prepareLightReveals() {
+   
+     document
+       .querySelectorAll(
+         '.ggg-light-reveal--characters'
+       )
+       .forEach(
+         element => {
+   
+           const accessibleText =
+             String(
+               element.innerText ||
+               element.textContent ||
+               ''
+             )
+               .replace(/[ \t]+/g, ' ')
+               .replace(/\n\s*\n/g, '\n')
+               .trim();
+   
+   
+           if (
+             !accessibleText
+           ) {
+   
+             return;
+   
+           }
+   
+   
+           element.setAttribute(
+             'aria-label',
+             accessibleText
+           );
+   
+   
+           /*
+             Preserve the authored DOM before rebuilding it.
+   
+             This allows structural elements such as:
+   
+             • line spans
+             • <br>
+             • emphasis spans
+             • other inline wrappers
+   
+             to survive character preparation.
+           */
+   
+           const sourceNodes =
+             Array.from(
+               element.childNodes
+             );
+   
+   
+           element.textContent =
+             '';
+   
+   
+           const characters =
+             [];
+   
+   
+           /* ==================================================
+              CREATE ONE CHARACTER
+           ================================================== */
+   
+           const createCharacter = (
+             character,
+             parent
+           ) => {
+   
+             if (
+               character === ' '
+             ) {
+   
+               const space =
+                 document.createElement(
+                   'span'
+                 );
+   
+   
+               space.className =
+                 'ggg-light-reveal__space';
+   
+   
+               space.setAttribute(
+                 'aria-hidden',
+                 'true'
+               );
+   
+   
+               space.textContent =
+                 ' ';
+   
+   
+               parent.appendChild(
+                 space
+               );
+   
+   
+               return;
+   
+             }
+   
+   
+             const span =
+               document.createElement(
+                 'span'
+               );
+   
+   
+             span.className =
+               'ggg-light-reveal__char';
+   
+   
+             span.setAttribute(
+               'aria-hidden',
+               'true'
+             );
+   
+   
+             span.textContent =
+               character;
+   
+   
+             parent.appendChild(
+               span
+             );
+   
+   
+             characters.push({
+   
+               element:
+                 span,
+   
+               revealDelay:
+                 Math.random() *
+                 CONFIG.revealDuration,
+   
+               hideDelay:
+                 Math.random() *
+                 CONFIG.revealHideDuration,
+   
+               visible:
+                 false
+   
+             });
+   
+           };
+   
+   
+           /* ==================================================
+              REBUILD AUTHORED STRUCTURE
+           ================================================== */
+   
+           const rebuildNode = (
+             node,
+             parent
+           ) => {
+   
+             /*
+               TEXT NODE
+   
+               Collapse formatting whitespace introduced by
+               indented HTML, but preserve intentional spaces
+               between words.
+             */
+   
+             if (
+               node.nodeType ===
+               Node.TEXT_NODE
+             ) {
+   
+               const text =
+                 String(
+                   node.textContent ||
+                   ''
+                 )
+                   .replace(/\s+/g, ' ')
+                   .trim();
+   
+   
+               if (
+                 !text
+               ) {
+   
+                 return;
+   
+               }
+   
+   
+               Array.from(
+                 text
+               ).forEach(
+                 character => {
+   
+                   createCharacter(
+                     character,
+                     parent
+                   );
+   
+                 }
+               );
+   
+   
+               return;
+   
+             }
+   
+   
+             /*
+               ELEMENT NODE
+             */
+   
+             if (
+               node.nodeType !==
+               Node.ELEMENT_NODE
+             ) {
+   
+               return;
+   
+             }
+   
+   
+             /*
+               Preserve authored line breaks.
+             */
+   
+             if (
+               node.tagName ===
+               'BR'
+             ) {
+   
+               parent.appendChild(
+                 document.createElement(
+                   'br'
+                 )
+               );
+   
+   
+               return;
+   
+             }
+   
+   
+             /*
+               Clone the authored wrapper itself, but not its
+               children. Children are rebuilt recursively so
+               their characters still participate in reveal.
+             */
+   
+             const clone =
+               node.cloneNode(
+                 false
+               );
+   
+   
+             parent.appendChild(
+               clone
+             );
+   
+   
+             Array.from(
+               node.childNodes
+             ).forEach(
+               child => {
+   
+                 rebuildNode(
+                   child,
+                   clone
+                 );
+   
+               }
+             );
+   
+           };
+   
+   
+           sourceNodes.forEach(
+             node => {
+   
+               rebuildNode(
+                 node,
+                 element
+               );
+   
+             }
+           );
+   
+   
+           const material =
+             this.materialMap.get(
+               element
+             ) ||
+             null;
+   
+   
+           this.lightReveals.push({
+   
+             element,
+   
+             material,
+   
+             characters,
+   
+             state:
+               'waiting',
+   
+             armed:
+               true,
+   
+             phaseStart:
+               0
+   
+           });
+   
+         }
+       );
+   
+   }
     /* ======================================================
        LIGHT REVEAL STATE
     ====================================================== */
