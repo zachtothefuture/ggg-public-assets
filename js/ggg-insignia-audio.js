@@ -3,7 +3,7 @@
    COMPONENT — INSIGNIA AUDIO PLAYER
 
    VERSION
-   v2.4 — Visibility-Safe Disturbances
+   v2.5 — Responsive Disturbance Scaling
 
    PURPOSE
    Turns the Guild insignia into a discreet audio control.
@@ -64,6 +64,14 @@
    • no disturbance timers accumulate in the background
    • returning to the page resumes behavior cleanly
    • active visual contamination is cleared while hidden
+
+   RESPONSIVE DISTURBANCE SCALING
+   • rendered pin width determines spatial effect strength
+   • desktop / large pin = full displacement
+   • smaller pin = proportionally reduced displacement
+   • minimum spatial scale prevents effects becoming too weak
+   • timing, opacity and event probability are unchanged
+   • final image pixel dimensions do not affect this system
 
    MICRO-MOVEMENT
    • no repeating CSS animation
@@ -199,6 +207,37 @@
 
         player.dataset.gggAudioReady =
           'true';
+
+
+        /* ====================================================
+           CONFIG — RESPONSIVE SPATIAL SCALING
+
+           The existing effect values are tuned for a rendered
+           pin approximately 420px wide.
+
+           Smaller rendered pins progressively reduce only
+           spatial displacement.
+
+           At 420px and above:
+           • scale = 1.00
+
+           At smaller sizes:
+           • scale decreases proportionally
+           • scale never drops below 0.70
+        ==================================================== */
+
+        const responsiveConfig = {
+
+          referenceWidth:
+            420,
+
+          minScale:
+            0.70,
+
+          maxScale:
+            1
+
+        };
 
 
         /* ====================================================
@@ -521,6 +560,17 @@
           document.hidden;
 
 
+        /*
+          Current responsive multiplier for spatial effects.
+
+          This is derived from the rendered pin width, not the
+          underlying PNG dimensions.
+        */
+
+        let spatialScale =
+          1;
+
+
         /* ====================================================
            GENERAL HELPERS
         ==================================================== */
@@ -581,6 +631,120 @@
           );
 
         }
+
+
+        /* ====================================================
+           RESPONSIVE SPATIAL SCALING
+        ==================================================== */
+
+        function clamp(
+          value,
+          min,
+          max
+        ) {
+
+          return Math.min(
+            Math.max(
+              value,
+              min
+            ),
+            max
+          );
+
+        }
+
+
+        function updateSpatialScale() {
+
+          const rect =
+            pin.getBoundingClientRect();
+
+
+          const renderedWidth =
+            rect.width;
+
+
+          if (
+            !Number.isFinite(
+              renderedWidth
+            ) ||
+            renderedWidth <= 0
+          ) {
+
+            spatialScale =
+              responsiveConfig.maxScale;
+
+            return;
+
+          }
+
+
+          const proportionalScale =
+            renderedWidth /
+            responsiveConfig.referenceWidth;
+
+
+          spatialScale =
+            clamp(
+              proportionalScale,
+              responsiveConfig.minScale,
+              responsiveConfig.maxScale
+            );
+
+        }
+
+
+        function scaleSpatialValue(
+          value
+        ) {
+
+          return (
+            value *
+            spatialScale
+          );
+
+        }
+
+
+        /*
+          ResizeObserver keeps the responsive multiplier in
+          sync with Squarespace layout changes, responsive
+          breakpoints, orientation changes and live resizing.
+
+          A window resize fallback is included for environments
+          where ResizeObserver is unavailable.
+        */
+
+        if (
+          typeof ResizeObserver ===
+          'function'
+        ) {
+
+          const resizeObserver =
+            new ResizeObserver(
+              function () {
+
+                updateSpatialScale();
+
+              }
+            );
+
+
+          resizeObserver.observe(
+            pin
+          );
+
+        } else {
+
+          window.addEventListener(
+            'resize',
+            updateSpatialScale
+          );
+
+        }
+
+
+        updateSpatialScale();
 
 
         /* ====================================================
@@ -778,17 +942,29 @@
 
           if (!remainStill) {
 
+            const maxX =
+              scaleSpatialValue(
+                movementConfig.maxX
+              );
+
+
+            const maxY =
+              scaleSpatialValue(
+                movementConfig.maxY
+              );
+
+
             const x =
               randomBetween(
-                -movementConfig.maxX,
-                movementConfig.maxX
+                -maxX,
+                maxX
               );
 
 
             const y =
               randomBetween(
-                -movementConfig.maxY,
-                movementConfig.maxY
+                -maxY,
+                maxY
               );
 
 
@@ -1009,18 +1185,30 @@
             );
 
 
+          const minDisplacement =
+            scaleSpatialValue(
+              signalConfig.minDisplacement
+            );
+
+
+          const maxDisplacement =
+            scaleSpatialValue(
+              signalConfig.maxDisplacement
+            );
+
+
           const displacement1 =
             randomBetween(
-              signalConfig.minDisplacement,
-              signalConfig.maxDisplacement
+              minDisplacement,
+              maxDisplacement
             ) *
             randomSign();
 
 
           const displacement2 =
             randomBetween(
-              signalConfig.minDisplacement,
-              signalConfig.maxDisplacement
+              minDisplacement,
+              maxDisplacement
             ) *
             randomSign();
 
@@ -1116,25 +1304,48 @@
 
         function randomizeEcho() {
 
+          const minX =
+            scaleSpatialValue(
+              echoConfig.minX
+            );
+
+
+          const maxX =
+            scaleSpatialValue(
+              echoConfig.maxX
+            );
+
+
+          const maxY =
+            scaleSpatialValue(
+              echoConfig.maxY
+            );
+
+
           const x1 =
             randomBetween(
-              echoConfig.minX,
-              echoConfig.maxX
+              minX,
+              maxX
             ) *
             randomSign();
 
 
           const y1 =
             randomBetween(
-              -echoConfig.maxY,
-              echoConfig.maxY
+              -maxY,
+              maxY
             );
 
 
+          /*
+            The second registration copy usually falls on the
+            opposite side of the original image.
+          */
+
           const x2 =
             randomBetween(
-              echoConfig.minX * 0.5,
-              echoConfig.maxX * 0.7
+              minX * 0.5,
+              maxX * 0.7
             ) *
             (
               x1 > 0
@@ -1145,8 +1356,8 @@
 
           const y2 =
             randomBetween(
-              -echoConfig.maxY,
-              echoConfig.maxY
+              -maxY,
+              maxY
             );
 
 
@@ -1559,12 +1770,12 @@
 
         function getProgressionWeights() {
 
-          const progress =
+          const progressRatio =
             getPlaybackProgress();
 
 
           if (
-            progress <
+            progressRatio <
             progressionConfig.earlyEnd
           ) {
 
@@ -1574,7 +1785,7 @@
 
 
           if (
-            progress <
+            progressRatio <
             progressionConfig.middleEnd
           ) {
 
@@ -1779,6 +1990,14 @@
             disturbanceConfig.eventChance;
 
 
+          /*
+            Intentional silence.
+
+            lastDisturbanceProfile remains untouched, so the
+            next actual event still remembers the previous
+            visible disturbance.
+          */
+
           if (!shouldTrigger) {
 
             scheduleNextDisturbance(
@@ -1955,6 +2174,9 @@
             false;
 
 
+          updateSpatialScale();
+
+
           if (
             audio.paused ||
             audio.ended ||
@@ -2090,6 +2312,9 @@
             );
 
 
+            updateSpatialScale();
+
+
             if (
               !document.hidden
             ) {
@@ -2156,6 +2381,13 @@
             stopDisturbances();
 
 
+            /*
+              Playback has completed.
+
+              Clear disturbance memory so replay begins with a
+              fresh behavioral history.
+            */
+
             lastDisturbanceProfile =
               null;
 
@@ -2193,6 +2425,9 @@
         /* ====================================================
            INITIAL STATE
         ==================================================== */
+
+        updateSpatialScale();
+
 
         setPlayingState(
           false
