@@ -3,7 +3,7 @@
    COMPONENT — INSIGNIA AUDIO PLAYER
 
    VERSION
-   v1.9 — Countdown Ring + Signal Contamination + Analog Noise
+   v2.0 — Countdown Ring + Signal + Echo + Analog Noise
 
    PURPOSE
    Turns the Guild insignia into a discreet audio control.
@@ -16,10 +16,10 @@
    • end depletes ring completely, then hides it
    • while audio is playing, the pin may subtly drift,
      rotate, and scale at irregular intervals
-   • occasional brief signal contamination creates displaced
-     horizontal fragments of the pin
-   • some contamination events include brief monochrome
-     analog static inside the pin silhouette
+   • occasional contamination may create:
+       - displaced horizontal pin fragments
+       - faint analog registration echoes
+       - brief monochrome static inside the pin silhouette
 
    MICRO-MOVEMENT
    • no repeating CSS animation
@@ -34,15 +34,27 @@
    • some intervals intentionally contain no event
    • each event generates new slice positions
    • each event generates new horizontal displacement
-   • events last only a fraction of a second
+
+   ANALOG ECHO
+   • echo may occur independently or with signal contamination
+   • two faint pin duplicates are displaced independently
+   • echo duration is brief and irregular
+   • no RGB separation
+   • no glow
+   • no looping animation
 
    ANALOG NOISE
    • noise is rendered into a low-resolution canvas
-   • noise appears only during some signal events
+   • noise appears only during some contamination events
    • each frame contains fresh monochrome noise
-   • frame rate is intentionally restrained
    • CSS masks the canvas to the pin silhouette
-   • pause / end immediately clears all contamination
+
+   CLEANUP
+   • pause / end immediately clears:
+       - movement
+       - signal slices
+       - echo
+       - analog noise
 ========================================================== */
 
 (function () {
@@ -108,6 +120,12 @@
           );
 
 
+        const echo =
+          player.querySelector(
+            '.ggg-insignia-audio__echo'
+          );
+
+
         const noise =
           player.querySelector(
             '.ggg-insignia-audio__noise'
@@ -120,6 +138,7 @@
           !progress ||
           !pin ||
           !signal ||
+          !echo ||
           !noise
         ) {
 
@@ -253,6 +272,48 @@
 
 
         /* ====================================================
+           CONFIG — ANALOG ECHO
+        ==================================================== */
+
+        const echoConfig = {
+
+          independentChance:
+            0.30,
+
+          signalCompanionChance:
+            0.46,
+
+          minDuration:
+            70,
+
+          maxDuration:
+            160,
+
+          minX:
+            1.5,
+
+          maxX:
+            4,
+
+          maxY:
+            1.25,
+
+          minOpacity1:
+            0.16,
+
+          maxOpacity1:
+            0.30,
+
+          minOpacity2:
+            0.07,
+
+          maxOpacity2:
+            0.16
+
+        };
+
+
+        /* ====================================================
            CONFIG — ANALOG NOISE
         ==================================================== */
 
@@ -313,6 +374,10 @@
 
         let signalActive =
           false;
+
+
+        let echoEndTimer =
+          null;
 
 
         let noiseEndTimer =
@@ -713,6 +778,166 @@
 
 
         /* ====================================================
+           ANALOG ECHO
+        ==================================================== */
+
+        function randomizeEcho() {
+
+          const x1 =
+            randomBetween(
+              echoConfig.minX,
+              echoConfig.maxX
+            ) *
+            randomSign();
+
+
+          const y1 =
+            randomBetween(
+              -echoConfig.maxY,
+              echoConfig.maxY
+            );
+
+
+          /*
+            The second copy usually falls on the opposite side
+            of the original image.
+
+            This creates a registration error rather than a
+            simple shadow.
+          */
+
+          const x2 =
+            randomBetween(
+              echoConfig.minX * 0.5,
+              echoConfig.maxX * 0.7
+            ) *
+            (
+              x1 > 0
+                ? -1
+                : 1
+            );
+
+
+          const y2 =
+            randomBetween(
+              -echoConfig.maxY,
+              echoConfig.maxY
+            );
+
+
+          const opacity1 =
+            randomBetween(
+              echoConfig.minOpacity1,
+              echoConfig.maxOpacity1
+            );
+
+
+          const opacity2 =
+            randomBetween(
+              echoConfig.minOpacity2,
+              echoConfig.maxOpacity2
+            );
+
+
+          echo.style.setProperty(
+            '--ggg-echo-1-x',
+            x1.toFixed(2) +
+            'px'
+          );
+
+
+          echo.style.setProperty(
+            '--ggg-echo-1-y',
+            y1.toFixed(2) +
+            'px'
+          );
+
+
+          echo.style.setProperty(
+            '--ggg-echo-1-opacity',
+            opacity1.toFixed(2)
+          );
+
+
+          echo.style.setProperty(
+            '--ggg-echo-2-x',
+            x2.toFixed(2) +
+            'px'
+          );
+
+
+          echo.style.setProperty(
+            '--ggg-echo-2-y',
+            y2.toFixed(2) +
+            'px'
+          );
+
+
+          echo.style.setProperty(
+            '--ggg-echo-2-opacity',
+            opacity2.toFixed(2)
+          );
+
+        }
+
+
+        function clearEchoEvent() {
+
+          window.clearTimeout(
+            echoEndTimer
+          );
+
+
+          echoEndTimer =
+            null;
+
+
+          player.classList.remove(
+            'is-echo-contaminated'
+          );
+
+        }
+
+
+        function triggerEchoEvent() {
+
+          if (
+            prefersReducedMotion() ||
+            audio.paused ||
+            audio.ended
+          ) {
+            return;
+          }
+
+
+          clearEchoEvent();
+
+
+          randomizeEcho();
+
+
+          player.classList.add(
+            'is-echo-contaminated'
+          );
+
+
+          const duration =
+            randomBetween(
+              echoConfig.minDuration,
+              echoConfig.maxDuration
+            );
+
+
+          echoEndTimer =
+            window.setTimeout(
+              clearEchoEvent,
+              duration
+            );
+
+        }
+
+
+        /* ====================================================
            ANALOG NOISE
         ==================================================== */
 
@@ -1070,59 +1295,106 @@
           }
 
 
-          const shouldTrigger =
+          const shouldTriggerSignal =
             Math.random() <
             signalConfig.eventChance;
 
 
+          /*
+            Even when the horizontal slice event does not fire,
+            there is a small chance of an isolated registration
+            echo.
+
+            This prevents all anomalies from sharing the same
+            visual signature.
+          */
+
           if (
-            shouldTrigger
+            !shouldTriggerSignal
           ) {
 
-            randomizeSignal();
-
-
-            player.classList.add(
-              'is-signal-contaminated'
-            );
-
-
-            const duration =
-              randomBetween(
-                signalConfig.minDuration,
-                signalConfig.maxDuration
-              );
-
-
-            window.clearTimeout(
-              signalEndTimer
-            );
-
-
-            signalEndTimer =
-              window.setTimeout(
-                clearSignalEvent,
-                duration
-              );
-
-
-            /*
-              Only some signal events contain analog noise.
-              This keeps the noise from becoming predictable.
-            */
-
-            const includeNoise =
+            const isolatedEcho =
               Math.random() <
-              noiseConfig.eventChance;
+              echoConfig.independentChance;
 
 
             if (
-              includeNoise
+              isolatedEcho
             ) {
 
-              triggerNoiseEvent();
+              triggerEchoEvent();
 
             }
+
+
+            scheduleNextSignalEvent();
+
+            return;
+
+          }
+
+
+          randomizeSignal();
+
+
+          player.classList.add(
+            'is-signal-contaminated'
+          );
+
+
+          const signalDuration =
+            randomBetween(
+              signalConfig.minDuration,
+              signalConfig.maxDuration
+            );
+
+
+          window.clearTimeout(
+            signalEndTimer
+          );
+
+
+          signalEndTimer =
+            window.setTimeout(
+              clearSignalEvent,
+              signalDuration
+            );
+
+
+          /*
+            The echo may accompany the signal displacement,
+            but it is not guaranteed.
+          */
+
+          const includeEcho =
+            Math.random() <
+            echoConfig.signalCompanionChance;
+
+
+          if (
+            includeEcho
+          ) {
+
+            triggerEchoEvent();
+
+          }
+
+
+          /*
+            Analog noise remains the rarest contamination
+            element.
+          */
+
+          const includeNoise =
+            Math.random() <
+            noiseConfig.eventChance;
+
+
+          if (
+            includeNoise
+          ) {
+
+            triggerNoiseEvent();
 
           }
 
@@ -1190,6 +1462,9 @@
           clearSignalEvent();
 
 
+          clearEchoEvent();
+
+
           clearNoiseEvent();
 
 
@@ -1236,6 +1511,9 @@
           player.classList.remove(
             'is-signal-contaminated'
           );
+
+
+          clearEchoEvent();
 
 
           clearNoiseEvent();
