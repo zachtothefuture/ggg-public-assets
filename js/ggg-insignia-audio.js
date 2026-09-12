@@ -3,7 +3,7 @@
    COMPONENT — INSIGNIA AUDIO PLAYER
 
    VERSION
-   v1.5 — Continuous Orange Countdown Ring
+   v1.6 — Continuous Orange Countdown Ring
 ========================================================== */
 
 (function () {
