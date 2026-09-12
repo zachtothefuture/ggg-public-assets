@@ -264,13 +264,12 @@
         ==================================================== */
 
         button.addEventListener(
-           'click',
-           togglePlayback,
-           {
-             capture:
-               true
-           }
-         
+          'click',
+          togglePlayback,
+          {
+            capture:
+            true
+          }
         );
 
 
