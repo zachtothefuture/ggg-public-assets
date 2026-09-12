@@ -3,7 +3,7 @@
    COMPONENT — INSIGNIA AUDIO PLAYER
 
    VERSION
-   v1.7 — Countdown Ring + Supernatural Micro-Movement
+   v1.8 — Countdown Ring + Supernatural Signal Contamination
 
    PURPOSE
    Turns the Guild insignia into a discreet audio control.
@@ -16,6 +16,8 @@
    • end depletes ring completely, then hides it
    • while audio is playing, the pin may subtly drift,
      rotate, and scale at irregular intervals
+   • occasional brief signal contamination creates displaced
+     horizontal fragments of the pin
 
    MICRO-MOVEMENT
    • no repeating CSS animation
@@ -23,6 +25,15 @@
    • some intervals intentionally contain no movement
    • first movement is delayed after playback begins
    • pause / end returns the pin quietly to rest
+
+   SIGNAL CONTAMINATION
+   • signal events begin only after playback has established
+   • events occur at irregular intervals
+   • some intervals intentionally contain no event
+   • each event generates new slice positions
+   • each event generates new horizontal displacement
+   • events last only a fraction of a second
+   • pause / end immediately clears contamination
 ========================================================== */
 
 (function () {
@@ -82,11 +93,18 @@
           );
 
 
+        const signal =
+          player.querySelector(
+            '.ggg-insignia-audio__signal'
+          );
+
+
         if (
           !button ||
           !audio ||
           !progress ||
-          !pin
+          !pin ||
+          !signal
         ) {
 
           console.warn(
@@ -148,6 +166,54 @@
 
 
         /* ====================================================
+           CONFIG — SIGNAL CONTAMINATION
+        ==================================================== */
+
+        const signalConfig = {
+
+          firstDelayMin:
+            8000,
+
+          firstDelayMax:
+            14000,
+
+          minDelay:
+            12000,
+
+          maxDelay:
+            28000,
+
+          eventChance:
+            0.65,
+
+          minDuration:
+            80,
+
+          maxDuration:
+            180,
+
+          minDisplacement:
+            2,
+
+          maxDisplacement:
+            5,
+
+          minSliceHeight:
+            3,
+
+          maxSliceHeight:
+            9,
+
+          minOpacity:
+            0.58,
+
+          maxOpacity:
+            0.86
+
+        };
+
+
+        /* ====================================================
            STATE
         ==================================================== */
 
@@ -156,6 +222,18 @@
 
 
         let movementActive =
+          false;
+
+
+        let signalTimer =
+          null;
+
+
+        let signalEndTimer =
+          null;
+
+
+        let signalActive =
           false;
 
 
@@ -172,6 +250,15 @@
             Math.random() *
             (max - min)
           ) + min;
+
+        }
+
+
+        function randomSign() {
+
+          return Math.random() < 0.5
+            ? -1
+            : 1;
 
         }
 
@@ -371,14 +458,6 @@
           }
 
 
-          /*
-            Some intervals deliberately contain
-            no visible movement.
-
-            This prevents the effect from developing
-            an obvious animation rhythm.
-          */
-
           const remainStill =
             Math.random() <
             movementConfig.stillnessChance;
@@ -492,13 +571,6 @@
           );
 
 
-          /*
-            Playback begins normally.
-
-            The anomaly waits before doing
-            anything visibly unusual.
-          */
-
           const firstDelay =
             randomBetween(
               movementConfig.firstDelayMin,
@@ -531,6 +603,337 @@
 
 
           resetPinMovement();
+
+        }
+
+
+        /* ====================================================
+           SIGNAL CONTAMINATION
+        ==================================================== */
+
+        function setSignalSlice(
+          sliceNumber,
+          top,
+          height,
+          displacement
+        ) {
+
+          const bottom =
+            Math.max(
+              0,
+              100 - top - height
+            );
+
+
+          signal.style.setProperty(
+            '--ggg-signal-slice-' +
+            sliceNumber +
+            '-top',
+            top.toFixed(2) +
+            '%'
+          );
+
+
+          signal.style.setProperty(
+            '--ggg-signal-slice-' +
+            sliceNumber +
+            '-bottom',
+            bottom.toFixed(2) +
+            '%'
+          );
+
+
+          signal.style.setProperty(
+            '--ggg-signal-slice-' +
+            sliceNumber +
+            '-x',
+            displacement.toFixed(2) +
+            'px'
+          );
+
+        }
+
+
+        function randomizeSignal() {
+
+          const slice1Height =
+            randomBetween(
+              signalConfig.minSliceHeight,
+              signalConfig.maxSliceHeight
+            );
+
+
+          const slice2Height =
+            randomBetween(
+              signalConfig.minSliceHeight,
+              signalConfig.maxSliceHeight
+            );
+
+
+          const slice1Top =
+            randomBetween(
+              18,
+              72 - slice1Height
+            );
+
+
+          let slice2Top =
+            randomBetween(
+              24,
+              82 - slice2Height
+            );
+
+
+          /*
+            Try to keep the second slice from landing
+            directly on top of the first.
+          */
+
+          if (
+            Math.abs(
+              slice2Top -
+              slice1Top
+            ) < 10
+          ) {
+
+            slice2Top +=
+              12;
+
+          }
+
+
+          slice2Top =
+            Math.min(
+              slice2Top,
+              92 - slice2Height
+            );
+
+
+          const displacement1 =
+            randomBetween(
+              signalConfig.minDisplacement,
+              signalConfig.maxDisplacement
+            ) *
+            randomSign();
+
+
+          const displacement2 =
+            randomBetween(
+              signalConfig.minDisplacement,
+              signalConfig.maxDisplacement
+            ) *
+            randomSign();
+
+
+          const opacity =
+            randomBetween(
+              signalConfig.minOpacity,
+              signalConfig.maxOpacity
+            );
+
+
+          setSignalSlice(
+            1,
+            slice1Top,
+            slice1Height,
+            displacement1
+          );
+
+
+          setSignalSlice(
+            2,
+            slice2Top,
+            slice2Height,
+            displacement2
+          );
+
+
+          signal.style.setProperty(
+            '--ggg-signal-opacity',
+            opacity.toFixed(2)
+          );
+
+        }
+
+
+        function clearSignalEvent() {
+
+          window.clearTimeout(
+            signalEndTimer
+          );
+
+
+          signalEndTimer =
+            null;
+
+
+          player.classList.remove(
+            'is-signal-contaminated'
+          );
+
+        }
+
+
+        function triggerSignalEvent() {
+
+          if (
+            !signalActive ||
+            audio.paused ||
+            audio.ended
+          ) {
+            return;
+          }
+
+
+          const shouldTrigger =
+            Math.random() <
+            signalConfig.eventChance;
+
+
+          if (
+            shouldTrigger
+          ) {
+
+            randomizeSignal();
+
+
+            player.classList.add(
+              'is-signal-contaminated'
+            );
+
+
+            const duration =
+              randomBetween(
+                signalConfig.minDuration,
+                signalConfig.maxDuration
+              );
+
+
+            window.clearTimeout(
+              signalEndTimer
+            );
+
+
+            signalEndTimer =
+              window.setTimeout(
+                clearSignalEvent,
+                duration
+              );
+
+          }
+
+
+          scheduleNextSignalEvent();
+
+        }
+
+
+        function scheduleNextSignalEvent() {
+
+          if (
+            !signalActive
+          ) {
+            return;
+          }
+
+
+          window.clearTimeout(
+            signalTimer
+          );
+
+
+          const delay =
+            randomBetween(
+              signalConfig.minDelay,
+              signalConfig.maxDelay
+            );
+
+
+          signalTimer =
+            window.setTimeout(
+              triggerSignalEvent,
+              delay
+            );
+
+        }
+
+
+        function startSignalContamination() {
+
+          if (
+            prefersReducedMotion()
+          ) {
+            return;
+          }
+
+
+          if (
+            signalActive
+          ) {
+            return;
+          }
+
+
+          signalActive =
+            true;
+
+
+          window.clearTimeout(
+            signalTimer
+          );
+
+
+          clearSignalEvent();
+
+
+          /*
+            Let the teaser establish itself before the first
+            possible interference event.
+          */
+
+          const firstDelay =
+            randomBetween(
+              signalConfig.firstDelayMin,
+              signalConfig.firstDelayMax
+            );
+
+
+          signalTimer =
+            window.setTimeout(
+              triggerSignalEvent,
+              firstDelay
+            );
+
+        }
+
+
+        function stopSignalContamination() {
+
+          signalActive =
+            false;
+
+
+          window.clearTimeout(
+            signalTimer
+          );
+
+
+          window.clearTimeout(
+            signalEndTimer
+          );
+
+
+          signalTimer =
+            null;
+
+
+          signalEndTimer =
+            null;
+
+
+          player.classList.remove(
+            'is-signal-contaminated'
+          );
 
         }
 
@@ -594,6 +997,9 @@
                   stopPinMovement();
 
 
+                  stopSignalContamination();
+
+
                   console.warn(
                     '[GGG] Unable to play teaser audio:',
                     error
@@ -641,6 +1047,9 @@
 
             startPinMovement();
 
+
+            startSignalContamination();
+
           }
         );
 
@@ -655,6 +1064,9 @@
 
 
             stopPinMovement();
+
+
+            stopSignalContamination();
 
           }
         );
@@ -688,6 +1100,9 @@
 
 
             stopPinMovement();
+
+
+            stopSignalContamination();
 
 
             setRingProgress(
@@ -732,6 +1147,9 @@
 
 
         resetPinMovement();
+
+
+        stopSignalContamination();
 
       }
     );
