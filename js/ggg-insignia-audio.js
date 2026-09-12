@@ -3,7 +3,26 @@
    COMPONENT — INSIGNIA AUDIO PLAYER
 
    VERSION
-   v1.6 — Continuous Orange Countdown Ring
+   v1.7 — Countdown Ring + Supernatural Micro-Movement
+
+   PURPOSE
+   Turns the Guild insignia into a discreet audio control.
+
+   INTERACTION
+   • click pin = play / pause
+   • full countdown ring appears at playback start
+   • one continuous ring depletes as playback progresses
+   • pause freezes the ring
+   • end depletes ring completely, then hides it
+   • while audio is playing, the pin may subtly drift,
+     rotate, and scale at irregular intervals
+
+   MICRO-MOVEMENT
+   • no repeating CSS animation
+   • movement is generated at irregular intervals
+   • some intervals intentionally contain no movement
+   • first movement is delayed after playback begins
+   • pause / end returns the pin quietly to rest
 ========================================================== */
 
 (function () {
@@ -57,10 +76,17 @@
           );
 
 
+        const pin =
+          player.querySelector(
+            '.ggg-insignia-audio__pin'
+          );
+
+
         if (
           !button ||
           !audio ||
-          !progress
+          !progress ||
+          !pin
         ) {
 
           console.warn(
@@ -77,7 +103,90 @@
 
 
         /* ====================================================
+           CONFIG — MICRO-MOVEMENT
+        ==================================================== */
+
+        const movementConfig = {
+
+          maxX:
+            0.7,
+
+          maxY:
+            0.55,
+
+          maxRotation:
+            0.055,
+
+          maxScale:
+            0.0015,
+
+          minDelay:
+            6000,
+
+          maxDelay:
+            18000,
+
+          firstDelayMin:
+            3500,
+
+          firstDelayMax:
+            8000,
+
+          minDuration:
+            1800,
+
+          maxDuration:
+            4500,
+
+          stillnessChance:
+            0.30,
+
+          resetDuration:
+            2400
+
+        };
+
+
+        /* ====================================================
            STATE
+        ==================================================== */
+
+        let movementTimer =
+          null;
+
+
+        let movementActive =
+          false;
+
+
+        /* ====================================================
+           GENERAL HELPERS
+        ==================================================== */
+
+        function randomBetween(
+          min,
+          max
+        ) {
+
+          return (
+            Math.random() *
+            (max - min)
+          ) + min;
+
+        }
+
+
+        function prefersReducedMotion() {
+
+          return window.matchMedia(
+            '(prefers-reduced-motion: reduce)'
+          ).matches;
+
+        }
+
+
+        /* ====================================================
+           PLAYER STATE
         ==================================================== */
 
         function setPlayingState(
@@ -185,6 +294,248 @@
 
 
         /* ====================================================
+           MICRO-MOVEMENT
+        ==================================================== */
+
+        function resetPinMovement() {
+
+          pin.style.setProperty(
+            '--ggg-pin-drift-x',
+            '0px'
+          );
+
+
+          pin.style.setProperty(
+            '--ggg-pin-drift-y',
+            '0px'
+          );
+
+
+          pin.style.setProperty(
+            '--ggg-pin-drift-rotate',
+            '0deg'
+          );
+
+
+          pin.style.setProperty(
+            '--ggg-pin-drift-scale',
+            '1'
+          );
+
+
+          pin.style.setProperty(
+            '--ggg-pin-drift-duration',
+            movementConfig.resetDuration +
+            'ms'
+          );
+
+        }
+
+
+        function scheduleNextMovement() {
+
+          if (
+            !movementActive
+          ) {
+            return;
+          }
+
+
+          window.clearTimeout(
+            movementTimer
+          );
+
+
+          const delay =
+            randomBetween(
+              movementConfig.minDelay,
+              movementConfig.maxDelay
+            );
+
+
+          movementTimer =
+            window.setTimeout(
+              movePin,
+              delay
+            );
+
+        }
+
+
+        function movePin() {
+
+          if (
+            !movementActive
+          ) {
+            return;
+          }
+
+
+          /*
+            Some intervals deliberately contain
+            no visible movement.
+
+            This prevents the effect from developing
+            an obvious animation rhythm.
+          */
+
+          const remainStill =
+            Math.random() <
+            movementConfig.stillnessChance;
+
+
+          if (
+            !remainStill
+          ) {
+
+            const x =
+              randomBetween(
+                -movementConfig.maxX,
+                movementConfig.maxX
+              );
+
+
+            const y =
+              randomBetween(
+                -movementConfig.maxY,
+                movementConfig.maxY
+              );
+
+
+            const rotation =
+              randomBetween(
+                -movementConfig.maxRotation,
+                movementConfig.maxRotation
+              );
+
+
+            const scale =
+              1 +
+              randomBetween(
+                0,
+                movementConfig.maxScale
+              );
+
+
+            const duration =
+              randomBetween(
+                movementConfig.minDuration,
+                movementConfig.maxDuration
+              );
+
+
+            pin.style.setProperty(
+              '--ggg-pin-drift-x',
+              x.toFixed(3) +
+              'px'
+            );
+
+
+            pin.style.setProperty(
+              '--ggg-pin-drift-y',
+              y.toFixed(3) +
+              'px'
+            );
+
+
+            pin.style.setProperty(
+              '--ggg-pin-drift-rotate',
+              rotation.toFixed(4) +
+              'deg'
+            );
+
+
+            pin.style.setProperty(
+              '--ggg-pin-drift-scale',
+              scale.toFixed(5)
+            );
+
+
+            pin.style.setProperty(
+              '--ggg-pin-drift-duration',
+              Math.round(
+                duration
+              ) +
+              'ms'
+            );
+
+          }
+
+
+          scheduleNextMovement();
+
+        }
+
+
+        function startPinMovement() {
+
+          if (
+            prefersReducedMotion()
+          ) {
+            return;
+          }
+
+
+          if (
+            movementActive
+          ) {
+            return;
+          }
+
+
+          movementActive =
+            true;
+
+
+          window.clearTimeout(
+            movementTimer
+          );
+
+
+          /*
+            Playback begins normally.
+
+            The anomaly waits before doing
+            anything visibly unusual.
+          */
+
+          const firstDelay =
+            randomBetween(
+              movementConfig.firstDelayMin,
+              movementConfig.firstDelayMax
+            );
+
+
+          movementTimer =
+            window.setTimeout(
+              movePin,
+              firstDelay
+            );
+
+        }
+
+
+        function stopPinMovement() {
+
+          movementActive =
+            false;
+
+
+          window.clearTimeout(
+            movementTimer
+          );
+
+
+          movementTimer =
+            null;
+
+
+          resetPinMovement();
+
+        }
+
+
+        /* ====================================================
            PLAY / PAUSE
         ==================================================== */
 
@@ -240,6 +591,9 @@
                   hideRing();
 
 
+                  stopPinMovement();
+
+
                   console.warn(
                     '[GGG] Unable to play teaser audio:',
                     error
@@ -268,7 +622,7 @@
           togglePlayback,
           {
             capture:
-            true
+              true
           }
         );
 
@@ -279,9 +633,13 @@
 
             showRing();
 
+
             setPlayingState(
               true
             );
+
+
+            startPinMovement();
 
           }
         );
@@ -294,6 +652,9 @@
             setPlayingState(
               false
             );
+
+
+            stopPinMovement();
 
           }
         );
@@ -324,6 +685,9 @@
             setPlayingState(
               false
             );
+
+
+            stopPinMovement();
 
 
             setRingProgress(
@@ -365,6 +729,9 @@
         setRingProgress(
           1
         );
+
+
+        resetPinMovement();
 
       }
     );
