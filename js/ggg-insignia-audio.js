@@ -278,10 +278,10 @@
         const echoConfig = {
 
           independentChance:
-            1,
+            0.55,
 
           signalCompanionChance:
-            1,
+            0.55,
 
           minDuration:
             300,
