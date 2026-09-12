@@ -3,7 +3,7 @@
    COMPONENT — INSIGNIA AUDIO PLAYER
 
    VERSION
-   v2.2 — Disturbance Memory + Failure Cooldown
+   v2.3 — Progressive Disturbance Bias
 
    PURPOSE
    Turns the Guild insignia into a discreet audio control.
@@ -49,6 +49,14 @@
    • normal disturbance delay = 12–28 seconds
    • after a failure = 20–38 seconds
    • prevents strong events from clustering together
+
+   PLAYBACK PROGRESSION
+   • first third favors echo and fracture
+   • middle third favors dislocation
+   • final third permits more severe failures
+   • event timing remains random
+   • nothing is synchronized to exact audio timestamps
+   • visual effect strength remains unchanged
 
    MICRO-MOVEMENT
    • no repeating CSS animation
@@ -171,9 +179,7 @@
           );
 
 
-        if (
-          !noiseContext
-        ) {
+        if (!noiseContext) {
 
           console.warn(
             '[GGG] Insignia audio player could not create analog noise canvas.'
@@ -279,26 +285,102 @@
           */
 
           eventChance:
-            0.72,
+            0.72
+
+        };
+
+
+        /* ====================================================
+           CONFIG — PLAYBACK PROGRESSION
+
+           These values affect profile selection only.
+
+           They do NOT change:
+           • event frequency
+           • visual strength
+           • effect duration
+           • cooldown timing
+        ==================================================== */
+
+        const progressionConfig = {
+
+          earlyEnd:
+            0.33,
+
+          middleEnd:
+            0.66,
 
 
           /*
-            Relative weights for actual disturbances.
+            FIRST THIRD
 
-            They do not need to total 100.
+            Strange behavior begins, but disturbances remain
+            relatively restrained.
           */
 
-          echoWeight:
-            30,
+          early: {
 
-          fractureWeight:
-            24,
+            echoWeight:
+              38,
 
-          dislocationWeight:
-            31,
+            fractureWeight:
+              32,
 
-          failureWeight:
-            15
+            dislocationWeight:
+              25,
+
+            failureWeight:
+              5
+
+          },
+
+
+          /*
+            MIDDLE THIRD
+
+            Compound registration errors become more common.
+          */
+
+          middle: {
+
+            echoWeight:
+              28,
+
+            fractureWeight:
+              24,
+
+            dislocationWeight:
+              36,
+
+            failureWeight:
+              12
+
+          },
+
+
+          /*
+            FINAL THIRD
+
+            Simple anomalies become less dominant while
+            compound disturbances and failures become more
+            plausible.
+          */
+
+          late: {
+
+            echoWeight:
+              20,
+
+            fractureWeight:
+              18,
+
+            dislocationWeight:
+              40,
+
+            failureWeight:
+              22
+
+          }
 
         };
 
@@ -688,9 +770,7 @@
 
         function scheduleNextMovement() {
 
-          if (
-            !movementActive
-          ) {
+          if (!movementActive) {
             return;
           }
 
@@ -718,9 +798,7 @@
 
         function movePin() {
 
-          if (
-            !movementActive
-          ) {
+          if (!movementActive) {
             return;
           }
 
@@ -730,9 +808,7 @@
             movementConfig.stillnessChance;
 
 
-          if (
-            !remainStill
-          ) {
+          if (!remainStill) {
 
             const x =
               randomBetween(
@@ -1088,11 +1164,6 @@
             );
 
 
-          /*
-            The second registration copy usually falls on the
-            opposite side of the original image.
-          */
-
           const x2 =
             randomBetween(
               echoConfig.minX * 0.5,
@@ -1229,9 +1300,7 @@
 
         function drawNoiseFrame() {
 
-          if (
-            !noiseActive
-          ) {
+          if (!noiseActive) {
             return;
           }
 
@@ -1493,13 +1562,80 @@
 
 
         /* ====================================================
+           PLAYBACK PROGRESSION
+        ==================================================== */
+
+        function getPlaybackProgress() {
+
+          if (
+            !Number.isFinite(
+              audio.duration
+            ) ||
+            audio.duration <= 0
+          ) {
+
+            return 0;
+
+          }
+
+
+          return Math.min(
+            Math.max(
+              audio.currentTime /
+              audio.duration,
+              0
+            ),
+            1
+          );
+
+        }
+
+
+        function getProgressionWeights() {
+
+          const progress =
+            getPlaybackProgress();
+
+
+          if (
+            progress <
+            progressionConfig.earlyEnd
+          ) {
+
+            return progressionConfig.early;
+
+          }
+
+
+          if (
+            progress <
+            progressionConfig.middleEnd
+          ) {
+
+            return progressionConfig.middle;
+
+          }
+
+
+          return progressionConfig.late;
+
+        }
+
+
+        /* ====================================================
            DISTURBANCE PROFILE SELECTION
 
-           The previously used profile is removed from the
-           available weighted pool before a new one is chosen.
+           The profile weights change as playback progresses.
+
+           The previously used profile is still removed from
+           the available weighted pool before selection.
         ==================================================== */
 
         function chooseDisturbanceProfile() {
+
+          const weights =
+            getProgressionWeights();
+
 
           const profiles = [
 
@@ -1508,7 +1644,7 @@
                 'echo',
 
               weight:
-                disturbanceConfig.echoWeight
+                weights.echoWeight
             },
 
             {
@@ -1516,7 +1652,7 @@
                 'fracture',
 
               weight:
-                disturbanceConfig.fractureWeight
+                weights.fractureWeight
             },
 
             {
@@ -1524,7 +1660,7 @@
                 'dislocation',
 
               weight:
-                disturbanceConfig.dislocationWeight
+                weights.dislocationWeight
             },
 
             {
@@ -1532,7 +1668,7 @@
                 'failure',
 
               weight:
-                disturbanceConfig.failureWeight
+                weights.failureWeight
             }
 
           ];
@@ -1541,9 +1677,8 @@
           /*
             Remove the immediately previous profile.
 
-            Its weight is not redistributed explicitly;
-            the remaining weights naturally normalize against
-            their new total.
+            Silent opportunities do not modify the stored
+            profile, so memory persists through quiet periods.
           */
 
           const availableProfiles =
@@ -1630,9 +1765,7 @@
           useFailureCooldown
         ) {
 
-          if (
-            !disturbanceActive
-          ) {
+          if (!disturbanceActive) {
             return;
           }
 
@@ -1697,15 +1830,12 @@
           /*
             Intentional silence.
 
-            Importantly, lastDisturbanceProfile is NOT changed.
-
-            The next actual event still remembers the previous
+            lastDisturbanceProfile remains untouched, so the
+            next actual event still remembers the previous
             visible disturbance.
           */
 
-          if (
-            !shouldTrigger
-          ) {
+          if (!shouldTrigger) {
 
             scheduleNextDisturbance(
               false
@@ -1721,21 +1851,20 @@
 
 
           /*
-            Memory is updated only when an actual disturbance
-            has been selected.
+            Memory updates only when a real disturbance has
+            actually been selected.
           */
 
           lastDisturbanceProfile =
             profile;
 
 
-          switch (
-            profile
-          ) {
+          switch (profile) {
 
             case 'echo':
 
               triggerEchoEvent();
+
 
               scheduleNextDisturbance(
                 false
@@ -1747,6 +1876,7 @@
             case 'fracture':
 
               triggerSignalEvent();
+
 
               scheduleNextDisturbance(
                 false
@@ -1774,11 +1904,6 @@
 
               triggerFailureEvent();
 
-
-              /*
-                A full failure receives a longer recovery
-                period before the next opportunity.
-              */
 
               scheduleNextDisturbance(
                 true
@@ -1873,9 +1998,7 @@
 
         function togglePlayback() {
 
-          if (
-            audio.paused
-          ) {
+          if (audio.paused) {
 
             if (
               audio.ended ||
@@ -2049,9 +2172,7 @@
             window.setTimeout(
               function () {
 
-                if (
-                  audio.ended
-                ) {
+                if (audio.ended) {
 
                   hideRing();
 
