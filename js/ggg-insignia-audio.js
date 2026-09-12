@@ -3,7 +3,7 @@
    COMPONENT — INSIGNIA AUDIO PLAYER
 
    VERSION
-   v1.8 — Countdown Ring + Supernatural Signal Contamination
+   v1.9 — Countdown Ring + Signal Contamination + Analog Noise
 
    PURPOSE
    Turns the Guild insignia into a discreet audio control.
@@ -18,6 +18,8 @@
      rotate, and scale at irregular intervals
    • occasional brief signal contamination creates displaced
      horizontal fragments of the pin
+   • some contamination events include brief monochrome
+     analog static inside the pin silhouette
 
    MICRO-MOVEMENT
    • no repeating CSS animation
@@ -33,7 +35,14 @@
    • each event generates new slice positions
    • each event generates new horizontal displacement
    • events last only a fraction of a second
-   • pause / end immediately clears contamination
+
+   ANALOG NOISE
+   • noise is rendered into a low-resolution canvas
+   • noise appears only during some signal events
+   • each frame contains fresh monochrome noise
+   • frame rate is intentionally restrained
+   • CSS masks the canvas to the pin silhouette
+   • pause / end immediately clears all contamination
 ========================================================== */
 
 (function () {
@@ -99,16 +108,46 @@
           );
 
 
+        const noise =
+          player.querySelector(
+            '.ggg-insignia-audio__noise'
+          );
+
+
         if (
           !button ||
           !audio ||
           !progress ||
           !pin ||
-          !signal
+          !signal ||
+          !noise
         ) {
 
           console.warn(
             '[GGG] Insignia audio player is missing required markup.'
+          );
+
+          return;
+
+        }
+
+
+        const noiseContext =
+          noise.getContext(
+            '2d',
+            {
+              alpha:
+                true
+            }
+          );
+
+
+        if (
+          !noiseContext
+        ) {
+
+          console.warn(
+            '[GGG] Insignia audio player could not create analog noise canvas.'
           );
 
           return;
@@ -214,6 +253,45 @@
 
 
         /* ====================================================
+           CONFIG — ANALOG NOISE
+        ==================================================== */
+
+        const noiseConfig = {
+
+          eventChance:
+            0.38,
+
+          minDuration:
+            55,
+
+          maxDuration:
+            120,
+
+          frameInterval:
+            32,
+
+          minValue:
+            25,
+
+          maxValue:
+            235,
+
+          minAlpha:
+            145,
+
+          maxAlpha:
+            255,
+
+          minOpacity:
+            0.22,
+
+          maxOpacity:
+            0.38
+
+        };
+
+
+        /* ====================================================
            STATE
         ==================================================== */
 
@@ -237,6 +315,18 @@
           false;
 
 
+        let noiseEndTimer =
+          null;
+
+
+        let noiseFrameTimer =
+          null;
+
+
+        let noiseActive =
+          false;
+
+
         /* ====================================================
            GENERAL HELPERS
         ==================================================== */
@@ -250,6 +340,21 @@
             Math.random() *
             (max - min)
           ) + min;
+
+        }
+
+
+        function randomInteger(
+          min,
+          max
+        ) {
+
+          return Math.floor(
+            randomBetween(
+              min,
+              max + 1
+            )
+          );
 
         }
 
@@ -608,6 +713,191 @@
 
 
         /* ====================================================
+           ANALOG NOISE
+        ==================================================== */
+
+        function drawNoiseFrame() {
+
+          if (
+            !noiseActive
+          ) {
+            return;
+          }
+
+
+          const width =
+            noise.width;
+
+
+          const height =
+            noise.height;
+
+
+          const imageData =
+            noiseContext.createImageData(
+              width,
+              height
+            );
+
+
+          const pixels =
+            imageData.data;
+
+
+          for (
+            let index = 0;
+            index < pixels.length;
+            index += 4
+          ) {
+
+            const value =
+              randomInteger(
+                noiseConfig.minValue,
+                noiseConfig.maxValue
+              );
+
+
+            const alpha =
+              randomInteger(
+                noiseConfig.minAlpha,
+                noiseConfig.maxAlpha
+              );
+
+
+            pixels[index] =
+              value;
+
+
+            pixels[index + 1] =
+              value;
+
+
+            pixels[index + 2] =
+              value;
+
+
+            pixels[index + 3] =
+              alpha;
+
+          }
+
+
+          noiseContext.putImageData(
+            imageData,
+            0,
+            0
+          );
+
+
+          window.clearTimeout(
+            noiseFrameTimer
+          );
+
+
+          noiseFrameTimer =
+            window.setTimeout(
+              drawNoiseFrame,
+              noiseConfig.frameInterval
+            );
+
+        }
+
+
+        function clearNoiseEvent() {
+
+          noiseActive =
+            false;
+
+
+          window.clearTimeout(
+            noiseEndTimer
+          );
+
+
+          window.clearTimeout(
+            noiseFrameTimer
+          );
+
+
+          noiseEndTimer =
+            null;
+
+
+          noiseFrameTimer =
+            null;
+
+
+          player.classList.remove(
+            'is-noise-contaminated'
+          );
+
+
+          noiseContext.clearRect(
+            0,
+            0,
+            noise.width,
+            noise.height
+          );
+
+        }
+
+
+        function triggerNoiseEvent() {
+
+          if (
+            prefersReducedMotion() ||
+            audio.paused ||
+            audio.ended
+          ) {
+            return;
+          }
+
+
+          clearNoiseEvent();
+
+
+          const opacity =
+            randomBetween(
+              noiseConfig.minOpacity,
+              noiseConfig.maxOpacity
+            );
+
+
+          noise.style.setProperty(
+            '--ggg-noise-opacity',
+            opacity.toFixed(2)
+          );
+
+
+          const duration =
+            randomBetween(
+              noiseConfig.minDuration,
+              noiseConfig.maxDuration
+            );
+
+
+          noiseActive =
+            true;
+
+
+          drawNoiseFrame();
+
+
+          player.classList.add(
+            'is-noise-contaminated'
+          );
+
+
+          noiseEndTimer =
+            window.setTimeout(
+              clearNoiseEvent,
+              duration
+            );
+
+        }
+
+
+        /* ====================================================
            SIGNAL CONTAMINATION
         ==================================================== */
 
@@ -683,11 +973,6 @@
               82 - slice2Height
             );
 
-
-          /*
-            Try to keep the second slice from landing
-            directly on top of the first.
-          */
 
           if (
             Math.abs(
@@ -820,6 +1105,25 @@
                 duration
               );
 
+
+            /*
+              Only some signal events contain analog noise.
+              This keeps the noise from becoming predictable.
+            */
+
+            const includeNoise =
+              Math.random() <
+              noiseConfig.eventChance;
+
+
+            if (
+              includeNoise
+            ) {
+
+              triggerNoiseEvent();
+
+            }
+
           }
 
 
@@ -886,10 +1190,8 @@
           clearSignalEvent();
 
 
-          /*
-            Let the teaser establish itself before the first
-            possible interference event.
-          */
+          clearNoiseEvent();
+
 
           const firstDelay =
             randomBetween(
@@ -935,6 +1237,9 @@
             'is-signal-contaminated'
           );
 
+
+          clearNoiseEvent();
+
         }
 
 
@@ -947,10 +1252,6 @@
           if (
             audio.paused
           ) {
-
-            /*
-              Restart after completed playback.
-            */
 
             if (
               audio.ended ||
