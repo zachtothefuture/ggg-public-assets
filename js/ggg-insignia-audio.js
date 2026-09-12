@@ -3,18 +3,7 @@
    COMPONENT — INSIGNIA AUDIO PLAYER
 
    VERSION
-   v1.3 — Continuous Orange Countdown Ring
-
-   PURPOSE
-   Turns the Guild insignia into a discreet audio control.
-
-   INTERACTION
-   • click pin = play / pause
-   • playback begins with one complete orange ring
-   • ring depletes clockwise as audio progresses
-   • paused playback freezes ring position
-   • completed playback leaves ring depleted, then hides it
-   • replay restores the full ring and starts from beginning
+   v1.4 — Continuous Countdown Ring
 ========================================================== */
 
 (function () {
@@ -68,7 +57,7 @@
 
         const progress =
           player.querySelector(
-            '.ggg-insignia-audio__elapsed'
+            '.ggg-insignia-audio__progress'
           );
 
 
@@ -79,17 +68,6 @@
         ) {
           return;
         }
-
-
-        /*
-          Use the circle's actual rendered path length.
-
-          This avoids Safari interpreting normalized values
-          as repeating dash patterns around the circumference.
-        */
-
-        const circumference =
-          progress.getTotalLength();
 
 
         /* ====================================================
@@ -122,10 +100,6 @@
         }
 
 
-        /* ====================================================
-           RING VISIBILITY
-        ==================================================== */
-
         function showRing() {
 
           player.classList.add(
@@ -145,15 +119,10 @@
 
 
         /* ====================================================
-           COUNTDOWN PROGRESS
+           COUNTDOWN RING
         ==================================================== */
 
         function updateProgress() {
-
-          /*
-            Before metadata is available, render the complete
-            circumference so playback can begin cleanly.
-          */
 
           if (
             !Number.isFinite(
@@ -162,15 +131,10 @@
             audio.duration <= 0
           ) {
 
-            progress.style.strokeDasharray =
-              circumference +
-              ' ' +
-              circumference;
-
-
-            progress.style.strokeDashoffset =
-              '0';
-
+            progress.style.setProperty(
+              '--ggg-audio-remaining',
+              '1'
+            );
 
             return;
 
@@ -188,32 +152,14 @@
             );
 
 
-          /*
-            Countdown model:
-
-            start:
-              full circumference
-
-            midpoint:
-              half circumference
-
-            end:
-              zero circumference
-          */
-
           const remaining =
-            circumference *
-            (1 - ratio);
+            1 - ratio;
 
 
-          progress.style.strokeDasharray =
-            remaining +
-            ' ' +
-            circumference;
-
-
-          progress.style.strokeDashoffset =
-            '0';
+          progress.style.setProperty(
+            '--ggg-audio-remaining',
+            String(remaining)
+          );
 
         }
 
@@ -224,13 +170,10 @@
 
         function togglePlayback() {
 
-          if (
-            audio.paused
-          ) {
+          if (audio.paused) {
 
             /*
-              If playback has already completed,
-              restore the beginning before replay.
+              Replay after completion.
             */
 
             if (
@@ -352,21 +295,19 @@
 
 
             /*
-              Leave currentTime at duration.
-
-              This keeps the ring fully depleted instead of
-              snapping back to a complete circle.
+              Force completely depleted state.
             */
 
-            updateProgress();
+            progress.style.setProperty(
+              '--ggg-audio-remaining',
+              '0'
+            );
 
 
             window.setTimeout(
               function () {
 
-                if (
-                  audio.ended
-                ) {
+                if (audio.ended) {
 
                   hideRing();
 
@@ -392,7 +333,10 @@
         hideRing();
 
 
-        updateProgress();
+        progress.style.setProperty(
+          '--ggg-audio-remaining',
+          '1'
+        );
 
       }
     );
