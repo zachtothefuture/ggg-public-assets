@@ -3,91 +3,41 @@
    COMPONENT — INSIGNIA AUDIO PLAYER
 
    VERSION
-   v2.5 — Responsive Disturbance Scaling
+   v2.6 — Centralized Pin Asset
 
    PURPOSE
    Turns the Guild insignia into a discreet audio control.
 
-   INTERACTION
-   • click pin = play / pause
-   • full countdown ring appears at playback start
-   • one continuous ring depletes as playback progresses
-   • pause freezes the ring
-   • end depletes ring completely, then hides it
-   • while audio is playing, the pin may subtly drift,
-     rotate, and scale at irregular intervals
+   ASSET SYSTEM
+   • canonical artwork supplied by data-ggg-pin-image
+   • visible <img> receives the canonical image automatically
+   • CSS receives the same image through --ggg-pin-image
+   • signal, echo and noise mask therefore remain synchronized
+   • artwork can be replaced in one location
 
    DISTURBANCE SYSTEM
-   Supernatural interference is composed into four profiles:
-
-   ECHO
-   • exaggerated full-image registration error
-   • no signal slicing
-   • no static
-
-   FRACTURE
-   • horizontal signal displacement
-   • no echo
-   • no static
-
-   DISLOCATION
-   • signal displacement
-   • exaggerated registration echo
-
-   FAILURE
-   • signal displacement begins
-   • registration echo follows
-   • analog static briefly contaminates the image
-   • timing is staggered across several frames
+   • echo
+   • fracture
+   • dislocation
+   • failure
 
    DISTURBANCE MEMORY
-   • the same profile cannot occur twice consecutively
-   • intentional silent opportunities do not erase memory
-   • profile selection remains weighted and irregular
-
-   FAILURE COOLDOWN
-   • normal disturbance delay = 12–28 seconds
-   • after a failure = 20–38 seconds
-   • prevents strong events from clustering together
+   • same profile cannot occur twice consecutively
+   • silent opportunities do not erase memory
 
    PLAYBACK PROGRESSION
-   • first third favors echo and fracture
-   • middle third favors dislocation
-   • final third permits more severe failures
-   • event timing remains random
-   • nothing is synchronized to exact audio timestamps
-   • visual effect strength remains unchanged
+   • early playback favors echo / fracture
+   • middle playback favors dislocation
+   • late playback permits stronger failure events
 
-   VISIBILITY HANDLING
-   • hidden tabs suspend movement and disturbances
-   • audio itself is not automatically paused
-   • no disturbance timers accumulate in the background
-   • returning to the page resumes behavior cleanly
-   • active visual contamination is cleared while hidden
+   VISIBILITY
+   • hidden tabs suspend visual behavior
+   • audio continues normally
+   • visual scheduling resumes cleanly when visible
 
-   RESPONSIVE DISTURBANCE SCALING
-   • rendered pin width determines spatial effect strength
-   • desktop / large pin = full displacement
-   • smaller pin = proportionally reduced displacement
-   • minimum spatial scale prevents effects becoming too weak
-   • timing, opacity and event probability are unchanged
-   • final image pixel dimensions do not affect this system
-
-   MICRO-MOVEMENT
-   • no repeating CSS animation
-   • movement is generated at irregular intervals
-   • some intervals intentionally contain no movement
-   • first movement is delayed after playback begins
-   • pause / end returns the pin quietly to rest
-
-   CLEANUP
-   • pause / end / hidden-page state immediately clears:
-       - movement
-       - signal slices
-       - echo
-       - analog noise
-       - pending failure sequence timers
-       - pending disturbance timers
+   RESPONSIVE SCALING
+   • spatial displacement follows rendered pin size
+   • timing and opacity remain unchanged
 ========================================================== */
 
 (function () {
@@ -184,6 +134,89 @@
         }
 
 
+        /* ====================================================
+           CANONICAL PIN ASSET
+        ==================================================== */
+
+        const pinImageSource =
+          player.dataset.gggPinImage;
+
+
+        if (!pinImageSource) {
+
+          console.warn(
+            '[GGG] Insignia audio player has no data-ggg-pin-image.'
+          );
+
+          return;
+
+        }
+
+
+        let resolvedPinImage;
+
+
+        try {
+
+          resolvedPinImage =
+            new URL(
+              pinImageSource,
+              document.baseURI
+            ).href;
+
+        } catch (error) {
+
+          console.warn(
+            '[GGG] Invalid insignia artwork URL:',
+            pinImageSource
+          );
+
+          return;
+
+        }
+
+
+        /*
+          Visible physical pin.
+        */
+
+        pin.src =
+          resolvedPinImage;
+
+
+        /*
+          Shared CSS artwork.
+
+          This one variable powers:
+          • signal slices
+          • analog echo
+          • analog noise mask
+        */
+
+        const escapedPinImage =
+          resolvedPinImage
+            .replace(
+              /\\/g,
+              '\\\\'
+            )
+            .replace(
+              /"/g,
+              '\\"'
+            );
+
+
+        player.style.setProperty(
+          '--ggg-pin-image',
+          'url("' +
+          escapedPinImage +
+          '")'
+        );
+
+
+        /* ====================================================
+           CANVAS
+        ==================================================== */
+
         const noiseContext =
           noise.getContext(
             '2d',
@@ -211,19 +244,6 @@
 
         /* ====================================================
            CONFIG — RESPONSIVE SPATIAL SCALING
-
-           The existing effect values are tuned for a rendered
-           pin approximately 420px wide.
-
-           Smaller rendered pins progressively reduce only
-           spatial displacement.
-
-           At 420px and above:
-           • scale = 1.00
-
-           At smaller sizes:
-           • scale decreases proportionally
-           • scale never drops below 0.70
         ==================================================== */
 
         const responsiveConfig = {
@@ -379,7 +399,7 @@
 
 
         /* ====================================================
-           CONFIG — SIGNAL CONTAMINATION
+           CONFIG — SIGNAL
         ==================================================== */
 
         const signalConfig = {
@@ -412,7 +432,7 @@
 
 
         /* ====================================================
-           CONFIG — ANALOG ECHO
+           CONFIG — ECHO
         ==================================================== */
 
         const echoConfig = {
@@ -448,7 +468,7 @@
 
 
         /* ====================================================
-           CONFIG — ANALOG NOISE
+           CONFIG — NOISE
         ==================================================== */
 
         const noiseConfig = {
@@ -484,7 +504,7 @@
 
 
         /* ====================================================
-           CONFIG — FAILURE SEQUENCE
+           CONFIG — FAILURE
         ==================================================== */
 
         const failureConfig = {
@@ -560,13 +580,6 @@
           document.hidden;
 
 
-        /*
-          Current responsive multiplier for spatial effects.
-
-          This is derived from the rendered pin width, not the
-          underlying PNG dimensions.
-        */
-
         let spatialScale =
           1;
 
@@ -633,10 +646,6 @@
         }
 
 
-        /* ====================================================
-           RESPONSIVE SPATIAL SCALING
-        ==================================================== */
-
         function clamp(
           value,
           min,
@@ -653,6 +662,10 @@
 
         }
 
+
+        /* ====================================================
+           RESPONSIVE SPATIAL SCALING
+        ==================================================== */
 
         function updateSpatialScale() {
 
@@ -706,15 +719,6 @@
         }
 
 
-        /*
-          ResizeObserver keeps the responsive multiplier in
-          sync with Squarespace layout changes, responsive
-          breakpoints, orientation changes and live resizing.
-
-          A window resize fallback is included for environments
-          where ResizeObserver is unavailable.
-        */
-
         if (
           typeof ResizeObserver ===
           'function'
@@ -722,11 +726,7 @@
 
           const resizeObserver =
             new ResizeObserver(
-              function () {
-
-                updateSpatialScale();
-
-              }
+              updateSpatialScale
             );
 
 
@@ -804,22 +804,20 @@
         ) {
 
           const clamped =
-            Math.min(
-              Math.max(
-                remaining,
-                0
-              ),
+            clamp(
+              remaining,
+              0,
               1
             );
 
 
-          const angle =
-            clamped * 360;
-
-
           progress.style.setProperty(
             '--ggg-audio-angle',
-            angle + 'deg'
+            (
+              clamped *
+              360
+            ) +
+            'deg'
           );
 
         }
@@ -843,13 +841,12 @@
           }
 
 
-          const ratio =
-            audio.currentTime /
-            audio.duration;
-
-
           setRingProgress(
-            1 - ratio
+            1 -
+            (
+              audio.currentTime /
+              audio.duration
+            )
           );
 
         }
@@ -909,17 +906,13 @@
           );
 
 
-          const delay =
-            randomBetween(
-              movementConfig.minDelay,
-              movementConfig.maxDelay
-            );
-
-
           movementTimer =
             window.setTimeout(
               movePin,
-              delay
+              randomBetween(
+                movementConfig.minDelay,
+                movementConfig.maxDelay
+              )
             );
 
         }
@@ -1052,17 +1045,13 @@
           );
 
 
-          const firstDelay =
-            randomBetween(
-              movementConfig.firstDelayMin,
-              movementConfig.firstDelayMax
-            );
-
-
           movementTimer =
             window.setTimeout(
               movePin,
-              firstDelay
+              randomBetween(
+                movementConfig.firstDelayMin,
+                movementConfig.firstDelayMax
+              )
             );
 
         }
@@ -1093,7 +1082,7 @@
         ==================================================== */
 
         function setSignalSlice(
-          sliceNumber,
+          number,
           top,
           height,
           displacement
@@ -1102,13 +1091,15 @@
           const bottom =
             Math.max(
               0,
-              100 - top - height
+              100 -
+              top -
+              height
             );
 
 
           signal.style.setProperty(
             '--ggg-signal-slice-' +
-            sliceNumber +
+            number +
             '-top',
             top.toFixed(2) +
             '%'
@@ -1117,7 +1108,7 @@
 
           signal.style.setProperty(
             '--ggg-signal-slice-' +
-            sliceNumber +
+            number +
             '-bottom',
             bottom.toFixed(2) +
             '%'
@@ -1126,7 +1117,7 @@
 
           signal.style.setProperty(
             '--ggg-signal-slice-' +
-            sliceNumber +
+            number +
             '-x',
             displacement.toFixed(2) +
             'px'
@@ -1137,51 +1128,51 @@
 
         function randomizeSignal() {
 
-          const slice1Height =
+          const height1 =
             randomBetween(
               signalConfig.minSliceHeight,
               signalConfig.maxSliceHeight
             );
 
 
-          const slice2Height =
+          const height2 =
             randomBetween(
               signalConfig.minSliceHeight,
               signalConfig.maxSliceHeight
             );
 
 
-          const slice1Top =
+          const top1 =
             randomBetween(
               18,
-              72 - slice1Height
+              72 - height1
             );
 
 
-          let slice2Top =
+          let top2 =
             randomBetween(
               24,
-              82 - slice2Height
+              82 - height2
             );
 
 
           if (
             Math.abs(
-              slice2Top -
-              slice1Top
+              top2 -
+              top1
             ) < 10
           ) {
 
-            slice2Top +=
+            top2 +=
               12;
 
           }
 
 
-          slice2Top =
+          top2 =
             Math.min(
-              slice2Top,
-              92 - slice2Height
+              top2,
+              92 - height2
             );
 
 
@@ -1197,48 +1188,36 @@
             );
 
 
-          const displacement1 =
-            randomBetween(
-              minDisplacement,
-              maxDisplacement
-            ) *
-            randomSign();
-
-
-          const displacement2 =
-            randomBetween(
-              minDisplacement,
-              maxDisplacement
-            ) *
-            randomSign();
-
-
-          const opacity =
-            randomBetween(
-              signalConfig.minOpacity,
-              signalConfig.maxOpacity
-            );
-
-
           setSignalSlice(
             1,
-            slice1Top,
-            slice1Height,
-            displacement1
+            top1,
+            height1,
+            randomBetween(
+              minDisplacement,
+              maxDisplacement
+            ) *
+            randomSign()
           );
 
 
           setSignalSlice(
             2,
-            slice2Top,
-            slice2Height,
-            displacement2
+            top2,
+            height2,
+            randomBetween(
+              minDisplacement,
+              maxDisplacement
+            ) *
+            randomSign()
           );
 
 
           signal.style.setProperty(
             '--ggg-signal-opacity',
-            opacity.toFixed(2)
+            randomBetween(
+              signalConfig.minOpacity,
+              signalConfig.maxOpacity
+            ).toFixed(2)
           );
 
         }
@@ -1282,24 +1261,20 @@
           );
 
 
-          const duration =
-            randomBetween(
-              signalConfig.minDuration,
-              signalConfig.maxDuration
-            );
-
-
           signalEndTimer =
             window.setTimeout(
               clearSignalEvent,
-              duration
+              randomBetween(
+                signalConfig.minDuration,
+                signalConfig.maxDuration
+              )
             );
 
         }
 
 
         /* ====================================================
-           ANALOG ECHO
+           ECHO
         ==================================================== */
 
         function randomizeEcho() {
@@ -1337,15 +1312,10 @@
             );
 
 
-          /*
-            The second registration copy usually falls on the
-            opposite side of the original image.
-          */
-
           const x2 =
             randomBetween(
-              minX * 0.5,
-              maxX * 0.7
+              minX * .5,
+              maxX * .7
             ) *
             (
               x1 > 0
@@ -1358,20 +1328,6 @@
             randomBetween(
               -maxY,
               maxY
-            );
-
-
-          const opacity1 =
-            randomBetween(
-              echoConfig.minOpacity1,
-              echoConfig.maxOpacity1
-            );
-
-
-          const opacity2 =
-            randomBetween(
-              echoConfig.minOpacity2,
-              echoConfig.maxOpacity2
             );
 
 
@@ -1391,7 +1347,10 @@
 
           echo.style.setProperty(
             '--ggg-echo-1-opacity',
-            opacity1.toFixed(2)
+            randomBetween(
+              echoConfig.minOpacity1,
+              echoConfig.maxOpacity1
+            ).toFixed(2)
           );
 
 
@@ -1411,7 +1370,10 @@
 
           echo.style.setProperty(
             '--ggg-echo-2-opacity',
-            opacity2.toFixed(2)
+            randomBetween(
+              echoConfig.minOpacity2,
+              echoConfig.maxOpacity2
+            ).toFixed(2)
           );
 
         }
@@ -1455,24 +1417,20 @@
           );
 
 
-          const duration =
-            randomBetween(
-              echoConfig.minDuration,
-              echoConfig.maxDuration
-            );
-
-
           echoEndTimer =
             window.setTimeout(
               clearEchoEvent,
-              duration
+              randomBetween(
+                echoConfig.minDuration,
+                echoConfig.maxDuration
+              )
             );
 
         }
 
 
         /* ====================================================
-           ANALOG NOISE
+           NOISE
         ==================================================== */
 
         function drawNoiseFrame() {
@@ -1485,18 +1443,10 @@
           }
 
 
-          const width =
-            noise.width;
-
-
-          const height =
-            noise.height;
-
-
           const imageData =
             noiseContext.createImageData(
-              width,
-              height
+              noise.width,
+              noise.height
             );
 
 
@@ -1517,27 +1467,20 @@
               );
 
 
-            const alpha =
-              randomInteger(
-                noiseConfig.minAlpha,
-                noiseConfig.maxAlpha
-              );
-
-
             pixels[index] =
               value;
-
 
             pixels[index + 1] =
               value;
 
-
             pixels[index + 2] =
               value;
 
-
             pixels[index + 3] =
-              alpha;
+              randomInteger(
+                noiseConfig.minAlpha,
+                noiseConfig.maxAlpha
+              );
 
           }
 
@@ -1614,24 +1557,13 @@
           clearNoiseEvent();
 
 
-          const opacity =
+          noise.style.setProperty(
+            '--ggg-noise-opacity',
             randomBetween(
               noiseConfig.minOpacity,
               noiseConfig.maxOpacity
-            );
-
-
-          noise.style.setProperty(
-            '--ggg-noise-opacity',
-            opacity.toFixed(2)
+            ).toFixed(2)
           );
-
-
-          const duration =
-            randomBetween(
-              noiseConfig.minDuration,
-              noiseConfig.maxDuration
-            );
 
 
           noiseActive =
@@ -1649,7 +1581,10 @@
           noiseEndTimer =
             window.setTimeout(
               clearNoiseEvent,
-              duration
+              randomBetween(
+                noiseConfig.minDuration,
+                noiseConfig.maxDuration
+              )
             );
 
         }
@@ -1686,20 +1621,6 @@
           triggerSignalEvent();
 
 
-          const echoDelay =
-            randomBetween(
-              failureConfig.echoDelayMin,
-              failureConfig.echoDelayMax
-            );
-
-
-          const noiseDelay =
-            randomBetween(
-              failureConfig.noiseDelayMin,
-              failureConfig.noiseDelayMax
-            );
-
-
           failureEchoTimer =
             window.setTimeout(
               function () {
@@ -1714,7 +1635,10 @@
                 }
 
               },
-              echoDelay
+              randomBetween(
+                failureConfig.echoDelayMin,
+                failureConfig.echoDelayMax
+              )
             );
 
 
@@ -1732,7 +1656,10 @@
                 }
 
               },
-              noiseDelay
+              randomBetween(
+                failureConfig.noiseDelayMin,
+                failureConfig.noiseDelayMax
+              )
             );
 
         }
@@ -1756,12 +1683,10 @@
           }
 
 
-          return Math.min(
-            Math.max(
-              audio.currentTime /
-              audio.duration,
-              0
-            ),
+          return clamp(
+            audio.currentTime /
+            audio.duration,
+            0,
             1
           );
 
@@ -1770,12 +1695,12 @@
 
         function getProgressionWeights() {
 
-          const progressRatio =
+          const ratio =
             getPlaybackProgress();
 
 
           if (
-            progressRatio <
+            ratio <
             progressionConfig.earlyEnd
           ) {
 
@@ -1785,7 +1710,7 @@
 
 
           if (
-            progressRatio <
+            ratio <
             progressionConfig.middleEnd
           ) {
 
@@ -1800,7 +1725,7 @@
 
 
         /* ====================================================
-           DISTURBANCE PROFILE SELECTION
+           DISTURBANCE SELECTION
         ==================================================== */
 
         function chooseDisturbanceProfile() {
@@ -1846,7 +1771,7 @@
           ];
 
 
-          const availableProfiles =
+          const available =
             profiles.filter(
               function (profile) {
 
@@ -1859,15 +1784,15 @@
             );
 
 
-          const totalWeight =
-            availableProfiles.reduce(
+          const total =
+            available.reduce(
               function (
-                total,
+                sum,
                 profile
               ) {
 
                 return (
-                  total +
+                  sum +
                   profile.weight
                 );
 
@@ -1879,18 +1804,18 @@
           let roll =
             randomBetween(
               0,
-              totalWeight
+              total
             );
 
 
           for (
             let index = 0;
-            index < availableProfiles.length;
+            index < available.length;
             index += 1
           ) {
 
             const profile =
-              availableProfiles[index];
+              available[index];
 
 
             if (
@@ -1910,8 +1835,8 @@
 
 
           return (
-            availableProfiles[
-              availableProfiles.length - 1
+            available[
+              available.length - 1
             ].name
           );
 
@@ -1923,7 +1848,7 @@
         ==================================================== */
 
         function scheduleNextDisturbance(
-          useFailureCooldown
+          failureCooldown
         ) {
 
           if (
@@ -1939,28 +1864,16 @@
           );
 
 
-          let delay;
-
-
-          if (
-            useFailureCooldown
-          ) {
-
-            delay =
-              randomBetween(
-                disturbanceConfig.failureCooldownMin,
-                disturbanceConfig.failureCooldownMax
-              );
-
-          } else {
-
-            delay =
-              randomBetween(
-                disturbanceConfig.minDelay,
-                disturbanceConfig.maxDelay
-              );
-
-          }
+          const delay =
+            failureCooldown
+              ? randomBetween(
+                  disturbanceConfig.failureCooldownMin,
+                  disturbanceConfig.failureCooldownMax
+                )
+              : randomBetween(
+                  disturbanceConfig.minDelay,
+                  disturbanceConfig.maxDelay
+                );
 
 
           disturbanceTimer =
@@ -1985,20 +1898,10 @@
           clearFailureSequence();
 
 
-          const shouldTrigger =
-            Math.random() <
-            disturbanceConfig.eventChance;
-
-
-          /*
-            Intentional silence.
-
-            lastDisturbanceProfile remains untouched, so the
-            next actual event still remembers the previous
-            visible disturbance.
-          */
-
-          if (!shouldTrigger) {
+          if (
+            Math.random() >=
+            disturbanceConfig.eventChance
+          ) {
 
             scheduleNextDisturbance(
               false
@@ -2023,7 +1926,6 @@
 
               triggerEchoEvent();
 
-
               scheduleNextDisturbance(
                 false
               );
@@ -2034,7 +1936,6 @@
             case 'fracture':
 
               triggerSignalEvent();
-
 
               scheduleNextDisturbance(
                 false
@@ -2047,9 +1948,7 @@
 
               triggerSignalEvent();
 
-
               triggerEchoEvent();
-
 
               scheduleNextDisturbance(
                 false
@@ -2061,7 +1960,6 @@
             case 'failure':
 
               triggerFailureEvent();
-
 
               scheduleNextDisturbance(
                 true
@@ -2095,27 +1993,20 @@
 
           clearFailureSequence();
 
-
           clearSignalEvent();
-
 
           clearEchoEvent();
 
-
           clearNoiseEvent();
-
-
-          const firstDelay =
-            randomBetween(
-              disturbanceConfig.firstDelayMin,
-              disturbanceConfig.firstDelayMax
-            );
 
 
           disturbanceTimer =
             window.setTimeout(
               triggerDisturbance,
-              firstDelay
+              randomBetween(
+                disturbanceConfig.firstDelayMin,
+                disturbanceConfig.firstDelayMax
+              )
             );
 
         }
@@ -2138,12 +2029,9 @@
 
           clearFailureSequence();
 
-
           clearSignalEvent();
 
-
           clearEchoEvent();
-
 
           clearNoiseEvent();
 
@@ -2151,7 +2039,7 @@
 
 
         /* ====================================================
-           VISIBILITY HANDLING
+           VISIBILITY
         ==================================================== */
 
         function suspendVisualBehavior() {
@@ -2161,7 +2049,6 @@
 
 
           stopPinMovement();
-
 
           stopDisturbances();
 
@@ -2187,7 +2074,6 @@
 
 
           startPinMovement();
-
 
           startDisturbances();
 
@@ -2235,6 +2121,10 @@
                 0;
 
 
+              lastDisturbanceProfile =
+                null;
+
+
               setRingProgress(
                 1
               );
@@ -2245,24 +2135,22 @@
             showRing();
 
 
-            const playPromise =
+            const promise =
               audio.play();
 
 
             if (
-              playPromise &&
-              typeof playPromise.catch ===
+              promise &&
+              typeof promise.catch ===
               'function'
             ) {
 
-              playPromise.catch(
+              promise.catch(
                 function (error) {
 
                   hideRing();
 
-
                   stopPinMovement();
-
 
                   stopDisturbances();
 
@@ -2321,7 +2209,6 @@
 
               startPinMovement();
 
-
               startDisturbances();
 
             }
@@ -2340,7 +2227,6 @@
 
 
             stopPinMovement();
-
 
             stopDisturbances();
 
@@ -2377,16 +2263,8 @@
 
             stopPinMovement();
 
-
             stopDisturbances();
 
-
-            /*
-              Playback has completed.
-
-              Clear disturbance memory so replay begins with a
-              fresh behavioral history.
-            */
 
             lastDisturbanceProfile =
               null;
