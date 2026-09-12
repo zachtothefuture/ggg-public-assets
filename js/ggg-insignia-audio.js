@@ -3,7 +3,7 @@
    COMPONENT — INSIGNIA AUDIO PLAYER
 
    VERSION
-   v2.6 — Centralized Pin Asset
+   v2.7 — Physical Press + Audio Cue State
 
    PURPOSE
    Turns the Guild insignia into a discreet audio control.
@@ -14,6 +14,21 @@
    • CSS receives the same image through --ggg-pin-image
    • signal, echo and noise mask therefore remain synchronized
    • artwork can be replaced in one location
+
+   PHYSICAL PRESS
+   • pointer contact applies .is-pressed
+   • mouse, touch and pen use the same physical down state
+   • release / cancellation removes the state immediately
+   • CSS applies the physical depression to the pin wrapper
+   • supernatural drift remains independent on the pin
+
+   AUDIO CUE STATE
+   • active playback applies:
+       html.ggg-audio-is-playing
+   • the dedicated "touch to listen" ghost note may use this
+     as a suppression state
+   • pause / end removes the global playback state
+   • normal flashlight / character reveal behavior resumes
 
    DISTURBANCE SYSTEM
    • echo
@@ -748,6 +763,32 @@
 
 
         /* ====================================================
+           GLOBAL AUDIO CUE STATE
+
+           The HTML-level class acts only as an audio-state
+           signal. Individual ghost notes choose whether they
+           respond to it through their own modifier class.
+        ==================================================== */
+
+        function updateGlobalAudioState() {
+
+          const anyPlaying =
+            document.querySelector(
+              '.ggg-insignia-audio.is-playing'
+            );
+
+
+          document.documentElement.classList.toggle(
+            'ggg-audio-is-playing',
+            Boolean(
+              anyPlaying
+            )
+          );
+
+        }
+
+
+        /* ====================================================
            PLAYER STATE
         ==================================================== */
 
@@ -774,6 +815,9 @@
               : 'Play The Guild of Ghostly Grounds podcast teaser'
           );
 
+
+          updateGlobalAudioState();
+
         }
 
 
@@ -790,6 +834,125 @@
 
           player.classList.remove(
             'is-active'
+          );
+
+        }
+
+
+        /* ====================================================
+           PHYSICAL PRESS STATE
+
+           Pointer Events provide one interaction model for:
+           • mouse
+           • touch
+           • pen
+
+           Pointer capture keeps the physical press engaged
+           until the initiating contact actually ends.
+        ==================================================== */
+
+        function beginPress(
+          event
+        ) {
+
+          if (
+            event.isPrimary ===
+            false
+          ) {
+            return;
+          }
+
+
+          if (
+            event.pointerType ===
+            'mouse' &&
+            event.button !==
+            0
+          ) {
+            return;
+          }
+
+
+          player.classList.add(
+            'is-pressed'
+          );
+
+
+          if (
+            typeof button.setPointerCapture ===
+            'function'
+          ) {
+
+            try {
+
+              button.setPointerCapture(
+                event.pointerId
+              );
+
+            } catch (error) {
+
+              /*
+                Pointer capture is enhancement only.
+                Native pointer events still provide the
+                fallback interaction state.
+              */
+
+            }
+
+          }
+
+        }
+
+
+        function endPress(
+          event
+        ) {
+
+          player.classList.remove(
+            'is-pressed'
+          );
+
+
+          if (
+            event &&
+            typeof button.hasPointerCapture ===
+              'function' &&
+            typeof button.releasePointerCapture ===
+              'function'
+          ) {
+
+            try {
+
+              if (
+                button.hasPointerCapture(
+                  event.pointerId
+                )
+              ) {
+
+                button.releasePointerCapture(
+                  event.pointerId
+                );
+
+              }
+
+            } catch (error) {
+
+              /*
+                Nothing further is required if pointer capture
+                has already been released by the browser.
+              */
+
+            }
+
+          }
+
+        }
+
+
+        function cancelPress() {
+
+          player.classList.remove(
+            'is-pressed'
           );
 
         }
@@ -2048,6 +2211,8 @@
             true;
 
 
+          cancelPress();
+
           stopPinMovement();
 
           stopDisturbances();
@@ -2148,6 +2313,11 @@
               promise.catch(
                 function (error) {
 
+                  setPlayingState(
+                    false
+                  );
+
+
                   hideRing();
 
                   stopPinMovement();
@@ -2175,7 +2345,41 @@
 
 
         /* ====================================================
-           EVENTS
+           EVENTS — PHYSICAL PRESS
+        ==================================================== */
+
+        button.addEventListener(
+          'pointerdown',
+          beginPress
+        );
+
+
+        button.addEventListener(
+          'pointerup',
+          endPress
+        );
+
+
+        button.addEventListener(
+          'pointercancel',
+          cancelPress
+        );
+
+
+        button.addEventListener(
+          'lostpointercapture',
+          cancelPress
+        );
+
+
+        button.addEventListener(
+          'blur',
+          cancelPress
+        );
+
+
+        /* ====================================================
+           EVENTS — PLAYBACK
         ==================================================== */
 
         button.addEventListener(
@@ -2226,6 +2430,8 @@
             );
 
 
+            cancelPress();
+
             stopPinMovement();
 
             stopDisturbances();
@@ -2260,6 +2466,8 @@
               false
             );
 
+
+            cancelPress();
 
             stopPinMovement();
 
@@ -2305,6 +2513,9 @@
         ==================================================== */
 
         updateSpatialScale();
+
+
+        cancelPress();
 
 
         setPlayingState(
