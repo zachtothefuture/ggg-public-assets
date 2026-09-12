@@ -3,7 +3,7 @@
    COMPONENT — INSIGNIA AUDIO PLAYER
 
    VERSION
-   v2.1 — Composed Disturbance Profiles
+   v2.2 — Disturbance Memory + Failure Cooldown
 
    PURPOSE
    Turns the Guild insignia into a discreet audio control.
@@ -18,10 +18,7 @@
      rotate, and scale at irregular intervals
 
    DISTURBANCE SYSTEM
-   Supernatural interference is now composed into several
-   event profiles rather than rolling every effect separately.
-
-   EVENT PROFILES
+   Supernatural interference is composed into four profiles:
 
    ECHO
    • exaggerated full-image registration error
@@ -41,11 +38,24 @@
    • signal displacement begins
    • registration echo follows
    • analog static briefly contaminates the image
-   • timing is staggered so the event develops over several
-     frames rather than appearing all at once
+   • timing is staggered across several frames
 
-   SILENCE
-   • some scheduled opportunities intentionally do nothing
+   DISTURBANCE MEMORY
+   • the same profile cannot occur twice consecutively
+   • intentional silent opportunities do not erase memory
+   • profile selection remains weighted and irregular
+
+   FAILURE COOLDOWN
+   • normal disturbance delay = 12–28 seconds
+   • after a failure = 20–38 seconds
+   • prevents strong events from clustering together
+
+   MICRO-MOVEMENT
+   • no repeating CSS animation
+   • movement is generated at irregular intervals
+   • some intervals intentionally contain no movement
+   • first movement is delayed after playback begins
+   • pause / end returns the pin quietly to rest
 
    CLEANUP
    • pause / end immediately clears:
@@ -53,6 +63,7 @@
        - signal slices
        - echo
        - analog noise
+       - pending failure sequence timers
        - pending disturbance timers
 ========================================================== */
 
@@ -228,11 +239,21 @@
 
         const disturbanceConfig = {
 
+          /*
+            Let playback establish itself before the first
+            possible disturbance.
+          */
+
           firstDelayMin:
             8000,
 
           firstDelayMax:
             14000,
+
+
+          /*
+            Normal quiet period between opportunities.
+          */
 
           minDelay:
             12000,
@@ -240,11 +261,21 @@
           maxDelay:
             28000,
 
-          /*
-            Some scheduled opportunities deliberately produce
-            nothing.
 
-            0.72 means 72% become an actual disturbance.
+          /*
+            Longer recovery period after a full failure.
+          */
+
+          failureCooldownMin:
+            20000,
+
+          failureCooldownMax:
+            38000,
+
+
+          /*
+            Some scheduled opportunities intentionally
+            produce nothing.
           */
 
           eventChance:
@@ -252,10 +283,9 @@
 
 
           /*
-            Relative profile weights.
+            Relative weights for actual disturbances.
 
-            They do not need to total 1. JavaScript normalizes
-            them automatically.
+            They do not need to total 100.
           */
 
           echoWeight:
@@ -382,9 +412,6 @@
 
         /* ====================================================
            CONFIG — FAILURE SEQUENCE
-
-           The strongest event unfolds instead of switching
-           every layer on simultaneously.
         ==================================================== */
 
         const failureConfig = {
@@ -422,6 +449,16 @@
 
         let disturbanceActive =
           false;
+
+
+        /*
+          Remembers only actual disturbance profiles.
+
+          Silent opportunities do not modify this.
+        */
+
+        let lastDisturbanceProfile =
+          null;
 
 
         let signalEndTimer =
@@ -1052,7 +1089,8 @@
 
 
           /*
-            Second registration copy lands opposite the first.
+            The second registration copy usually falls on the
+            opposite side of the original image.
           */
 
           const x2 =
@@ -1456,80 +1494,186 @@
 
         /* ====================================================
            DISTURBANCE PROFILE SELECTION
+
+           The previously used profile is removed from the
+           available weighted pool before a new one is chosen.
         ==================================================== */
 
         function chooseDisturbanceProfile() {
 
-          const echoWeight =
-            disturbanceConfig.echoWeight;
+          const profiles = [
+
+            {
+              name:
+                'echo',
+
+              weight:
+                disturbanceConfig.echoWeight
+            },
+
+            {
+              name:
+                'fracture',
+
+              weight:
+                disturbanceConfig.fractureWeight
+            },
+
+            {
+              name:
+                'dislocation',
+
+              weight:
+                disturbanceConfig.dislocationWeight
+            },
+
+            {
+              name:
+                'failure',
+
+              weight:
+                disturbanceConfig.failureWeight
+            }
+
+          ];
 
 
-          const fractureWeight =
-            disturbanceConfig.fractureWeight;
+          /*
+            Remove the immediately previous profile.
 
+            Its weight is not redistributed explicitly;
+            the remaining weights naturally normalize against
+            their new total.
+          */
 
-          const dislocationWeight =
-            disturbanceConfig.dislocationWeight;
+          const availableProfiles =
+            profiles.filter(
+              function (profile) {
 
+                return (
+                  profile.name !==
+                  lastDisturbanceProfile
+                );
 
-          const failureWeight =
-            disturbanceConfig.failureWeight;
-
-
-          const total =
-            echoWeight +
-            fractureWeight +
-            dislocationWeight +
-            failureWeight;
-
-
-          const roll =
-            randomBetween(
-              0,
-              total
+              }
             );
 
 
-          if (
-            roll < echoWeight
+          const totalWeight =
+            availableProfiles.reduce(
+              function (
+                total,
+                profile
+              ) {
+
+                return (
+                  total +
+                  profile.weight
+                );
+
+              },
+              0
+            );
+
+
+          let roll =
+            randomBetween(
+              0,
+              totalWeight
+            );
+
+
+          for (
+            let index = 0;
+            index < availableProfiles.length;
+            index += 1
           ) {
 
-            return 'echo';
+            const profile =
+              availableProfiles[index];
+
+
+            if (
+              roll <
+              profile.weight
+            ) {
+
+              return profile.name;
+
+            }
+
+
+            roll -=
+              profile.weight;
 
           }
 
 
-          if (
-            roll <
-            echoWeight +
-            fractureWeight
-          ) {
+          /*
+            Defensive fallback for floating-point edge cases.
+          */
 
-            return 'fracture';
-
-          }
-
-
-          if (
-            roll <
-            echoWeight +
-            fractureWeight +
-            dislocationWeight
-          ) {
-
-            return 'dislocation';
-
-          }
-
-
-          return 'failure';
+          return (
+            availableProfiles[
+              availableProfiles.length - 1
+            ].name
+          );
 
         }
 
 
         /* ====================================================
-           DISTURBANCE EVENTS
+           DISTURBANCE SCHEDULER
         ==================================================== */
+
+        function scheduleNextDisturbance(
+          useFailureCooldown
+        ) {
+
+          if (
+            !disturbanceActive
+          ) {
+            return;
+          }
+
+
+          window.clearTimeout(
+            disturbanceTimer
+          );
+
+
+          let delay;
+
+
+          if (
+            useFailureCooldown
+          ) {
+
+            delay =
+              randomBetween(
+                disturbanceConfig.failureCooldownMin,
+                disturbanceConfig.failureCooldownMax
+              );
+
+          } else {
+
+            delay =
+              randomBetween(
+                disturbanceConfig.minDelay,
+                disturbanceConfig.maxDelay
+              );
+
+          }
+
+
+          disturbanceTimer =
+            window.setTimeout(
+              triggerDisturbance,
+              delay
+            );
+
+        }
+
 
         function triggerDisturbance() {
 
@@ -1553,15 +1697,19 @@
           /*
             Intentional silence.
 
-            The scheduler still advances, but nothing visual
-            happens during this opportunity.
+            Importantly, lastDisturbanceProfile is NOT changed.
+
+            The next actual event still remembers the previous
+            visible disturbance.
           */
 
           if (
             !shouldTrigger
           ) {
 
-            scheduleNextDisturbance();
+            scheduleNextDisturbance(
+              false
+            );
 
             return;
 
@@ -1572,6 +1720,15 @@
             chooseDisturbanceProfile();
 
 
+          /*
+            Memory is updated only when an actual disturbance
+            has been selected.
+          */
+
+          lastDisturbanceProfile =
+            profile;
+
+
           switch (
             profile
           ) {
@@ -1580,12 +1737,20 @@
 
               triggerEchoEvent();
 
+              scheduleNextDisturbance(
+                false
+              );
+
               break;
 
 
             case 'fracture':
 
               triggerSignalEvent();
+
+              scheduleNextDisturbance(
+                false
+              );
 
               break;
 
@@ -1594,7 +1759,13 @@
 
               triggerSignalEvent();
 
+
               triggerEchoEvent();
+
+
+              scheduleNextDisturbance(
+                false
+              );
 
               break;
 
@@ -1603,42 +1774,19 @@
 
               triggerFailureEvent();
 
+
+              /*
+                A full failure receives a longer recovery
+                period before the next opportunity.
+              */
+
+              scheduleNextDisturbance(
+                true
+              );
+
               break;
 
           }
-
-
-          scheduleNextDisturbance();
-
-        }
-
-
-        function scheduleNextDisturbance() {
-
-          if (
-            !disturbanceActive
-          ) {
-            return;
-          }
-
-
-          window.clearTimeout(
-            disturbanceTimer
-          );
-
-
-          const delay =
-            randomBetween(
-              disturbanceConfig.minDelay,
-              disturbanceConfig.maxDelay
-            );
-
-
-          disturbanceTimer =
-            window.setTimeout(
-              triggerDisturbance,
-              delay
-            );
 
         }
 
@@ -1880,6 +2028,17 @@
 
 
             stopDisturbances();
+
+
+            /*
+              Playback has completed.
+
+              Clear disturbance memory so replay begins with a
+              fresh behavioral history.
+            */
+
+            lastDisturbanceProfile =
+              null;
 
 
             setRingProgress(
