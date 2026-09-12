@@ -3,18 +3,18 @@
    COMPONENT — INSIGNIA AUDIO PLAYER
 
    VERSION
-   v1.2 — Orange Countdown Time Loop
+   v1.3 — Continuous Orange Countdown Ring
 
    PURPOSE
    Turns the Guild insignia into a discreet audio control.
 
    INTERACTION
    • click pin = play / pause
-   • playback begins with a full orange ring
+   • playback begins with one complete orange ring
    • ring depletes clockwise as audio progresses
    • paused playback freezes ring position
    • completed playback leaves ring depleted, then hides it
-   • replay restores the full ring and starts from the beginning
+   • replay restores the full ring and starts from beginning
 ========================================================== */
 
 (function () {
@@ -81,6 +81,17 @@
         }
 
 
+        /*
+          Use the circle's actual rendered path length.
+
+          This avoids Safari interpreting normalized values
+          as repeating dash patterns around the circumference.
+        */
+
+        const circumference =
+          progress.getTotalLength();
+
+
         /* ====================================================
            STATE
         ==================================================== */
@@ -112,7 +123,7 @@
 
 
         /* ====================================================
-           ACTIVE STATE
+           RING VISIBILITY
         ==================================================== */
 
         function showRing() {
@@ -139,6 +150,11 @@
 
         function updateProgress() {
 
+          /*
+            Before metadata is available, render the complete
+            circumference so playback can begin cleanly.
+          */
+
           if (
             !Number.isFinite(
               audio.duration
@@ -147,10 +163,14 @@
           ) {
 
             progress.style.strokeDasharray =
-              '100 100';
+              circumference +
+              ' ' +
+              circumference;
+
 
             progress.style.strokeDashoffset =
               '0';
+
 
             return;
 
@@ -169,26 +189,27 @@
 
 
           /*
-            Remaining-time model:
+            Countdown model:
 
             start:
-              100
+              full circumference
 
             midpoint:
-              50
+              half circumference
 
             end:
-              0
+              zero circumference
           */
 
           const remaining =
-            (1 - ratio) *
-            100;
+            circumference *
+            (1 - ratio);
 
 
           progress.style.strokeDasharray =
             remaining +
-            ' 100';
+            ' ' +
+            circumference;
 
 
           progress.style.strokeDashoffset =
@@ -208,8 +229,8 @@
           ) {
 
             /*
-              If playback already completed,
-              reset to the beginning before replay.
+              If playback has already completed,
+              restore the beginning before replay.
             */
 
             if (
@@ -278,6 +299,7 @@
 
             showRing();
 
+
             setPlayingState(
               true
             );
@@ -310,6 +332,12 @@
         );
 
 
+        audio.addEventListener(
+          'durationchange',
+          updateProgress
+        );
+
+
         /* ====================================================
            COMPLETE
         ==================================================== */
@@ -324,11 +352,10 @@
 
 
             /*
-              Do not reset currentTime here.
+              Leave currentTime at duration.
 
-              Keeping currentTime at duration ensures the
-              countdown ring reaches zero rather than
-              jumping back to a complete circumference.
+              This keeps the ring fully depleted instead of
+              snapping back to a complete circle.
             */
 
             updateProgress();
@@ -386,7 +413,8 @@
       'DOMContentLoaded',
       initInsigniaAudioPlayers,
       {
-        once: true
+        once:
+          true
       }
     );
 
