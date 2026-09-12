@@ -3,7 +3,7 @@
    COMPONENT — INSIGNIA AUDIO PLAYER
 
    VERSION
-   v2.3 — Progressive Disturbance Bias
+   v2.4 — Visibility-Safe Disturbances
 
    PURPOSE
    Turns the Guild insignia into a discreet audio control.
@@ -58,6 +58,13 @@
    • nothing is synchronized to exact audio timestamps
    • visual effect strength remains unchanged
 
+   VISIBILITY HANDLING
+   • hidden tabs suspend movement and disturbances
+   • audio itself is not automatically paused
+   • no disturbance timers accumulate in the background
+   • returning to the page resumes behavior cleanly
+   • active visual contamination is cleared while hidden
+
    MICRO-MOVEMENT
    • no repeating CSS animation
    • movement is generated at irregular intervals
@@ -66,7 +73,7 @@
    • pause / end returns the pin quietly to rest
 
    CLEANUP
-   • pause / end immediately clears:
+   • pause / end / hidden-page state immediately clears:
        - movement
        - signal slices
        - echo
@@ -245,21 +252,11 @@
 
         const disturbanceConfig = {
 
-          /*
-            Let playback establish itself before the first
-            possible disturbance.
-          */
-
           firstDelayMin:
             8000,
 
           firstDelayMax:
             14000,
-
-
-          /*
-            Normal quiet period between opportunities.
-          */
 
           minDelay:
             12000,
@@ -267,22 +264,11 @@
           maxDelay:
             28000,
 
-
-          /*
-            Longer recovery period after a full failure.
-          */
-
           failureCooldownMin:
             20000,
 
           failureCooldownMax:
             38000,
-
-
-          /*
-            Some scheduled opportunities intentionally
-            produce nothing.
-          */
 
           eventChance:
             0.72
@@ -292,14 +278,6 @@
 
         /* ====================================================
            CONFIG — PLAYBACK PROGRESSION
-
-           These values affect profile selection only.
-
-           They do NOT change:
-           • event frequency
-           • visual strength
-           • effect duration
-           • cooldown timing
         ==================================================== */
 
         const progressionConfig = {
@@ -309,14 +287,6 @@
 
           middleEnd:
             0.66,
-
-
-          /*
-            FIRST THIRD
-
-            Strange behavior begins, but disturbances remain
-            relatively restrained.
-          */
 
           early: {
 
@@ -334,13 +304,6 @@
 
           },
 
-
-          /*
-            MIDDLE THIRD
-
-            Compound registration errors become more common.
-          */
-
           middle: {
 
             echoWeight:
@@ -356,15 +319,6 @@
               12
 
           },
-
-
-          /*
-            FINAL THIRD
-
-            Simple anomalies become less dominant while
-            compound disturbances and failures become more
-            plausible.
-          */
 
           late: {
 
@@ -420,8 +374,6 @@
 
         /* ====================================================
            CONFIG — ANALOG ECHO
-
-           Intentionally stronger than the other layers.
         ==================================================== */
 
         const echoConfig = {
@@ -533,12 +485,6 @@
           false;
 
 
-        /*
-          Remembers only actual disturbance profiles.
-
-          Silent opportunities do not modify this.
-        */
-
         let lastDisturbanceProfile =
           null;
 
@@ -569,6 +515,10 @@
 
         let failureNoiseTimer =
           null;
+
+
+        let visibilitySuspended =
+          document.hidden;
 
 
         /* ====================================================
@@ -617,6 +567,18 @@
           return window.matchMedia(
             '(prefers-reduced-motion: reduce)'
           ).matches;
+
+        }
+
+
+        function canRunVisualBehavior() {
+
+          return (
+            !visibilitySuspended &&
+            !prefersReducedMotion() &&
+            !audio.paused &&
+            !audio.ended
+          );
 
         }
 
@@ -770,7 +732,10 @@
 
         function scheduleNextMovement() {
 
-          if (!movementActive) {
+          if (
+            !movementActive ||
+            visibilitySuspended
+          ) {
             return;
           }
 
@@ -798,7 +763,10 @@
 
         function movePin() {
 
-          if (!movementActive) {
+          if (
+            !movementActive ||
+            visibilitySuspended
+          ) {
             return;
           }
 
@@ -892,7 +860,7 @@
         function startPinMovement() {
 
           if (
-            prefersReducedMotion() ||
+            !canRunVisualBehavior() ||
             movementActive
           ) {
             return;
@@ -1109,8 +1077,7 @@
         function triggerSignalEvent() {
 
           if (
-            audio.paused ||
-            audio.ended
+            !canRunVisualBehavior()
           ) {
             return;
           }
@@ -1260,8 +1227,7 @@
         function triggerEchoEvent() {
 
           if (
-            audio.paused ||
-            audio.ended
+            !canRunVisualBehavior()
           ) {
             return;
           }
@@ -1300,7 +1266,10 @@
 
         function drawNoiseFrame() {
 
-          if (!noiseActive) {
+          if (
+            !noiseActive ||
+            visibilitySuspended
+          ) {
             return;
           }
 
@@ -1425,8 +1394,7 @@
         function triggerNoiseEvent() {
 
           if (
-            audio.paused ||
-            audio.ended
+            !canRunVisualBehavior()
           ) {
             return;
           }
@@ -1527,8 +1495,7 @@
 
                 if (
                   disturbanceActive &&
-                  !audio.paused &&
-                  !audio.ended
+                  canRunVisualBehavior()
                 ) {
 
                   triggerEchoEvent();
@@ -1546,8 +1513,7 @@
 
                 if (
                   disturbanceActive &&
-                  !audio.paused &&
-                  !audio.ended
+                  canRunVisualBehavior()
                 ) {
 
                   triggerNoiseEvent();
@@ -1624,11 +1590,6 @@
 
         /* ====================================================
            DISTURBANCE PROFILE SELECTION
-
-           The profile weights change as playback progresses.
-
-           The previously used profile is still removed from
-           the available weighted pool before selection.
         ==================================================== */
 
         function chooseDisturbanceProfile() {
@@ -1673,13 +1634,6 @@
 
           ];
 
-
-          /*
-            Remove the immediately previous profile.
-
-            Silent opportunities do not modify the stored
-            profile, so memory persists through quiet periods.
-          */
 
           const availableProfiles =
             profiles.filter(
@@ -1744,10 +1698,6 @@
           }
 
 
-          /*
-            Defensive fallback for floating-point edge cases.
-          */
-
           return (
             availableProfiles[
               availableProfiles.length - 1
@@ -1765,7 +1715,10 @@
           useFailureCooldown
         ) {
 
-          if (!disturbanceActive) {
+          if (
+            !disturbanceActive ||
+            visibilitySuspended
+          ) {
             return;
           }
 
@@ -1812,8 +1765,7 @@
 
           if (
             !disturbanceActive ||
-            audio.paused ||
-            audio.ended
+            !canRunVisualBehavior()
           ) {
             return;
           }
@@ -1826,14 +1778,6 @@
             Math.random() <
             disturbanceConfig.eventChance;
 
-
-          /*
-            Intentional silence.
-
-            lastDisturbanceProfile remains untouched, so the
-            next actual event still remembers the previous
-            visible disturbance.
-          */
 
           if (!shouldTrigger) {
 
@@ -1849,11 +1793,6 @@
           const profile =
             chooseDisturbanceProfile();
 
-
-          /*
-            Memory updates only when a real disturbance has
-            actually been selected.
-          */
 
           lastDisturbanceProfile =
             profile;
@@ -1919,7 +1858,7 @@
         function startDisturbances() {
 
           if (
-            prefersReducedMotion() ||
+            !canRunVisualBehavior() ||
             disturbanceActive
           ) {
             return;
@@ -1988,6 +1927,64 @@
 
 
           clearNoiseEvent();
+
+        }
+
+
+        /* ====================================================
+           VISIBILITY HANDLING
+        ==================================================== */
+
+        function suspendVisualBehavior() {
+
+          visibilitySuspended =
+            true;
+
+
+          stopPinMovement();
+
+
+          stopDisturbances();
+
+        }
+
+
+        function resumeVisualBehavior() {
+
+          visibilitySuspended =
+            false;
+
+
+          if (
+            audio.paused ||
+            audio.ended ||
+            prefersReducedMotion()
+          ) {
+            return;
+          }
+
+
+          startPinMovement();
+
+
+          startDisturbances();
+
+        }
+
+
+        function handleVisibilityChange() {
+
+          if (
+            document.hidden
+          ) {
+
+            suspendVisualBehavior();
+
+          } else {
+
+            resumeVisualBehavior();
+
+          }
 
         }
 
@@ -2093,10 +2090,16 @@
             );
 
 
-            startPinMovement();
+            if (
+              !document.hidden
+            ) {
+
+              startPinMovement();
 
 
-            startDisturbances();
+              startDisturbances();
+
+            }
 
           }
         );
@@ -2153,13 +2156,6 @@
             stopDisturbances();
 
 
-            /*
-              Playback has completed.
-
-              Clear disturbance memory so replay begins with a
-              fresh behavioral history.
-            */
-
             lastDisturbanceProfile =
               null;
 
@@ -2172,7 +2168,9 @@
             window.setTimeout(
               function () {
 
-                if (audio.ended) {
+                if (
+                  audio.ended
+                ) {
 
                   hideRing();
 
@@ -2183,6 +2181,12 @@
             );
 
           }
+        );
+
+
+        document.addEventListener(
+          'visibilitychange',
+          handleVisibilityChange
         );
 
 
