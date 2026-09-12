@@ -109,10 +109,10 @@
         const movementConfig = {
 
           maxX:
-            1,
+            20,
 
           maxY:
-            0.55,
+            20,
 
           maxRotation:
             0.55,
@@ -121,7 +121,7 @@
             0.015,
 
           minDelay:
-            6000,
+            500,
 
           maxDelay:
             18000,
