@@ -3,7 +3,7 @@
    COMPONENT — INSIGNIA AUDIO PLAYER
 
    VERSION
-   v2.0 — Countdown Ring + Signal + Echo + Analog Noise
+   v2.1 — Composed Disturbance Profiles
 
    PURPOSE
    Turns the Guild insignia into a discreet audio control.
@@ -16,38 +16,36 @@
    • end depletes ring completely, then hides it
    • while audio is playing, the pin may subtly drift,
      rotate, and scale at irregular intervals
-   • occasional contamination may create:
-       - displaced horizontal pin fragments
-       - faint analog registration echoes
-       - brief monochrome static inside the pin silhouette
 
-   MICRO-MOVEMENT
-   • no repeating CSS animation
-   • movement is generated at irregular intervals
-   • some intervals intentionally contain no movement
-   • first movement is delayed after playback begins
-   • pause / end returns the pin quietly to rest
+   DISTURBANCE SYSTEM
+   Supernatural interference is now composed into several
+   event profiles rather than rolling every effect separately.
 
-   SIGNAL CONTAMINATION
-   • signal events begin only after playback has established
-   • events occur at irregular intervals
-   • some intervals intentionally contain no event
-   • each event generates new slice positions
-   • each event generates new horizontal displacement
+   EVENT PROFILES
 
-   ANALOG ECHO
-   • echo may occur independently or with signal contamination
-   • two faint pin duplicates are displaced independently
-   • echo duration is brief and irregular
-   • no RGB separation
-   • no glow
-   • no looping animation
+   ECHO
+   • exaggerated full-image registration error
+   • no signal slicing
+   • no static
 
-   ANALOG NOISE
-   • noise is rendered into a low-resolution canvas
-   • noise appears only during some contamination events
-   • each frame contains fresh monochrome noise
-   • CSS masks the canvas to the pin silhouette
+   FRACTURE
+   • horizontal signal displacement
+   • no echo
+   • no static
+
+   DISLOCATION
+   • signal displacement
+   • exaggerated registration echo
+
+   FAILURE
+   • signal displacement begins
+   • registration echo follows
+   • analog static briefly contaminates the image
+   • timing is staggered so the event develops over several
+     frames rather than appearing all at once
+
+   SILENCE
+   • some scheduled opportunities intentionally do nothing
 
    CLEANUP
    • pause / end immediately clears:
@@ -55,6 +53,7 @@
        - signal slices
        - echo
        - analog noise
+       - pending disturbance timers
 ========================================================== */
 
 (function () {
@@ -224,10 +223,10 @@
 
 
         /* ====================================================
-           CONFIG — SIGNAL CONTAMINATION
+           CONFIG — DISTURBANCE SCHEDULER
         ==================================================== */
 
-        const signalConfig = {
+        const disturbanceConfig = {
 
           firstDelayMin:
             8000,
@@ -241,8 +240,44 @@
           maxDelay:
             28000,
 
+          /*
+            Some scheduled opportunities deliberately produce
+            nothing.
+
+            0.72 means 72% become an actual disturbance.
+          */
+
           eventChance:
-            0.65,
+            0.72,
+
+
+          /*
+            Relative profile weights.
+
+            They do not need to total 1. JavaScript normalizes
+            them automatically.
+          */
+
+          echoWeight:
+            30,
+
+          fractureWeight:
+            24,
+
+          dislocationWeight:
+            31,
+
+          failureWeight:
+            15
+
+        };
+
+
+        /* ====================================================
+           CONFIG — SIGNAL CONTAMINATION
+        ==================================================== */
+
+        const signalConfig = {
 
           minDuration:
             80,
@@ -273,15 +308,11 @@
 
         /* ====================================================
            CONFIG — ANALOG ECHO
+
+           Intentionally stronger than the other layers.
         ==================================================== */
 
         const echoConfig = {
-
-          independentChance:
-            0.55,
-
-          signalCompanionChance:
-            0.55,
 
           minDuration:
             300,
@@ -319,9 +350,6 @@
 
         const noiseConfig = {
 
-          eventChance:
-            0.38,
-
           minDuration:
             55,
 
@@ -353,6 +381,30 @@
 
 
         /* ====================================================
+           CONFIG — FAILURE SEQUENCE
+
+           The strongest event unfolds instead of switching
+           every layer on simultaneously.
+        ==================================================== */
+
+        const failureConfig = {
+
+          echoDelayMin:
+            25,
+
+          echoDelayMax:
+            70,
+
+          noiseDelayMin:
+            85,
+
+          noiseDelayMax:
+            150
+
+        };
+
+
+        /* ====================================================
            STATE
         ==================================================== */
 
@@ -364,16 +416,16 @@
           false;
 
 
-        let signalTimer =
+        let disturbanceTimer =
           null;
+
+
+        let disturbanceActive =
+          false;
 
 
         let signalEndTimer =
           null;
-
-
-        let signalActive =
-          false;
 
 
         let echoEndTimer =
@@ -390,6 +442,14 @@
 
         let noiseActive =
           false;
+
+
+        let failureEchoTimer =
+          null;
+
+
+        let failureNoiseTimer =
+          null;
 
 
         /* ====================================================
@@ -719,13 +779,7 @@
         function startPinMovement() {
 
           if (
-            prefersReducedMotion()
-          ) {
-            return;
-          }
-
-
-          if (
+            prefersReducedMotion() ||
             movementActive
           ) {
             return;
@@ -778,6 +832,205 @@
 
 
         /* ====================================================
+           SIGNAL
+        ==================================================== */
+
+        function setSignalSlice(
+          sliceNumber,
+          top,
+          height,
+          displacement
+        ) {
+
+          const bottom =
+            Math.max(
+              0,
+              100 - top - height
+            );
+
+
+          signal.style.setProperty(
+            '--ggg-signal-slice-' +
+            sliceNumber +
+            '-top',
+            top.toFixed(2) +
+            '%'
+          );
+
+
+          signal.style.setProperty(
+            '--ggg-signal-slice-' +
+            sliceNumber +
+            '-bottom',
+            bottom.toFixed(2) +
+            '%'
+          );
+
+
+          signal.style.setProperty(
+            '--ggg-signal-slice-' +
+            sliceNumber +
+            '-x',
+            displacement.toFixed(2) +
+            'px'
+          );
+
+        }
+
+
+        function randomizeSignal() {
+
+          const slice1Height =
+            randomBetween(
+              signalConfig.minSliceHeight,
+              signalConfig.maxSliceHeight
+            );
+
+
+          const slice2Height =
+            randomBetween(
+              signalConfig.minSliceHeight,
+              signalConfig.maxSliceHeight
+            );
+
+
+          const slice1Top =
+            randomBetween(
+              18,
+              72 - slice1Height
+            );
+
+
+          let slice2Top =
+            randomBetween(
+              24,
+              82 - slice2Height
+            );
+
+
+          if (
+            Math.abs(
+              slice2Top -
+              slice1Top
+            ) < 10
+          ) {
+
+            slice2Top +=
+              12;
+
+          }
+
+
+          slice2Top =
+            Math.min(
+              slice2Top,
+              92 - slice2Height
+            );
+
+
+          const displacement1 =
+            randomBetween(
+              signalConfig.minDisplacement,
+              signalConfig.maxDisplacement
+            ) *
+            randomSign();
+
+
+          const displacement2 =
+            randomBetween(
+              signalConfig.minDisplacement,
+              signalConfig.maxDisplacement
+            ) *
+            randomSign();
+
+
+          const opacity =
+            randomBetween(
+              signalConfig.minOpacity,
+              signalConfig.maxOpacity
+            );
+
+
+          setSignalSlice(
+            1,
+            slice1Top,
+            slice1Height,
+            displacement1
+          );
+
+
+          setSignalSlice(
+            2,
+            slice2Top,
+            slice2Height,
+            displacement2
+          );
+
+
+          signal.style.setProperty(
+            '--ggg-signal-opacity',
+            opacity.toFixed(2)
+          );
+
+        }
+
+
+        function clearSignalEvent() {
+
+          window.clearTimeout(
+            signalEndTimer
+          );
+
+
+          signalEndTimer =
+            null;
+
+
+          player.classList.remove(
+            'is-signal-contaminated'
+          );
+
+        }
+
+
+        function triggerSignalEvent() {
+
+          if (
+            audio.paused ||
+            audio.ended
+          ) {
+            return;
+          }
+
+
+          clearSignalEvent();
+
+
+          randomizeSignal();
+
+
+          player.classList.add(
+            'is-signal-contaminated'
+          );
+
+
+          const duration =
+            randomBetween(
+              signalConfig.minDuration,
+              signalConfig.maxDuration
+            );
+
+
+          signalEndTimer =
+            window.setTimeout(
+              clearSignalEvent,
+              duration
+            );
+
+        }
+
+
+        /* ====================================================
            ANALOG ECHO
         ==================================================== */
 
@@ -799,11 +1052,7 @@
 
 
           /*
-            The second copy usually falls on the opposite side
-            of the original image.
-
-            This creates a registration error rather than a
-            simple shadow.
+            Second registration copy lands opposite the first.
           */
 
           const x2 =
@@ -902,7 +1151,6 @@
         function triggerEchoEvent() {
 
           if (
-            prefersReducedMotion() ||
             audio.paused ||
             audio.ended
           ) {
@@ -1070,7 +1318,6 @@
         function triggerNoiseEvent() {
 
           if (
-            prefersReducedMotion() ||
             audio.paused ||
             audio.ended
           ) {
@@ -1123,171 +1370,171 @@
 
 
         /* ====================================================
-           SIGNAL CONTAMINATION
+           FAILURE SEQUENCE
         ==================================================== */
 
-        function setSignalSlice(
-          sliceNumber,
-          top,
-          height,
-          displacement
-        ) {
+        function clearFailureSequence() {
 
-          const bottom =
-            Math.max(
-              0,
-              100 - top - height
-            );
-
-
-          signal.style.setProperty(
-            '--ggg-signal-slice-' +
-            sliceNumber +
-            '-top',
-            top.toFixed(2) +
-            '%'
+          window.clearTimeout(
+            failureEchoTimer
           );
 
 
-          signal.style.setProperty(
-            '--ggg-signal-slice-' +
-            sliceNumber +
-            '-bottom',
-            bottom.toFixed(2) +
-            '%'
+          window.clearTimeout(
+            failureNoiseTimer
           );
 
 
-          signal.style.setProperty(
-            '--ggg-signal-slice-' +
-            sliceNumber +
-            '-x',
-            displacement.toFixed(2) +
-            'px'
-          );
+          failureEchoTimer =
+            null;
+
+
+          failureNoiseTimer =
+            null;
 
         }
 
 
-        function randomizeSignal() {
+        function triggerFailureEvent() {
 
-          const slice1Height =
+          triggerSignalEvent();
+
+
+          const echoDelay =
             randomBetween(
-              signalConfig.minSliceHeight,
-              signalConfig.maxSliceHeight
+              failureConfig.echoDelayMin,
+              failureConfig.echoDelayMax
             );
 
 
-          const slice2Height =
+          const noiseDelay =
             randomBetween(
-              signalConfig.minSliceHeight,
-              signalConfig.maxSliceHeight
+              failureConfig.noiseDelayMin,
+              failureConfig.noiseDelayMax
             );
 
 
-          const slice1Top =
-            randomBetween(
-              18,
-              72 - slice1Height
+          failureEchoTimer =
+            window.setTimeout(
+              function () {
+
+                if (
+                  disturbanceActive &&
+                  !audio.paused &&
+                  !audio.ended
+                ) {
+
+                  triggerEchoEvent();
+
+                }
+
+              },
+              echoDelay
             );
 
 
-          let slice2Top =
+          failureNoiseTimer =
+            window.setTimeout(
+              function () {
+
+                if (
+                  disturbanceActive &&
+                  !audio.paused &&
+                  !audio.ended
+                ) {
+
+                  triggerNoiseEvent();
+
+                }
+
+              },
+              noiseDelay
+            );
+
+        }
+
+
+        /* ====================================================
+           DISTURBANCE PROFILE SELECTION
+        ==================================================== */
+
+        function chooseDisturbanceProfile() {
+
+          const echoWeight =
+            disturbanceConfig.echoWeight;
+
+
+          const fractureWeight =
+            disturbanceConfig.fractureWeight;
+
+
+          const dislocationWeight =
+            disturbanceConfig.dislocationWeight;
+
+
+          const failureWeight =
+            disturbanceConfig.failureWeight;
+
+
+          const total =
+            echoWeight +
+            fractureWeight +
+            dislocationWeight +
+            failureWeight;
+
+
+          const roll =
             randomBetween(
-              24,
-              82 - slice2Height
+              0,
+              total
             );
 
 
           if (
-            Math.abs(
-              slice2Top -
-              slice1Top
-            ) < 10
+            roll < echoWeight
           ) {
 
-            slice2Top +=
-              12;
+            return 'echo';
 
           }
 
 
-          slice2Top =
-            Math.min(
-              slice2Top,
-              92 - slice2Height
-            );
+          if (
+            roll <
+            echoWeight +
+            fractureWeight
+          ) {
 
+            return 'fracture';
 
-          const displacement1 =
-            randomBetween(
-              signalConfig.minDisplacement,
-              signalConfig.maxDisplacement
-            ) *
-            randomSign();
+          }
 
-
-          const displacement2 =
-            randomBetween(
-              signalConfig.minDisplacement,
-              signalConfig.maxDisplacement
-            ) *
-            randomSign();
-
-
-          const opacity =
-            randomBetween(
-              signalConfig.minOpacity,
-              signalConfig.maxOpacity
-            );
-
-
-          setSignalSlice(
-            1,
-            slice1Top,
-            slice1Height,
-            displacement1
-          );
-
-
-          setSignalSlice(
-            2,
-            slice2Top,
-            slice2Height,
-            displacement2
-          );
-
-
-          signal.style.setProperty(
-            '--ggg-signal-opacity',
-            opacity.toFixed(2)
-          );
-
-        }
-
-
-        function clearSignalEvent() {
-
-          window.clearTimeout(
-            signalEndTimer
-          );
-
-
-          signalEndTimer =
-            null;
-
-
-          player.classList.remove(
-            'is-signal-contaminated'
-          );
-
-        }
-
-
-        function triggerSignalEvent() {
 
           if (
-            !signalActive ||
+            roll <
+            echoWeight +
+            fractureWeight +
+            dislocationWeight
+          ) {
+
+            return 'dislocation';
+
+          }
+
+
+          return 'failure';
+
+        }
+
+
+        /* ====================================================
+           DISTURBANCE EVENTS
+        ==================================================== */
+
+        function triggerDisturbance() {
+
+          if (
+            !disturbanceActive ||
             audio.paused ||
             audio.ended
           ) {
@@ -1295,168 +1542,127 @@
           }
 
 
-          const shouldTriggerSignal =
+          clearFailureSequence();
+
+
+          const shouldTrigger =
             Math.random() <
-            signalConfig.eventChance;
+            disturbanceConfig.eventChance;
 
 
           /*
-            Even when the horizontal slice event does not fire,
-            there is a small chance of an isolated registration
-            echo.
+            Intentional silence.
 
-            This prevents all anomalies from sharing the same
-            visual signature.
+            The scheduler still advances, but nothing visual
+            happens during this opportunity.
           */
 
           if (
-            !shouldTriggerSignal
+            !shouldTrigger
           ) {
 
-            const isolatedEcho =
-              Math.random() <
-              echoConfig.independentChance;
-
-
-            if (
-              isolatedEcho
-            ) {
-
-              triggerEchoEvent();
-
-            }
-
-
-            scheduleNextSignalEvent();
+            scheduleNextDisturbance();
 
             return;
 
           }
 
 
-          randomizeSignal();
+          const profile =
+            chooseDisturbanceProfile();
 
 
-          player.classList.add(
-            'is-signal-contaminated'
-          );
-
-
-          const signalDuration =
-            randomBetween(
-              signalConfig.minDuration,
-              signalConfig.maxDuration
-            );
-
-
-          window.clearTimeout(
-            signalEndTimer
-          );
-
-
-          signalEndTimer =
-            window.setTimeout(
-              clearSignalEvent,
-              signalDuration
-            );
-
-
-          /*
-            The echo may accompany the signal displacement,
-            but it is not guaranteed.
-          */
-
-          const includeEcho =
-            Math.random() <
-            echoConfig.signalCompanionChance;
-
-
-          if (
-            includeEcho
+          switch (
+            profile
           ) {
 
-            triggerEchoEvent();
+            case 'echo':
+
+              triggerEchoEvent();
+
+              break;
+
+
+            case 'fracture':
+
+              triggerSignalEvent();
+
+              break;
+
+
+            case 'dislocation':
+
+              triggerSignalEvent();
+
+              triggerEchoEvent();
+
+              break;
+
+
+            case 'failure':
+
+              triggerFailureEvent();
+
+              break;
 
           }
 
 
-          /*
-            Analog noise remains the rarest contamination
-            element.
-          */
-
-          const includeNoise =
-            Math.random() <
-            noiseConfig.eventChance;
-
-
-          if (
-            includeNoise
-          ) {
-
-            triggerNoiseEvent();
-
-          }
-
-
-          scheduleNextSignalEvent();
+          scheduleNextDisturbance();
 
         }
 
 
-        function scheduleNextSignalEvent() {
+        function scheduleNextDisturbance() {
 
           if (
-            !signalActive
+            !disturbanceActive
           ) {
             return;
           }
 
 
           window.clearTimeout(
-            signalTimer
+            disturbanceTimer
           );
 
 
           const delay =
             randomBetween(
-              signalConfig.minDelay,
-              signalConfig.maxDelay
+              disturbanceConfig.minDelay,
+              disturbanceConfig.maxDelay
             );
 
 
-          signalTimer =
+          disturbanceTimer =
             window.setTimeout(
-              triggerSignalEvent,
+              triggerDisturbance,
               delay
             );
 
         }
 
 
-        function startSignalContamination() {
+        function startDisturbances() {
 
           if (
-            prefersReducedMotion()
+            prefersReducedMotion() ||
+            disturbanceActive
           ) {
             return;
           }
 
 
-          if (
-            signalActive
-          ) {
-            return;
-          }
-
-
-          signalActive =
+          disturbanceActive =
             true;
 
 
           window.clearTimeout(
-            signalTimer
+            disturbanceTimer
           );
+
+
+          clearFailureSequence();
 
 
           clearSignalEvent();
@@ -1470,47 +1676,39 @@
 
           const firstDelay =
             randomBetween(
-              signalConfig.firstDelayMin,
-              signalConfig.firstDelayMax
+              disturbanceConfig.firstDelayMin,
+              disturbanceConfig.firstDelayMax
             );
 
 
-          signalTimer =
+          disturbanceTimer =
             window.setTimeout(
-              triggerSignalEvent,
+              triggerDisturbance,
               firstDelay
             );
 
         }
 
 
-        function stopSignalContamination() {
+        function stopDisturbances() {
 
-          signalActive =
+          disturbanceActive =
             false;
 
 
           window.clearTimeout(
-            signalTimer
+            disturbanceTimer
           );
 
 
-          window.clearTimeout(
-            signalEndTimer
-          );
-
-
-          signalTimer =
+          disturbanceTimer =
             null;
 
 
-          signalEndTimer =
-            null;
+          clearFailureSequence();
 
 
-          player.classList.remove(
-            'is-signal-contaminated'
-          );
+          clearSignalEvent();
 
 
           clearEchoEvent();
@@ -1576,7 +1774,7 @@
                   stopPinMovement();
 
 
-                  stopSignalContamination();
+                  stopDisturbances();
 
 
                   console.warn(
@@ -1627,7 +1825,7 @@
             startPinMovement();
 
 
-            startSignalContamination();
+            startDisturbances();
 
           }
         );
@@ -1645,7 +1843,7 @@
             stopPinMovement();
 
 
-            stopSignalContamination();
+            stopDisturbances();
 
           }
         );
@@ -1681,7 +1879,7 @@
             stopPinMovement();
 
 
-            stopSignalContamination();
+            stopDisturbances();
 
 
             setRingProgress(
@@ -1728,7 +1926,7 @@
         resetPinMovement();
 
 
-        stopSignalContamination();
+        stopDisturbances();
 
       }
     );
