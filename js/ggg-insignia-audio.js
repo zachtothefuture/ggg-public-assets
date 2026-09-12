@@ -3,7 +3,7 @@
    COMPONENT — INSIGNIA AUDIO PLAYER
 
    VERSION
-   v1.4 — Continuous Countdown Ring
+   v1.5 — Continuous Orange Countdown Ring
 ========================================================== */
 
 (function () {
@@ -39,10 +39,6 @@
         }
 
 
-        player.dataset.gggAudioReady =
-          'true';
-
-
         const button =
           player.querySelector(
             '.ggg-insignia-audio__button'
@@ -66,8 +62,18 @@
           !audio ||
           !progress
         ) {
+
+          console.warn(
+            '[GGG] Insignia audio player is missing required markup.'
+          );
+
           return;
+
         }
+
+
+        player.dataset.gggAudioReady =
+          'true';
 
 
         /* ====================================================
@@ -122,6 +128,32 @@
            COUNTDOWN RING
         ==================================================== */
 
+        function setRingProgress(
+          remaining
+        ) {
+
+          const clamped =
+            Math.min(
+              Math.max(
+                remaining,
+                0
+              ),
+              1
+            );
+
+
+          const angle =
+            clamped * 360;
+
+
+          progress.style.setProperty(
+            '--ggg-audio-angle',
+            angle + 'deg'
+          );
+
+        }
+
+
         function updateProgress() {
 
           if (
@@ -131,9 +163,8 @@
             audio.duration <= 0
           ) {
 
-            progress.style.setProperty(
-              '--ggg-audio-remaining',
-              '1'
+            setRingProgress(
+              1
             );
 
             return;
@@ -142,23 +173,12 @@
 
 
           const ratio =
-            Math.min(
-              Math.max(
-                audio.currentTime /
-                audio.duration,
-                0
-              ),
-              1
-            );
+            audio.currentTime /
+            audio.duration;
 
 
-          const remaining =
-            1 - ratio;
-
-
-          progress.style.setProperty(
-            '--ggg-audio-remaining',
-            String(remaining)
+          setRingProgress(
+            1 - ratio
           );
 
         }
@@ -170,26 +190,33 @@
 
         function togglePlayback() {
 
-          if (audio.paused) {
+          if (
+            audio.paused
+          ) {
 
             /*
-              Replay after completion.
+              Restart after completed playback.
             */
 
             if (
-              Number.isFinite(
-                audio.duration
-              ) &&
-              audio.duration > 0 &&
-              audio.currentTime >=
-                audio.duration - .05
+              audio.ended ||
+              (
+                Number.isFinite(
+                  audio.duration
+                ) &&
+                audio.duration > 0 &&
+                audio.currentTime >=
+                  audio.duration - .05
+              )
             ) {
 
               audio.currentTime =
                 0;
 
 
-              updateProgress();
+              setRingProgress(
+                1
+              );
 
             }
 
@@ -197,9 +224,17 @@
             showRing();
 
 
-            audio
-              .play()
-              .catch(
+            const playPromise =
+              audio.play();
+
+
+            if (
+              playPromise &&
+              typeof playPromise.catch ===
+              'function'
+            ) {
+
+              playPromise.catch(
                 function (error) {
 
                   hideRing();
@@ -213,6 +248,8 @@
                 }
               );
 
+            }
+
           } else {
 
             audio.pause();
@@ -223,7 +260,7 @@
 
 
         /* ====================================================
-           BUTTON
+           EVENTS
         ==================================================== */
 
         button.addEventListener(
@@ -232,16 +269,11 @@
         );
 
 
-        /* ====================================================
-           AUDIO EVENTS
-        ==================================================== */
-
         audio.addEventListener(
           'play',
           function () {
 
             showRing();
-
 
             setPlayingState(
               true
@@ -281,10 +313,6 @@
         );
 
 
-        /* ====================================================
-           COMPLETE
-        ==================================================== */
-
         audio.addEventListener(
           'ended',
           function () {
@@ -294,20 +322,17 @@
             );
 
 
-            /*
-              Force completely depleted state.
-            */
-
-            progress.style.setProperty(
-              '--ggg-audio-remaining',
-              '0'
+            setRingProgress(
+              0
             );
 
 
             window.setTimeout(
               function () {
 
-                if (audio.ended) {
+                if (
+                  audio.ended
+                ) {
 
                   hideRing();
 
@@ -333,9 +358,8 @@
         hideRing();
 
 
-        progress.style.setProperty(
-          '--ggg-audio-remaining',
-          '1'
+        setRingProgress(
+          1
         );
 
       }
