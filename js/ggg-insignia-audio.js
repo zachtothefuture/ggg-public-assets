@@ -145,16 +145,16 @@
             17000,
 
           firstDelayMin:
-            2000,
+            4000,
 
           firstDelayMax:
-            3000,
+            8000,
 
           minDuration:
-            3000,
+            2200,
 
           maxDuration:
-            5000,
+            4800,
 
           stillnessChance:
             0.30,
@@ -184,19 +184,19 @@
             28000,
 
           eventChance:
-            1,
+            0.65,
 
           minDuration:
-            250,
+            80,
 
           maxDuration:
-            400,
+            180,
 
           minDisplacement:
-            8,
+            2,
 
           maxDisplacement:
-            15,
+            5,
 
           minSliceHeight:
             3,
