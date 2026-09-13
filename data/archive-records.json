@@ -4,6 +4,7 @@
     "GGG-POD-2026-0001": {
       "title": "Zach & Kyle Open The Safe",
       "type": "Podcast",
+      "episodeNumber": 101,
       "collection": [
         "The Guild of Ghostly Grounds Podcast"
       ],
@@ -20,6 +21,28 @@
         "podcast",
         "Episode 101",
         "Zach & Kyle Open The Safe"
+      ]
+    },
+    "GGG-POD-2026-0002": {
+      "title": "Zach & Kyle Flip a Coin",
+      "type": "Podcast",
+      "episodeNumber": 102,
+      "collection": [
+        "The Guild of Ghostly Grounds Podcast"
+      ],
+      "status": "Active",
+      "visibility": "public",
+      "accessLevel": "Public",
+      "url": "/archive/ggg-pod-2026-0002",
+      "thumbnail": "",
+      "summary": "",
+      "dateAdded": "2026-10-08",
+      "dateUpdated": "2026-10-08",
+      "keywords": [
+        "The Guild of Ghostly Grounds",
+        "podcast",
+        "Episode 102",
+        "Zach & Kyle Flip a Coin"
       ]
     },
     "GGG-ART-2026-0001": {
