@@ -401,64 +401,9 @@
     title.dataset.gggMaterial =
       'print';
 
-        const recordTitle =
+    title.textContent =
       record.title ||
       `Episode ${episodeNumber}`;
-
-
-    /*
-     * Standard Zach & Kyle episodes use a deliberate
-     * editorial line break after the host names.
-     *
-     * The canonical Archive title remains untouched.
-     * This is presentation logic only.
-     */
-
-    const hostPrefix =
-      'Zach & Kyle';
-
-
-    if (
-      recordTitle.startsWith(
-        hostPrefix
-      )
-    ) {
-
-      const hostLine =
-        document.createTextNode(
-          hostPrefix
-        );
-
-
-      const lineBreak =
-        document.createElement(
-          'br'
-        );
-
-
-      const episodeTitle =
-        document.createTextNode(
-          recordTitle
-            .slice(
-              hostPrefix.length
-            )
-            .trim()
-        );
-
-
-      title.append(
-        hostLine,
-        lineBreak,
-        episodeTitle
-      );
-
-
-    } else {
-
-      title.textContent =
-        recordTitle;
-
-    }
 
 
     const meta =
