@@ -3,7 +3,7 @@
    PODCAST PAGE DATA + RENDERING
 
    VERSION
-   v1.0 — Canonical Podcast Episode Sequence
+   v1.1 — Episode Sequence + Latest Episode
 
    PURPOSE
 
@@ -13,19 +13,20 @@
    CURRENT RESPONSIBILITIES
 
    • hydrate THE INVESTIGATION episode sequence
+   • hydrate CAUGHT UP? latest episode
    • source records through window.GGG.archive
    • render Podcast records only
    • render public records only
    • sort episodes by episodeNumber
    • use canonical Archive titles
    • use canonical Archive thumbnails
-   • link cards to canonical Archive records
+   • link components to canonical Archive records
 
    DATA POLICY
 
    The Archive record manifest remains canonical.
 
-   Podcast records qualify for the episode sequence when:
+   Podcast records qualify when:
 
    • type === "Podcast"
    • visibility === "public"
@@ -252,6 +253,72 @@
   }
 
 
+  function appendFormattedEpisodeTitle(
+    element,
+    recordTitle
+  ) {
+
+    const title =
+      recordTitle || 'Untitled Episode';
+
+
+    /*
+     * Standard Zach & Kyle episodes use a deliberate
+     * editorial line break after the host names.
+     *
+     * Canonical Archive data remains untouched.
+     */
+
+    const hostPrefix =
+      'Zach & Kyle';
+
+
+    if (
+      title.startsWith(
+        hostPrefix
+      )
+    ) {
+
+      const hostLine =
+        document.createTextNode(
+          hostPrefix
+        );
+
+
+      const lineBreak =
+        document.createElement(
+          'br'
+        );
+
+
+      const episodeTitle =
+        document.createTextNode(
+          title
+            .slice(
+              hostPrefix.length
+            )
+            .trim()
+        );
+
+
+      element.append(
+        hostLine,
+        lineBreak,
+        episodeTitle
+      );
+
+
+      return;
+
+    }
+
+
+    element.textContent =
+      title;
+
+  }
+
+
   /* ========================================================
      EPISODE CARD
   ======================================================== */
@@ -401,64 +468,12 @@
     title.dataset.gggMaterial =
       'print';
 
-        const recordTitle =
+
+    appendFormattedEpisodeTitle(
+      title,
       record.title ||
-      `Episode ${episodeNumber}`;
-
-
-    /*
-     * Standard Zach & Kyle episodes use a deliberate
-     * editorial line break after the host names.
-     *
-     * The canonical Archive title remains untouched.
-     * This is presentation logic only.
-     */
-
-    const hostPrefix =
-      'Zach & Kyle';
-
-
-    if (
-      recordTitle.startsWith(
-        hostPrefix
-      )
-    ) {
-
-      const hostLine =
-        document.createTextNode(
-          hostPrefix
-        );
-
-
-      const lineBreak =
-        document.createElement(
-          'br'
-        );
-
-
-      const episodeTitle =
-        document.createTextNode(
-          recordTitle
-            .slice(
-              hostPrefix.length
-            )
-            .trim()
-        );
-
-
-      title.append(
-        hostLine,
-        lineBreak,
-        episodeTitle
-      );
-
-
-    } else {
-
-      title.textContent =
-        recordTitle;
-
-    }
+      `Episode ${episodeNumber}`
+    );
 
 
     const meta =
@@ -532,7 +547,7 @@
   ======================================================== */
 
 
-  function renderEpisodeSequence(records) {
+  function renderEpisodeSequence(episodes) {
 
     const section =
       document.querySelector(
@@ -563,17 +578,8 @@
     }
 
 
-    const episodes =
-      getPodcastEpisodes(
-        records
-      );
-
-
     /* ------------------------------------------------------
        EMPTY STATE
-
-       No public Podcast records means the entire component
-       disappears rather than exposing an empty shell.
     ------------------------------------------------------ */
 
     if (!episodes.length) {
@@ -592,8 +598,6 @@
 
     /* ------------------------------------------------------
        RESET
-
-       Prevent duplicate cards if hydration is invoked again.
     ------------------------------------------------------ */
 
     track.replaceChildren();
@@ -619,6 +623,137 @@
     console.info(
       '[GGG Podcast] Episode sequence hydrated:',
       episodes.length
+    );
+
+  }
+
+
+  /* ========================================================
+     LATEST EPISODE
+  ======================================================== */
+
+
+  function renderLatestEpisode(episodes) {
+
+    const section =
+      document.querySelector(
+        '[data-ggg-podcast-latest]'
+      );
+
+    if (!section) {
+
+      return;
+
+    }
+
+
+    /* ------------------------------------------------------
+       EMPTY STATE
+    ------------------------------------------------------ */
+
+    if (!episodes.length) {
+
+      section.hidden =
+        true;
+
+      return;
+
+    }
+
+
+    const latest =
+      episodes[
+        episodes.length - 1
+      ];
+
+
+    const episodeNumber =
+      Number(
+        latest.episodeNumber
+      );
+
+
+    const episode =
+      section.querySelector(
+        '[data-ggg-podcast-latest-episode]'
+      );
+
+
+    const title =
+      section.querySelector(
+        '[data-ggg-podcast-latest-title]'
+      );
+
+
+    const link =
+      section.querySelector(
+        '[data-ggg-podcast-latest-link]'
+      );
+
+
+    if (
+      !episode ||
+      !title ||
+      !link
+    ) {
+
+      console.warn(
+        '[GGG Podcast] Latest Episode hydration targets missing.'
+      );
+
+      return;
+
+    }
+
+
+    /* ------------------------------------------------------
+       EPISODE NUMBER
+    ------------------------------------------------------ */
+
+    episode.textContent =
+      `EPISODE ${episodeNumber}`;
+
+
+    /* ------------------------------------------------------
+       TITLE
+    ------------------------------------------------------ */
+
+    title.replaceChildren();
+
+
+    appendFormattedEpisodeTitle(
+      title,
+      latest.title ||
+      `Episode ${episodeNumber}`
+    );
+
+
+    /* ------------------------------------------------------
+       LINK
+    ------------------------------------------------------ */
+
+    link.href =
+      latest.url;
+
+    link.textContent =
+      'VIEW RECORD';
+
+
+    link.setAttribute(
+      'aria-label',
+      latest.title
+        ? `View latest episode: Episode ${episodeNumber}, ${latest.title}`
+        : `View latest episode: Episode ${episodeNumber}`
+    );
+
+
+    section.hidden =
+      false;
+
+
+    console.info(
+      '[GGG Podcast] Latest episode hydrated:',
+      episodeNumber
     );
 
   }
@@ -681,8 +816,23 @@
         );
 
 
+      const episodes =
+        getPodcastEpisodes(
+          records
+        );
+
+
+      /* ----------------------------------------------------
+         HYDRATE PODCAST COMPONENTS
+      ---------------------------------------------------- */
+
       renderEpisodeSequence(
-        records
+        episodes
+      );
+
+
+      renderLatestEpisode(
+        episodes
       );
 
 
@@ -717,6 +867,9 @@
       hydrate,
 
     hydrateEpisodes:
+      hydrate,
+
+    hydrateLatest:
       hydrate,
 
     isReady:
