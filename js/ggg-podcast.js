@@ -3,14 +3,14 @@
    PODCAST PAGE DATA + RENDERING
 
    VERSION
-   v1.7 — Automated Podcast Voices
+   v1.8 — Canonical Relationship Types
 
    PURPOSE
 
    Provides Podcast-specific rendering while using the
    canonical GGG Archive data system as the source of truth.
 
-   CURRENT RESPONSIBILITIES
+   RESPONSIBILITIES
 
    • hydrate THE INVESTIGATION episode sequence
    • hydrate CAUGHT UP? latest episode
@@ -49,9 +49,9 @@
    Podcast appearances are derived from canonical Archive
    relationships using:
 
-   relationship === "appears-in"
+   type === "appears-in"
 
-   Expected direction:
+   Expected authored direction:
 
    PERSON → PODCAST
 
@@ -59,9 +59,15 @@
 
    {
      "source": "GGG-PER-2026-0005",
-     "relationship": "appears-in",
-     "target": "GGG-POD-2026-0001"
+     "type": "appears-in",
+     "target": [
+       "GGG-POD-2026-0001",
+       "GGG-POD-2026-0008"
+     ]
    }
+
+   archive.js normalizes target arrays into individual
+   relationships before this file consumes them.
 
    Draft, scheduled, hidden, malformed, and URL-less records
    fail closed and are not rendered.
@@ -105,7 +111,7 @@
    This file does NOT fetch archive-records.json or
    archive-relationships.json directly.
 
-   It consumes the existing Archive interface:
+   It consumes:
 
    window.GGG.archive
 
@@ -301,9 +307,7 @@
 
 
     /*
-     * Visibility is intentionally explicit.
-     *
-     * Only "public" qualifies.
+     * Only explicitly public Podcast records qualify.
      */
 
     if (
@@ -325,11 +329,15 @@
 
 
     const episodeNumber =
-      Number(record.episodeNumber);
+      Number(
+        record.episodeNumber
+      );
 
 
     if (
-      !Number.isFinite(episodeNumber)
+      !Number.isFinite(
+        episodeNumber
+      )
     ) {
 
       return false;
@@ -352,8 +360,12 @@
         function (a, b) {
 
           return (
-            Number(a.episodeNumber) -
-            Number(b.episodeNumber)
+            Number(
+              a.episodeNumber
+            ) -
+            Number(
+              b.episodeNumber
+            )
           );
 
         }
@@ -467,7 +479,8 @@
   ) {
 
     const title =
-      recordTitle || 'Untitled Episode';
+      recordTitle ||
+      'Untitled Episode';
 
 
     const hostPrefix =
@@ -528,7 +541,9 @@
   function createEpisodeCard(record) {
 
     const episodeNumber =
-      Number(record.episodeNumber);
+      Number(
+        record.episodeNumber
+      );
 
 
     /* ------------------------------------------------------
@@ -549,7 +564,9 @@
       record.id || '';
 
     card.dataset.episodeNumber =
-      String(episodeNumber);
+      String(
+        episodeNumber
+      );
 
 
     /* ------------------------------------------------------
@@ -602,7 +619,9 @@
       'ggg-podcast-episode__artwork';
 
 
-    if (record.thumbnail) {
+    if (
+      record.thumbnail
+    ) {
 
       const image =
         document.createElement(
@@ -614,7 +633,10 @@
 
       image.alt =
         record.title
-          ? `Episode ${episodeNumber} — ${record.title}`
+          ? (
+              `Episode ${episodeNumber} — ` +
+              record.title
+            )
           : `Episode ${episodeNumber} artwork`;
 
       image.loading =
@@ -721,7 +743,10 @@
     link.setAttribute(
       'aria-label',
       record.title
-        ? `View Episode ${episodeNumber}: ${record.title}`
+        ? (
+            `View Episode ${episodeNumber}: ` +
+            record.title
+          )
         : `View Episode ${episodeNumber}`
     );
 
@@ -755,6 +780,7 @@
         '[data-ggg-podcast-episodes]'
       );
 
+
     if (!section) {
 
       return;
@@ -779,7 +805,9 @@
     }
 
 
-    if (!episodes.length) {
+    if (
+      !episodes.length
+    ) {
 
       section.hidden =
         true;
@@ -857,7 +885,7 @@
 
 
     /*
-     * Full title always remains visible.
+     * Full episode title always remains visible.
      *
      * Only the canonical episode summary is treated
      * as spoiler-sensitive.
@@ -903,6 +931,12 @@
       );
 
 
+    const summary =
+      section.querySelector(
+        '[data-ggg-podcast-latest-summary]'
+      );
+
+
     const message =
       section.querySelector(
         '[data-ggg-podcast-latest-spoiler-message]'
@@ -911,6 +945,7 @@
 
     if (
       !toggle ||
+      !summary ||
       !message
     ) {
 
@@ -985,6 +1020,7 @@
         '[data-ggg-podcast-latest]'
       );
 
+
     if (!section) {
 
       return;
@@ -992,7 +1028,9 @@
     }
 
 
-    if (!episodes.length) {
+    if (
+      !episodes.length
+    ) {
 
       section.hidden =
         true;
@@ -1099,8 +1137,14 @@
     link.setAttribute(
       'aria-label',
       latest.title
-        ? `View latest episode: Episode ${episodeNumber}, ${latest.title}`
-        : `View latest episode: Episode ${episodeNumber}`
+        ? (
+            `View latest episode: Episode ` +
+            `${episodeNumber}, ${latest.title}`
+          )
+        : (
+            `View latest episode: ` +
+            `Episode ${episodeNumber}`
+          )
     );
 
 
@@ -1143,8 +1187,8 @@
 
 
     /*
-     * Public Podcast IDs are explicitly derived from the
-     * same episode collection used elsewhere on the page.
+     * Public Podcast IDs are derived from the exact same
+     * qualifying episode collection used elsewhere.
      */
 
     const publicPodcastIds =
@@ -1162,7 +1206,7 @@
 
 
     /*
-     * personId → Set of episode numbers
+     * personId → Set of public episode numbers
      */
 
     const appearances =
@@ -1172,9 +1216,21 @@
     relationships.forEach(
       function (relationship) {
 
+        /* --------------------------------------------------
+           CANONICAL RELATIONSHIP TYPE
+
+           Archive relationships use:
+
+           relationship.type
+
+           NOT:
+
+           relationship.relationship
+        -------------------------------------------------- */
+
         if (
           !relationship ||
-          relationship.relationship !== 'appears-in'
+          relationship.type !== 'appears-in'
         ) {
 
           return;
@@ -1201,8 +1257,11 @@
 
 
         /*
-         * Appearance does not become public until the
-         * Podcast record itself qualifies as public.
+         * A relationship can safely be authored before an
+         * episode is released.
+
+         * It does not become visible here until the target
+         * Podcast itself qualifies as public.
          */
 
         if (
@@ -1310,7 +1369,9 @@
           );
 
 
-        if (!episodeNumbers.length) {
+        if (
+          !episodeNumbers.length
+        ) {
 
           return;
 
@@ -1334,8 +1395,8 @@
 
     /*
      * Primary order:
-     * first published appearance.
-     *
+     * first public episode appearance.
+
      * Tie-breaker:
      * alphabetical Person title.
      */
@@ -1348,7 +1409,9 @@
           b.firstEpisode;
 
 
-        if (episodeDifference !== 0) {
+        if (
+          episodeDifference !== 0
+        ) {
 
           return episodeDifference;
 
@@ -1412,7 +1475,10 @@
     link.setAttribute(
       'aria-label',
       person.title
-        ? `View Archive record for ${person.title}`
+        ? (
+            `View Archive record for ` +
+            person.title
+          )
         : 'View Person Archive record'
     );
 
@@ -1420,7 +1486,7 @@
     /* ------------------------------------------------------
        PORTRAIT SLOT
 
-       Slot always exists so guest identities remain aligned.
+       Slot always exists so identities remain aligned.
     ------------------------------------------------------ */
 
     const portrait =
@@ -1432,7 +1498,9 @@
       'ggg-podcast-guest__portrait';
 
 
-    if (person.thumbnail) {
+    if (
+      person.thumbnail
+    ) {
 
       const image =
         document.createElement(
@@ -1529,7 +1597,9 @@
 
     const appearanceLabel =
       episodeNumbers.length === 1
-        ? `EP. ${episodeNumbers[0]}`
+        ? (
+            `EP. ${episodeNumbers[0]}`
+          )
         : (
             'EP. ' +
             episodeNumbers.join(
@@ -1575,6 +1645,7 @@
         '[data-ggg-podcast-voices]'
       );
 
+
     if (!section) {
 
       return;
@@ -1610,14 +1681,18 @@
     /* ------------------------------------------------------
        EMPTY STATE
 
-       If nobody currently qualifies, the entire component
-       disappears rather than exposing an empty index.
+       If nobody currently qualifies, the component disappears
+       rather than exposing an empty guest index.
     ------------------------------------------------------ */
 
-    if (!voices.length) {
+    if (
+      !voices.length
+    ) {
 
       section.hidden =
         true;
+
+      grid.replaceChildren();
 
       return;
 
@@ -1631,7 +1706,7 @@
     /* ------------------------------------------------------
        RESET
 
-       Prevent duplicate voices if hydration runs again.
+       Prevent duplicate entries if hydration runs again.
     ------------------------------------------------------ */
 
     grid.replaceChildren();
