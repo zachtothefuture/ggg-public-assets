@@ -3,7 +3,7 @@
    PODCAST PAGE DATA + RENDERING
 
    VERSION
-   v1.1 — Episode Sequence + Latest Episode
+   v1.2 — Latest Episode Summary
 
    PURPOSE
 
@@ -14,11 +14,13 @@
 
    • hydrate THE INVESTIGATION episode sequence
    • hydrate CAUGHT UP? latest episode
+   • hydrate latest episode summary
    • source records through window.GGG.archive
    • render Podcast records only
    • render public records only
    • sort episodes by episodeNumber
    • use canonical Archive titles
+   • use canonical Archive summaries
    • use canonical Archive thumbnails
    • link components to canonical Archive records
 
@@ -39,6 +41,7 @@
    EXPECTED RECORD FIELDS
 
    title
+   summary
    type
    episodeNumber
    visibility
@@ -685,6 +688,12 @@
       );
 
 
+    const summary =
+      section.querySelector(
+        '[data-ggg-podcast-latest-summary]'
+      );
+
+
     const link =
       section.querySelector(
         '[data-ggg-podcast-latest-link]'
@@ -694,6 +703,7 @@
     if (
       !episode ||
       !title ||
+      !summary ||
       !link
     ) {
 
@@ -726,6 +736,15 @@
       latest.title ||
       `Episode ${episodeNumber}`
     );
+
+
+    /* ------------------------------------------------------
+       SUMMARY
+    ------------------------------------------------------ */
+
+    summary.textContent =
+      latest.summary ||
+      'Continue with the newest published episode.';
 
 
     /* ------------------------------------------------------
