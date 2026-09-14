@@ -353,7 +353,8 @@
       "type": "Person",
       "podcastVoice": {
         "include": true,
-        "credit": "Film, television, and theater actress."
+        "credit": "Film, television, and theater actress.",
+        "priority": 1
       },
       "collection": [],
       "status": "Investigation Closed",

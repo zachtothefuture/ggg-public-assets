@@ -3,7 +3,7 @@
    PODCAST PAGE DATA + RENDERING
 
    VERSION
-   v1.8 — Canonical Relationship Types
+   v1.9 — Podcast Voice Priority
 
    PURPOSE
 
@@ -18,6 +18,7 @@
    • provide summary-only spoiler control
    • hydrate VOICES FROM THE INVESTIGATION
    • derive Podcast appearances from Archive relationships
+   • support optional editorial Voice priority
    • source records through window.GGG.archive
    • source relationships through window.GGG.archive
    • render public records only
@@ -93,8 +94,17 @@
 
    podcastVoice: {
      include: true,
-     credit: "Historian"
+     credit: "Historian",
+     priority: 1
    }
+
+   VOICE ORDER
+
+   • explicit priority first
+   • lower priority numbers rank higher
+   • records without priority follow chronology
+   • chronology = first public episode appearance
+   • alphabetical Person title breaks final ties
 
    SPOILER POLICY
 
@@ -1393,16 +1403,96 @@
     );
 
 
-    /*
-     * Primary order:
-     * first public episode appearance.
+    /* ------------------------------------------------------
+       VOICE ORDER
 
-     * Tie-breaker:
-     * alphabetical Person title.
-     */
+       1. Editorial priority
+       2. First public episode appearance
+       3. Alphabetical Person title
+
+       Lower priority numbers rank higher.
+
+       Records without an explicit positive priority follow
+       the normal chronological ordering.
+    ------------------------------------------------------ */
 
     voices.sort(
       function (a, b) {
+
+        const aPriority =
+          Number(
+            a.person.podcastVoice &&
+            a.person.podcastVoice.priority
+          );
+
+
+        const bPriority =
+          Number(
+            b.person.podcastVoice &&
+            b.person.podcastVoice.priority
+          );
+
+
+        const aHasPriority =
+          Number.isFinite(
+            aPriority
+          ) &&
+          aPriority > 0;
+
+
+        const bHasPriority =
+          Number.isFinite(
+            bPriority
+          ) &&
+          bPriority > 0;
+
+
+        /* --------------------------------------------------
+           PRIORITIZED PEOPLE COME FIRST
+        -------------------------------------------------- */
+
+        if (
+          aHasPriority &&
+          !bHasPriority
+        ) {
+
+          return -1;
+
+        }
+
+
+        if (
+          !aHasPriority &&
+          bHasPriority
+        ) {
+
+          return 1;
+
+        }
+
+
+        /* --------------------------------------------------
+           ORDER PRIORITIZED PEOPLE BY PRIORITY NUMBER
+        -------------------------------------------------- */
+
+        if (
+          aHasPriority &&
+          bHasPriority &&
+          aPriority !== bPriority
+        ) {
+
+          return (
+            aPriority -
+            bPriority
+          );
+
+        }
+
+
+        /* --------------------------------------------------
+           DEFAULT:
+           FIRST PUBLIC EPISODE APPEARANCE
+        -------------------------------------------------- */
 
         const episodeDifference =
           a.firstEpisode -
@@ -1417,6 +1507,11 @@
 
         }
 
+
+        /* --------------------------------------------------
+           FINAL TIE-BREAKER:
+           ALPHABETICAL
+        -------------------------------------------------- */
 
         return String(
           a.person.title || ''
@@ -1565,29 +1660,29 @@
 
 
     /* ------------------------------------------------------
-      DETAIL
-   
-      Credit may truncate independently.
-   
-      Episode appearance always remains visible.
-   
-      Example:
-   
-      Film, television, and theater actress · EP. 101
+       DETAIL
+
+       Credit may truncate independently.
+
+       Episode appearance always remains visible.
+
+       Example:
+
+       Film, television, and theater actress · EP. 101
     ------------------------------------------------------ */
-   
+
     const detail =
       document.createElement(
         'div'
       );
-   
+
     detail.className =
       'ggg-podcast-guest__detail';
-   
+
     detail.dataset.gggMaterial =
       'ink';
-   
-   
+
+
     const credit =
       (
         person.podcastVoice &&
@@ -1597,8 +1692,8 @@
             person.podcastVoice.credit
           ).trim()
         : 'Guest';
-   
-   
+
+
     const appearanceLabel =
       episodeNumbers.length === 1
         ? `EP. ${episodeNumbers[0]}`
@@ -1608,71 +1703,71 @@
               ', '
             )
           );
-   
-   
+
+
     const creditElement =
       document.createElement(
         'span'
       );
-   
+
     creditElement.className =
       'ggg-podcast-guest__credit';
-   
+
     creditElement.textContent =
       credit;
-   
-   
+
+
     const separator =
       document.createElement(
         'span'
       );
-   
+
     separator.className =
       'ggg-podcast-guest__separator';
-   
+
     separator.setAttribute(
       'aria-hidden',
       'true'
     );
-   
+
     separator.textContent =
       '·';
-   
-   
+
+
     const appearances =
       document.createElement(
         'span'
       );
-   
+
     appearances.className =
       'ggg-podcast-guest__appearances';
-   
+
     appearances.textContent =
       appearanceLabel;
-   
-   
+
+
     detail.append(
       creditElement,
       separator,
       appearances
     );
-   
-   
+
+
     identity.append(
       name,
       detail
     );
-   
-   
+
+
     link.append(
       portrait,
       identity
     );
-   
-   
+
+
     return link;
-   
-    }
+
+  }
 
 
   /* ========================================================
