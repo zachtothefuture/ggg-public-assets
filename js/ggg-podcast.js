@@ -3,7 +3,7 @@
    PODCAST PAGE DATA + RENDERING
 
    VERSION
-   v1.3 — Latest Episode Spoiler Control
+   v1.4 — Spoiler-Safe Default
 
    PURPOSE
 
@@ -759,7 +759,7 @@
 
     setLatestSpoilerState(
       section,
-      false
+      true
     );
 
 
