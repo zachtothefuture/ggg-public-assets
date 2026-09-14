@@ -3,7 +3,7 @@
    PODCAST PAGE DATA + RENDERING
 
    VERSION
-   v1.4 — Spoiler-Safe Default
+   v1.5 — Partial Title Spoiler Blur
 
    PURPOSE
 
@@ -15,7 +15,9 @@
    • hydrate THE INVESTIGATION episode sequence
    • hydrate CAUGHT UP? latest episode
    • hydrate latest episode summary
-   • provide latest episode spoiler control
+   • provide spoiler-safe latest episode presentation
+   • keep host names visible in spoiler-safe mode
+   • allow episode-specific title text to be blurred
    • source records through window.GGG.archive
    • render Podcast records only
    • render public records only
@@ -52,10 +54,19 @@
 
    SPOILER POLICY
 
-   The latest episode title and summary may be hidden by
-   the visitor.
+   The latest episode begins spoiler-safe.
 
-   The following remain visible:
+   Standard "Zach & Kyle" episodes:
+
+   • "Zach & Kyle" remains visible
+   • episode-specific title may be blurred
+   • summary is hidden
+   • user explicitly reveals full details
+
+   Special episode titles without the standard host prefix
+   are treated as entirely spoiler-sensitive.
+
+   The following always remain visible:
 
    • episode number
    • spoiler control
@@ -118,14 +129,6 @@
 
     /* ------------------------------------------------------
        ARRAY SOURCE
-
-       Supports:
-       [
-         {
-           id: "GGG-POD-2026-0001",
-           ...
-         }
-       ]
     ------------------------------------------------------ */
 
     if (Array.isArray(source)) {
@@ -271,6 +274,15 @@
   }
 
 
+  /* ========================================================
+     STANDARD EPISODE TITLE FORMATTER
+
+     Used by THE INVESTIGATION cards.
+
+     No spoiler-specific classes are added here.
+  ======================================================== */
+
+
   function appendFormattedEpisodeTitle(
     element,
     recordTitle
@@ -279,13 +291,6 @@
     const title =
       recordTitle || 'Untitled Episode';
 
-
-    /*
-     * Standard Zach & Kyle episodes use a deliberate
-     * editorial line break after the host names.
-     *
-     * Canonical Archive data remains untouched.
-     */
 
     const hostPrefix =
       'Zach & Kyle';
@@ -333,6 +338,105 @@
 
     element.textContent =
       title;
+
+  }
+
+
+  /* ========================================================
+     LATEST EPISODE TITLE FORMATTER
+
+     Used only by CAUGHT UP?
+
+     Standard Zach & Kyle episodes keep the host names
+     separate from the spoiler-sensitive episode title.
+  ======================================================== */
+
+
+  function appendLatestEpisodeTitle(
+    element,
+    recordTitle
+  ) {
+
+    const title =
+      recordTitle || 'Untitled Episode';
+
+
+    const hostPrefix =
+      'Zach & Kyle';
+
+
+    if (
+      title.startsWith(
+        hostPrefix
+      )
+    ) {
+
+      const host =
+        document.createElement(
+          'span'
+        );
+
+      host.className =
+        'ggg-podcast-latest-banner__title-host';
+
+      host.textContent =
+        hostPrefix;
+
+
+      const lineBreak =
+        document.createElement(
+          'br'
+        );
+
+
+      const spoiler =
+        document.createElement(
+          'span'
+        );
+
+      spoiler.className =
+        'ggg-podcast-latest-banner__title-spoiler';
+
+      spoiler.textContent =
+        title
+          .slice(
+            hostPrefix.length
+          )
+          .trim();
+
+
+      element.append(
+        host,
+        lineBreak,
+        spoiler
+      );
+
+
+      return;
+
+    }
+
+
+    /*
+     * Special episode titles without the standard
+     * Zach & Kyle prefix are entirely spoiler-sensitive.
+     */
+
+    const spoiler =
+      document.createElement(
+        'span'
+      );
+
+    spoiler.className =
+      'ggg-podcast-latest-banner__title-spoiler';
+
+    spoiler.textContent =
+      title;
+
+
+    element.appendChild(
+      spoiler
+    );
 
   }
 
@@ -662,6 +766,18 @@
       );
 
 
+    const title =
+      section.querySelector(
+        '[data-ggg-podcast-latest-title]'
+      );
+
+
+    const summary =
+      section.querySelector(
+        '[data-ggg-podcast-latest-summary]'
+      );
+
+
     const message =
       section.querySelector(
         '[data-ggg-podcast-latest-spoiler-message]'
@@ -676,6 +792,8 @@
 
     if (
       !details ||
+      !title ||
+      !summary ||
       !message ||
       !toggle
     ) {
@@ -685,9 +803,26 @@
     }
 
 
+    /*
+     * Details remain present so the title can stay visible
+     * while only its spoiler-sensitive portion is blurred.
+     */
+
     details.hidden =
+      false;
+
+
+    /*
+     * Summary is completely hidden in spoiler-safe mode.
+     */
+
+    summary.hidden =
       hidden;
 
+
+    /*
+     * Neutral message replaces the hidden summary.
+     */
 
     message.hidden =
       !hidden;
@@ -753,8 +888,7 @@
 
 
     /*
-     * Reset to the default visible state whenever the
-     * component is hydrated.
+     * Every page load and hydration begins spoiler-safe.
      */
 
     setLatestSpoilerState(
@@ -903,7 +1037,7 @@
     title.replaceChildren();
 
 
-    appendFormattedEpisodeTitle(
+    appendLatestEpisodeTitle(
       title,
       latest.title ||
       `Episode ${episodeNumber}`
