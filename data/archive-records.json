@@ -224,6 +224,10 @@
     "GGG-PER-2026-0006": {
       "title": "Sharon Selig",
       "type": "Person",
+      "podcastVoice": {
+        "include": true,
+        "credit": "Mom, Daughter, Aunt, Grandmother, and now Painter."
+      },
       "collection": [
         "Kennedy Family"
       ],
@@ -326,6 +330,10 @@
     "GGG-PER-2026-0011": {
       "title": "Camacho",
       "type": "Person",
+      "podcastVoice": {
+        "include": true,
+        "credit": "Contractor."
+      },
       "collection": [],
       "status": "Investigation Closed",
       "visibility": "public",
@@ -343,6 +351,10 @@
     "GGG-PER-2026-0012": {
       "title": "Michelle Veintimilla",
       "type": "Person",
+      "podcastVoice": {
+        "include": true,
+        "credit": "Film, television, and theater actress."
+      },
       "collection": [],
       "status": "Investigation Closed",
       "visibility": "public",
@@ -424,6 +436,10 @@
     "GGG-PER-2026-0017": {
       "title": "Chris Lane",
       "type": "Person",
+      "podcastVoice": {
+        "include": true,
+        "credit": "Composer and Sound Designer."
+      },
       "collection": [],
       "status": "Under Investigation",
       "visibility": "public",
@@ -442,6 +458,10 @@
     "GGG-PER-2026-0018": {
       "title": "Chris Jones",
       "type": "Person",
+      "podcastVoice": {
+        "include": true,
+        "credit": "Lawyer."
+      },
       "collection": [],
       "status": "Under Investigation",
       "visibility": "public",
@@ -459,6 +479,10 @@
     "GGG-PER-2026-0019": {
       "title": "Linda Kennedy",
       "type": "Person",
+      "podcastVoice": {
+        "include": true,
+        "credit": "Mom, Daugher, Aunt, and now Family Witch."
+      },
       "collection": [
         "Kennedy Family"
       ],
