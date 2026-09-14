@@ -3,7 +3,7 @@
    PODCAST PAGE DATA + RENDERING
 
    VERSION
-   v1.5 — Partial Title Spoiler Blur
+   v1.7 — Automated Podcast Voices
 
    PURPOSE
 
@@ -15,11 +15,11 @@
    • hydrate THE INVESTIGATION episode sequence
    • hydrate CAUGHT UP? latest episode
    • hydrate latest episode summary
-   • provide spoiler-safe latest episode presentation
-   • keep host names visible in spoiler-safe mode
-   • allow episode-specific title text to be blurred
+   • provide summary-only spoiler control
+   • hydrate VOICES FROM THE INVESTIGATION
+   • derive Podcast appearances from Archive relationships
    • source records through window.GGG.archive
-   • render Podcast records only
+   • source relationships through window.GGG.archive
    • render public records only
    • sort episodes by episodeNumber
    • use canonical Archive titles
@@ -38,10 +38,35 @@
    • episodeNumber is a valid number
    • url exists
 
+   Voice records qualify when:
+
+   • type === "Person"
+   • visibility === "public"
+   • url exists
+   • podcastVoice.include === true
+   • at least one public Podcast appearance exists
+
+   Podcast appearances are derived from canonical Archive
+   relationships using:
+
+   relationship === "appears-in"
+
+   Expected direction:
+
+   PERSON → PODCAST
+
+   Example:
+
+   {
+     "source": "GGG-PER-2026-0005",
+     "relationship": "appears-in",
+     "target": "GGG-POD-2026-0001"
+   }
+
    Draft, scheduled, hidden, malformed, and URL-less records
    fail closed and are not rendered.
 
-   EXPECTED RECORD FIELDS
+   EXPECTED PODCAST RECORD FIELDS
 
    title
    summary
@@ -52,39 +77,40 @@
    url
    thumbnail
 
+   EXPECTED PERSON RECORD FIELDS
+
+   title
+   type
+   visibility
+   url
+   thumbnail
+
+   podcastVoice: {
+     include: true,
+     credit: "Historian"
+   }
+
    SPOILER POLICY
 
    The latest episode begins spoiler-safe.
 
-   Standard "Zach & Kyle" episodes:
-
-   • "Zach & Kyle" remains visible
-   • episode-specific title may be blurred
-   • summary is hidden
-   • user explicitly reveals full details
-
-   Special episode titles without the standard host prefix
-   are treated as entirely spoiler-sensitive.
-
-   The following always remain visible:
-
-   • episode number
-   • spoiler control
-   • canonical Archive action
-
-   Spoiler state is presentation-only and does not alter
-   canonical Archive data.
+   • full episode title remains visible
+   • canonical summary is hidden
+   • visitor explicitly reveals summary
+   • episode number remains visible
+   • canonical Archive action remains visible
 
    ARCHITECTURE
 
-   This file does NOT fetch archive-records.json directly.
+   This file does NOT fetch archive-records.json or
+   archive-relationships.json directly.
 
    It consumes the existing Archive interface:
 
    window.GGG.archive
 
    This prevents Podcast and Archive from maintaining
-   separate copies of canonical record data.
+   separate copies of canonical data.
 ========================================================== */
 
 
@@ -102,7 +128,7 @@
 
 
   /* ========================================================
-     HELPERS
+     ARCHIVE INTERFACE
   ======================================================== */
 
 
@@ -116,6 +142,11 @@
       : null;
 
   }
+
+
+  /* ========================================================
+     RECORD NORMALIZATION
+  ======================================================== */
 
 
   function normalizeRecords(source) {
@@ -186,6 +217,71 @@
   }
 
 
+  /* ========================================================
+     RELATIONSHIP NORMALIZATION
+  ======================================================== */
+
+
+  function normalizeRelationships(source) {
+
+    if (!source) {
+
+      return [];
+
+    }
+
+
+    if (Array.isArray(source)) {
+
+      return source
+        .filter(
+          function (relationship) {
+
+            return (
+              relationship &&
+              typeof relationship === 'object'
+            );
+
+          }
+        );
+
+    }
+
+
+    /*
+     * Defensive support for an object-based relationship
+     * collection if the Archive interface ever returns one.
+     */
+
+    if (
+      typeof source === 'object'
+    ) {
+
+      return Object.values(source)
+        .filter(
+          function (relationship) {
+
+            return (
+              relationship &&
+              typeof relationship === 'object'
+            );
+
+          }
+        );
+
+    }
+
+
+    return [];
+
+  }
+
+
+  /* ========================================================
+     PODCAST RECORD QUALIFICATION
+  ======================================================== */
+
+
   function isPublicPodcastRecord(record) {
 
     if (!record) {
@@ -208,14 +304,6 @@
      * Visibility is intentionally explicit.
      *
      * Only "public" qualifies.
-     *
-     * draft
-     * scheduled
-     * private
-     * missing
-     * unknown
-     *
-     * all fail closed.
      */
 
     if (
@@ -275,11 +363,101 @@
 
 
   /* ========================================================
+     PERSON RECORD QUALIFICATION
+  ======================================================== */
+
+
+  function isPodcastVoiceRecord(record) {
+
+    if (!record) {
+
+      return false;
+
+    }
+
+
+    if (
+      record.type !== 'Person'
+    ) {
+
+      return false;
+
+    }
+
+
+    if (
+      record.visibility !== 'public'
+    ) {
+
+      return false;
+
+    }
+
+
+    if (
+      !record.url
+    ) {
+
+      return false;
+
+    }
+
+
+    if (
+      !record.podcastVoice ||
+      record.podcastVoice.include !== true
+    ) {
+
+      return false;
+
+    }
+
+
+    return true;
+
+  }
+
+
+  /* ========================================================
+     RECORD LOOKUP
+  ======================================================== */
+
+
+  function createRecordMap(records) {
+
+    const map =
+      new Map();
+
+
+    records.forEach(
+      function (record) {
+
+        if (
+          !record ||
+          !record.id
+        ) {
+
+          return;
+
+        }
+
+
+        map.set(
+          record.id,
+          record
+        );
+
+      }
+    );
+
+
+    return map;
+
+  }
+
+
+  /* ========================================================
      STANDARD EPISODE TITLE FORMATTER
-
-     Used by THE INVESTIGATION cards.
-
-     No spoiler-specific classes are added here.
   ======================================================== */
 
 
@@ -340,16 +518,6 @@
       title;
 
   }
-
-
-  /* ========================================================
-     LATEST EPISODE TITLE FORMATTER
-
-     Used only by CAUGHT UP?
-
-     Standard Zach & Kyle episodes keep the host names
-     separate from the spoiler-sensitive episode title.
-  ======================================================== */
 
 
   /* ========================================================
@@ -611,10 +779,6 @@
     }
 
 
-    /* ------------------------------------------------------
-       EMPTY STATE
-    ------------------------------------------------------ */
-
     if (!episodes.length) {
 
       section.hidden =
@@ -629,16 +793,8 @@
       false;
 
 
-    /* ------------------------------------------------------
-       RESET
-    ------------------------------------------------------ */
-
     track.replaceChildren();
 
-
-    /* ------------------------------------------------------
-       RENDER IN EPISODE ORDER
-    ------------------------------------------------------ */
 
     episodes.forEach(
       function (record) {
@@ -670,63 +826,70 @@
     section,
     hidden
   ) {
-   
+
     const summary =
       section.querySelector(
         '[data-ggg-podcast-latest-summary]'
       );
-   
-   
+
+
     const message =
       section.querySelector(
         '[data-ggg-podcast-latest-spoiler-message]'
       );
-   
+
+
     const toggle =
       section.querySelector(
         '[data-ggg-podcast-latest-spoiler-toggle]'
       );
-   
+
+
     if (
       !summary ||
       !message ||
       !toggle
     ) {
-   
+
       return;
-   
+
     }
-   
+
+
     /*
-      * Title always remains visible.
-      *
-      * Only the canonical episode summary is treated
-      * as spoiler-sensitive.
-      */
-   
+     * Full title always remains visible.
+     *
+     * Only the canonical episode summary is treated
+     * as spoiler-sensitive.
+     */
+
     summary.hidden =
       hidden;
-    
+
+
     message.hidden =
       !hidden;
-   
+
+
     toggle.textContent =
       hidden
         ? 'SHOW DETAILS'
         : 'HIDE DETAILS';
-   
+
+
     toggle.setAttribute(
       'aria-expanded',
       hidden
         ? 'false'
         : 'true'
     );
-   
+
+
     section.classList.toggle(
       'is-spoiler-hidden',
       hidden
     );
-   
+
   }
 
 
@@ -740,12 +903,6 @@
       );
 
 
-    const details =
-      section.querySelector(
-        '[data-ggg-podcast-latest-details]'
-      );
-
-
     const message =
       section.querySelector(
         '[data-ggg-podcast-latest-spoiler-message]'
@@ -754,7 +911,6 @@
 
     if (
       !toggle ||
-      !details ||
       !message
     ) {
 
@@ -836,10 +992,6 @@
     }
 
 
-    /* ------------------------------------------------------
-       EMPTY STATE
-    ------------------------------------------------------ */
-
     if (!episodes.length) {
 
       section.hidden =
@@ -918,7 +1070,6 @@
 
 
     appendFormattedEpisodeTitle(
-   
       title,
       latest.title ||
       `Episode ${episodeNumber}`
@@ -975,6 +1126,539 @@
 
 
   /* ========================================================
+     PODCAST VOICES
+  ======================================================== */
+
+
+  function getPodcastVoices(
+    records,
+    relationships,
+    episodes
+  ) {
+
+    const recordMap =
+      createRecordMap(
+        records
+      );
+
+
+    /*
+     * Public Podcast IDs are explicitly derived from the
+     * same episode collection used elsewhere on the page.
+     */
+
+    const publicPodcastIds =
+      new Set(
+        episodes
+          .map(
+            function (record) {
+
+              return record.id;
+
+            }
+          )
+          .filter(Boolean)
+      );
+
+
+    /*
+     * personId → Set of episode numbers
+     */
+
+    const appearances =
+      new Map();
+
+
+    relationships.forEach(
+      function (relationship) {
+
+        if (
+          !relationship ||
+          relationship.relationship !== 'appears-in'
+        ) {
+
+          return;
+
+        }
+
+
+        const personId =
+          relationship.source;
+
+
+        const podcastId =
+          relationship.target;
+
+
+        if (
+          !personId ||
+          !podcastId
+        ) {
+
+          return;
+
+        }
+
+
+        /*
+         * Appearance does not become public until the
+         * Podcast record itself qualifies as public.
+         */
+
+        if (
+          !publicPodcastIds.has(
+            podcastId
+          )
+        ) {
+
+          return;
+
+        }
+
+
+        const person =
+          recordMap.get(
+            personId
+          );
+
+
+        const podcast =
+          recordMap.get(
+            podcastId
+          );
+
+
+        if (
+          !isPodcastVoiceRecord(
+            person
+          ) ||
+          !isPublicPodcastRecord(
+            podcast
+          )
+        ) {
+
+          return;
+
+        }
+
+
+        const episodeNumber =
+          Number(
+            podcast.episodeNumber
+          );
+
+
+        if (
+          !appearances.has(
+            personId
+          )
+        ) {
+
+          appearances.set(
+            personId,
+            new Set()
+          );
+
+        }
+
+
+        appearances
+          .get(
+            personId
+          )
+          .add(
+            episodeNumber
+          );
+
+      }
+    );
+
+
+    const voices =
+      [];
+
+
+    appearances.forEach(
+      function (
+        episodeSet,
+        personId
+      ) {
+
+        const person =
+          recordMap.get(
+            personId
+          );
+
+
+        if (!person) {
+
+          return;
+
+        }
+
+
+        const episodeNumbers =
+          Array.from(
+            episodeSet
+          )
+          .sort(
+            function (a, b) {
+
+              return a - b;
+
+            }
+          );
+
+
+        if (!episodeNumbers.length) {
+
+          return;
+
+        }
+
+
+        voices.push({
+          person:
+            person,
+
+          episodeNumbers:
+            episodeNumbers,
+
+          firstEpisode:
+            episodeNumbers[0]
+        });
+
+      }
+    );
+
+
+    /*
+     * Primary order:
+     * first published appearance.
+     *
+     * Tie-breaker:
+     * alphabetical Person title.
+     */
+
+    voices.sort(
+      function (a, b) {
+
+        const episodeDifference =
+          a.firstEpisode -
+          b.firstEpisode;
+
+
+        if (episodeDifference !== 0) {
+
+          return episodeDifference;
+
+        }
+
+
+        return String(
+          a.person.title || ''
+        ).localeCompare(
+          String(
+            b.person.title || ''
+          )
+        );
+
+      }
+    );
+
+
+    return voices;
+
+  }
+
+
+  /* ========================================================
+     PODCAST VOICE CARD
+  ======================================================== */
+
+
+  function createPodcastVoiceCard(
+    voice
+  ) {
+
+    const person =
+      voice.person;
+
+
+    const episodeNumbers =
+      voice.episodeNumbers;
+
+
+    /* ------------------------------------------------------
+       LINK
+    ------------------------------------------------------ */
+
+    const link =
+      document.createElement(
+        'a'
+      );
+
+    link.className =
+      'ggg-podcast-guest';
+
+    link.href =
+      person.url;
+
+
+    link.dataset.recordId =
+      person.id || '';
+
+
+    link.setAttribute(
+      'aria-label',
+      person.title
+        ? `View Archive record for ${person.title}`
+        : 'View Person Archive record'
+    );
+
+
+    /* ------------------------------------------------------
+       PORTRAIT SLOT
+
+       Slot always exists so guest identities remain aligned.
+    ------------------------------------------------------ */
+
+    const portrait =
+      document.createElement(
+        'div'
+      );
+
+    portrait.className =
+      'ggg-podcast-guest__portrait';
+
+
+    if (person.thumbnail) {
+
+      const image =
+        document.createElement(
+          'img'
+        );
+
+      image.src =
+        person.thumbnail;
+
+      image.alt =
+        '';
+
+      image.loading =
+        'lazy';
+
+      image.dataset.gggMaterial =
+        'photo';
+
+
+      portrait.appendChild(
+        image
+      );
+
+
+    } else {
+
+      portrait.setAttribute(
+        'aria-hidden',
+        'true'
+      );
+
+    }
+
+
+    /* ------------------------------------------------------
+       IDENTITY
+    ------------------------------------------------------ */
+
+    const identity =
+      document.createElement(
+        'div'
+      );
+
+    identity.className =
+      'ggg-podcast-guest__identity';
+
+
+    const name =
+      document.createElement(
+        'div'
+      );
+
+    name.className =
+      'ggg-podcast-guest__name';
+
+    name.dataset.gggMaterial =
+      'print';
+
+    name.textContent =
+      person.title ||
+      'Unnamed Person';
+
+
+    /* ------------------------------------------------------
+       DETAIL
+
+       Example:
+
+       Film, television, and theater actress · EP. 101, 108
+    ------------------------------------------------------ */
+
+    const detail =
+      document.createElement(
+        'div'
+      );
+
+    detail.className =
+      'ggg-podcast-guest__detail';
+
+    detail.dataset.gggMaterial =
+      'ink';
+
+
+    const credit =
+      (
+        person.podcastVoice &&
+        person.podcastVoice.credit
+      )
+        ? String(
+            person.podcastVoice.credit
+          ).trim()
+        : 'Guest';
+
+
+    const appearanceLabel =
+      episodeNumbers.length === 1
+        ? `EP. ${episodeNumbers[0]}`
+        : (
+            'EP. ' +
+            episodeNumbers.join(
+              ', '
+            )
+          );
+
+
+    detail.textContent =
+      `${credit} · ${appearanceLabel}`;
+
+
+    identity.append(
+      name,
+      detail
+    );
+
+
+    link.append(
+      portrait,
+      identity
+    );
+
+
+    return link;
+
+  }
+
+
+  /* ========================================================
+     VOICES FROM THE INVESTIGATION
+  ======================================================== */
+
+
+  function renderPodcastVoices(
+    records,
+    relationships,
+    episodes
+  ) {
+
+    const section =
+      document.querySelector(
+        '[data-ggg-podcast-voices]'
+      );
+
+    if (!section) {
+
+      return;
+
+    }
+
+
+    const grid =
+      section.querySelector(
+        '[data-ggg-podcast-voices-grid]'
+      );
+
+
+    if (!grid) {
+
+      console.warn(
+        '[GGG Podcast] Voices grid not found.'
+      );
+
+      return;
+
+    }
+
+
+    const voices =
+      getPodcastVoices(
+        records,
+        relationships,
+        episodes
+      );
+
+
+    /* ------------------------------------------------------
+       EMPTY STATE
+
+       If nobody currently qualifies, the entire component
+       disappears rather than exposing an empty index.
+    ------------------------------------------------------ */
+
+    if (!voices.length) {
+
+      section.hidden =
+        true;
+
+      return;
+
+    }
+
+
+    section.hidden =
+      false;
+
+
+    /* ------------------------------------------------------
+       RESET
+
+       Prevent duplicate voices if hydration runs again.
+    ------------------------------------------------------ */
+
+    grid.replaceChildren();
+
+
+    voices.forEach(
+      function (voice) {
+
+        grid.appendChild(
+          createPodcastVoiceCard(
+            voice
+          )
+        );
+
+      }
+    );
+
+
+    console.info(
+      '[GGG Podcast] Voices hydrated:',
+      voices.length
+    );
+
+  }
+
+
+  /* ========================================================
      HYDRATION
   ======================================================== */
 
@@ -998,7 +1682,8 @@
 
     if (
       typeof archive.init !== 'function' ||
-      typeof archive.getAllRecords !== 'function'
+      typeof archive.getAllRecords !== 'function' ||
+      typeof archive.getAllRelationships !== 'function'
     ) {
 
       console.warn(
@@ -1031,6 +1716,12 @@
         );
 
 
+      const relationships =
+        normalizeRelationships(
+          archive.getAllRelationships()
+        );
+
+
       const episodes =
         getPodcastEpisodes(
           records
@@ -1047,6 +1738,13 @@
 
 
       renderLatestEpisode(
+        episodes
+      );
+
+
+      renderPodcastVoices(
+        records,
+        relationships,
         episodes
       );
 
@@ -1085,6 +1783,9 @@
       hydrate,
 
     hydrateLatest:
+      hydrate,
+
+    hydrateVoices:
       hydrate,
 
     isReady:
