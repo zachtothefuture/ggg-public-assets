@@ -178,6 +178,10 @@
     "GGG-PER-2026-0004": {
       "title": "Erin Bowles",
       "type": "Person",
+      "podcastVoice": {
+        "include": true,
+        "credit": "Film, television, and theater actress"
+      },
       "collection": [],
       "status": "Under Investigation",
       "visibility": "public",
