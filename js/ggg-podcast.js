@@ -1565,25 +1565,29 @@
 
 
     /* ------------------------------------------------------
-       DETAIL
-
-       Example:
-
-       Film, television, and theater actress · EP. 101, 108
+      DETAIL
+   
+      Credit may truncate independently.
+   
+      Episode appearance always remains visible.
+   
+      Example:
+   
+      Film, television, and theater actress · EP. 101
     ------------------------------------------------------ */
-
+   
     const detail =
       document.createElement(
         'div'
       );
-
+   
     detail.className =
       'ggg-podcast-guest__detail';
-
+   
     detail.dataset.gggMaterial =
       'ink';
-
-
+   
+   
     const credit =
       (
         person.podcastVoice &&
@@ -1593,40 +1597,82 @@
             person.podcastVoice.credit
           ).trim()
         : 'Guest';
-
-
+   
+   
     const appearanceLabel =
       episodeNumbers.length === 1
-        ? (
-            `EP. ${episodeNumbers[0]}`
-          )
+        ? `EP. ${episodeNumbers[0]}`
         : (
             'EP. ' +
             episodeNumbers.join(
               ', '
             )
           );
-
-
-    detail.textContent =
-      `${credit} · ${appearanceLabel}`;
-
-
+   
+   
+    const creditElement =
+      document.createElement(
+        'span'
+      );
+   
+    creditElement.className =
+      'ggg-podcast-guest__credit';
+   
+    creditElement.textContent =
+      credit;
+   
+   
+    const separator =
+      document.createElement(
+        'span'
+      );
+   
+    separator.className =
+      'ggg-podcast-guest__separator';
+   
+    separator.setAttribute(
+      'aria-hidden',
+      'true'
+    );
+   
+    separator.textContent =
+      '·';
+   
+   
+    const appearances =
+      document.createElement(
+        'span'
+      );
+   
+    appearances.className =
+      'ggg-podcast-guest__appearances';
+   
+    appearances.textContent =
+      appearanceLabel;
+   
+   
+    detail.append(
+      creditElement,
+      separator,
+      appearances
+    );
+   
+   
     identity.append(
       name,
       detail
     );
-
-
+   
+   
     link.append(
       portrait,
       identity
     );
-
-
+   
+   
     return link;
-
-  }
+   
+    }
 
 
   /* ========================================================
