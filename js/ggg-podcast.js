@@ -352,95 +352,6 @@
   ======================================================== */
 
 
-  function appendLatestEpisodeTitle(
-    element,
-    recordTitle
-  ) {
-
-    const title =
-      recordTitle || 'Untitled Episode';
-
-
-    const hostPrefix =
-      'Zach & Kyle';
-
-
-    if (
-      title.startsWith(
-        hostPrefix
-      )
-    ) {
-
-      const host =
-        document.createElement(
-          'span'
-        );
-
-      host.className =
-        'ggg-podcast-latest-banner__title-host';
-
-      host.textContent =
-        hostPrefix;
-
-
-      const lineBreak =
-        document.createElement(
-          'br'
-        );
-
-
-      const spoiler =
-        document.createElement(
-          'span'
-        );
-
-      spoiler.className =
-        'ggg-podcast-latest-banner__title-spoiler';
-
-      spoiler.textContent =
-        title
-          .slice(
-            hostPrefix.length
-          )
-          .trim();
-
-
-      element.append(
-        host,
-        lineBreak,
-        spoiler
-      );
-
-
-      return;
-
-    }
-
-
-    /*
-     * Special episode titles without the standard
-     * Zach & Kyle prefix are entirely spoiler-sensitive.
-     */
-
-    const spoiler =
-      document.createElement(
-        'span'
-      );
-
-    spoiler.className =
-      'ggg-podcast-latest-banner__title-spoiler';
-
-    spoiler.textContent =
-      title;
-
-
-    element.appendChild(
-      spoiler
-    );
-
-  }
-
-
   /* ========================================================
      EPISODE CARD
   ======================================================== */
@@ -759,94 +670,63 @@
     section,
     hidden
   ) {
-
-    const details =
-      section.querySelector(
-        '[data-ggg-podcast-latest-details]'
-      );
-
-
-    const title =
-      section.querySelector(
-        '[data-ggg-podcast-latest-title]'
-      );
-
-
+   
     const summary =
       section.querySelector(
         '[data-ggg-podcast-latest-summary]'
       );
-
-
+   
+   
     const message =
       section.querySelector(
         '[data-ggg-podcast-latest-spoiler-message]'
       );
-
-
+   
     const toggle =
       section.querySelector(
         '[data-ggg-podcast-latest-spoiler-toggle]'
       );
-
-
+   
     if (
-      !details ||
-      !title ||
       !summary ||
       !message ||
       !toggle
     ) {
-
+   
       return;
-
+   
     }
-
-
+   
     /*
-     * Details remain present so the title can stay visible
-     * while only its spoiler-sensitive portion is blurred.
-     */
-
-    details.hidden =
-      false;
-
-
-    /*
-     * Summary is completely hidden in spoiler-safe mode.
-     */
-
+      * Title always remains visible.
+      *
+      * Only the canonical episode summary is treated
+      * as spoiler-sensitive.
+      */
+   
     summary.hidden =
       hidden;
-
-
-    /*
-     * Neutral message replaces the hidden summary.
-     */
-
+    
     message.hidden =
       !hidden;
-
-
+   
     toggle.textContent =
       hidden
         ? 'SHOW DETAILS'
         : 'HIDE DETAILS';
-
-
+   
     toggle.setAttribute(
       'aria-expanded',
       hidden
         ? 'false'
         : 'true'
     );
-
-
+   
     section.classList.toggle(
       'is-spoiler-hidden',
       hidden
     );
-
+   
   }
 
 
@@ -1037,7 +917,8 @@
     title.replaceChildren();
 
 
-    appendLatestEpisodeTitle(
+    appendFormattedEpisodeTitle(
+   
       title,
       latest.title ||
       `Episode ${episodeNumber}`
