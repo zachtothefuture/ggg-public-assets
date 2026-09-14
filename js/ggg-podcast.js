@@ -3,7 +3,7 @@
    PODCAST PAGE DATA + RENDERING
 
    VERSION
-   v1.2 — Latest Episode Summary
+   v1.3 — Latest Episode Spoiler Control
 
    PURPOSE
 
@@ -15,6 +15,7 @@
    • hydrate THE INVESTIGATION episode sequence
    • hydrate CAUGHT UP? latest episode
    • hydrate latest episode summary
+   • provide latest episode spoiler control
    • source records through window.GGG.archive
    • render Podcast records only
    • render public records only
@@ -48,6 +49,20 @@
    status
    url
    thumbnail
+
+   SPOILER POLICY
+
+   The latest episode title and summary may be hidden by
+   the visitor.
+
+   The following remain visible:
+
+   • episode number
+   • spoiler control
+   • canonical Archive action
+
+   Spoiler state is presentation-only and does not alter
+   canonical Archive data.
 
    ARCHITECTURE
 
@@ -632,6 +647,163 @@
 
 
   /* ========================================================
+     LATEST EPISODE SPOILER CONTROL
+  ======================================================== */
+
+
+  function setLatestSpoilerState(
+    section,
+    hidden
+  ) {
+
+    const details =
+      section.querySelector(
+        '[data-ggg-podcast-latest-details]'
+      );
+
+
+    const message =
+      section.querySelector(
+        '[data-ggg-podcast-latest-spoiler-message]'
+      );
+
+
+    const toggle =
+      section.querySelector(
+        '[data-ggg-podcast-latest-spoiler-toggle]'
+      );
+
+
+    if (
+      !details ||
+      !message ||
+      !toggle
+    ) {
+
+      return;
+
+    }
+
+
+    details.hidden =
+      hidden;
+
+
+    message.hidden =
+      !hidden;
+
+
+    toggle.textContent =
+      hidden
+        ? 'SHOW DETAILS'
+        : 'HIDE DETAILS';
+
+
+    toggle.setAttribute(
+      'aria-expanded',
+      hidden
+        ? 'false'
+        : 'true'
+    );
+
+
+    section.classList.toggle(
+      'is-spoiler-hidden',
+      hidden
+    );
+
+  }
+
+
+  function initializeLatestSpoilerControl(
+    section
+  ) {
+
+    const toggle =
+      section.querySelector(
+        '[data-ggg-podcast-latest-spoiler-toggle]'
+      );
+
+
+    const details =
+      section.querySelector(
+        '[data-ggg-podcast-latest-details]'
+      );
+
+
+    const message =
+      section.querySelector(
+        '[data-ggg-podcast-latest-spoiler-message]'
+      );
+
+
+    if (
+      !toggle ||
+      !details ||
+      !message
+    ) {
+
+      console.warn(
+        '[GGG Podcast] Latest Episode spoiler controls missing.'
+      );
+
+      return;
+
+    }
+
+
+    /*
+     * Reset to the default visible state whenever the
+     * component is hydrated.
+     */
+
+    setLatestSpoilerState(
+      section,
+      false
+    );
+
+
+    /*
+     * Prevent duplicate listeners if hydration is invoked
+     * more than once.
+     */
+
+    if (
+      toggle.dataset.gggSpoilerBound ===
+      'true'
+    ) {
+
+      return;
+
+    }
+
+
+    toggle.dataset.gggSpoilerBound =
+      'true';
+
+
+    toggle.addEventListener(
+      'click',
+      function () {
+
+        const isExpanded =
+          toggle.getAttribute(
+            'aria-expanded'
+          ) === 'true';
+
+
+        setLatestSpoilerState(
+          section,
+          isExpanded
+        );
+
+      }
+    );
+
+  }
+
+
+  /* ========================================================
      LATEST EPISODE
   ======================================================== */
 
@@ -763,6 +935,15 @@
       latest.title
         ? `View latest episode: Episode ${episodeNumber}, ${latest.title}`
         : `View latest episode: Episode ${episodeNumber}`
+    );
+
+
+    /* ------------------------------------------------------
+       SPOILER CONTROL
+    ------------------------------------------------------ */
+
+    initializeLatestSpoilerControl(
+      section
     );
 
 
