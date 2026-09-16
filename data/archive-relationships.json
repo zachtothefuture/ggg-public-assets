@@ -62,5 +62,13 @@
       "inverse": "related"
     }
   },
-  "relationships": []
+  "relationships": [
+    {
+      "source": "GGG-POD-2026-0001",
+      "type": "documents",
+      "target": [
+        "GGG-ART-2026-0001"
+      ]
+    }
+  ]
 }
