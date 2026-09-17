@@ -90,6 +90,34 @@
       ]
     },
     {
+      "source": "GGG-ART-2026-0001",
+      "type": "contained",
+      "target": [
+        "GGG-ART-2026-0002"
+      ]
+    },
+    {
+      "source": "GGG-PER-2026-0006",
+      "type": "owns",
+      "target": [
+        "GGG-ART-2026-0002"
+      ]
+    },
+    {
+      "source": "GGG-PER-2026-0005",
+      "type": "formerly-owned",
+      "target": [
+        "GGG-ART-2026-0002"
+      ]
+    },
+    {
+      "source": "GGG-ART-2026-0002",
+      "type": "contained",
+      "target": [
+        "GGG-ART-2026-0003"
+      ]
+    },
+    {
       "source": "GGG-POD-2026-0001",
       "type": "documents",
       "target": [
