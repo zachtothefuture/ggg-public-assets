@@ -4,7 +4,7 @@
    COMPONENT — AMBIENT AUDIO
 
    VERSION
-   v1.0 — Shared Page Atmosphere
+   v1.1 — Interaction Wake + Ducking API
 
    PURPOSE
 
@@ -19,18 +19,30 @@
 
    • page explicitly opts in
    • audio waits for first user interaction
+   • pointer, touch, keyboard and scroll may attempt wake
    • playback fades in gently
    • audio loops continuously
    • audio pauses when the page becomes hidden
    • audio resumes when the page becomes visible
    • no visible controls required
 
+   DUCKING MODEL
+
+   • foreground components may request duck()
+   • ambient audio fades to a reduced level
+   • restore() returns to the configured ambient volume
+   • foreground components do not directly manipulate audio
+
    PAGE CONFIGURATION
 
    window.GGG_AMBIENT_AUDIO = {
      enabled: true,
      src: '...',
-     volume: 0.10
+     volume: 0.10,
+     fadeInDuration: 1800,
+     duckVolume: 0.025,
+     duckDuration: 500,
+     restoreDuration: 1000
    };
 
 ========================================================== */
@@ -57,7 +69,16 @@
       0.10,
 
     fadeInDuration:
-      1800
+      1800,
+
+    duckVolume:
+      0.025,
+
+    duckDuration:
+      500,
+
+    restoreDuration:
+      1000
 
   };
 
@@ -77,6 +98,7 @@
   ======================================================== */
 
   if (!CONFIG.enabled) return;
+
 
   if (!CONFIG.src) {
 
@@ -117,6 +139,14 @@
     false;
 
 
+  let isStarting =
+    false;
+
+
+  let isDucked =
+    false;
+
+
   let fadeFrame =
     null;
 
@@ -135,9 +165,20 @@
   }
 
 
+  function getVolume(value) {
+
+    return clamp(
+      Number(value) || 0,
+      0,
+      1
+    );
+
+  }
+
+
   function cancelFade() {
 
-    if (!fadeFrame) return;
+    if (fadeFrame === null) return;
 
 
     cancelAnimationFrame(
@@ -152,33 +193,29 @@
 
 
   /* ========================================================
-     FADE IN
+     VOLUME TRANSITION
   ======================================================== */
 
-  function fadeIn() {
+  function fadeTo(targetVolume, duration) {
 
     cancelFade();
 
 
-    const targetVolume =
-      clamp(
-        Number(CONFIG.volume) || 0,
-        0,
-        1
-      );
+    const target =
+      getVolume(targetVolume);
 
 
-    const duration =
+    const fadeDuration =
       Math.max(
-        Number(CONFIG.fadeInDuration) || 0,
+        Number(duration) || 0,
         0
       );
 
 
-    if (!duration) {
+    if (!fadeDuration) {
 
       audio.volume =
-        targetVolume;
+        target;
 
       return;
 
@@ -197,7 +234,7 @@
 
       const progress =
         clamp(
-          (now - startTime) / duration,
+          (now - startTime) / fadeDuration,
           0,
           1
         );
@@ -206,7 +243,7 @@
       audio.volume =
         startVolume +
         (
-          targetVolume - startVolume
+          target - startVolume
         ) * progress;
 
 
@@ -216,6 +253,10 @@
           requestAnimationFrame(step);
 
       } else {
+
+        audio.volume =
+          target;
+
 
         fadeFrame =
           null;
@@ -232,12 +273,31 @@
 
 
   /* ========================================================
+     AMBIENT LEVEL
+  ======================================================== */
+
+  function getCurrentTargetVolume() {
+
+    return isDucked
+      ? getVolume(CONFIG.duckVolume)
+      : getVolume(CONFIG.volume);
+
+  }
+
+
+  /* ========================================================
      START
   ======================================================== */
 
   async function start() {
 
     if (hasStarted) return;
+
+    if (isStarting) return;
+
+
+    isStarting =
+      true;
 
 
     try {
@@ -249,21 +309,92 @@
         true;
 
 
-      fadeIn();
+      isStarting =
+        false;
 
+
+      /*
+        Playback has successfully unlocked.
+
+        We no longer need any wake listeners.
+      */
 
       removeInteractionListeners();
 
+      removeScrollListener();
+
+
+      fadeTo(
+        getCurrentTargetVolume(),
+        CONFIG.fadeInDuration
+      );
+
     } catch (error) {
 
-      /*
-        Playback may still be blocked if the browser does not
-        consider the event a valid user gesture.
+      isStarting =
+        false;
 
-        Keep listeners active so another interaction can retry.
+
+      /*
+        Some browsers do not treat every interaction type
+        as permission to begin audible media.
+
+        Keep all wake listeners active so a later valid
+        interaction can retry playback.
       */
 
     }
+
+  }
+
+
+  /* ========================================================
+     DUCK
+  ======================================================== */
+
+  function duck() {
+
+    isDucked =
+      true;
+
+
+    /*
+      Duck state can be established before ambient playback
+      begins.
+
+      This allows a foreground audio source to begin first
+      without causing the ambient layer to later enter at
+      full volume.
+    */
+
+    if (!hasStarted) return;
+
+
+    fadeTo(
+      CONFIG.duckVolume,
+      CONFIG.duckDuration
+    );
+
+  }
+
+
+  /* ========================================================
+     RESTORE
+  ======================================================== */
+
+  function restore() {
+
+    isDucked =
+      false;
+
+
+    if (!hasStarted) return;
+
+
+    fadeTo(
+      CONFIG.volume,
+      CONFIG.restoreDuration
+    );
 
   }
 
@@ -275,7 +406,8 @@
   const interactionEvents = [
     'pointerdown',
     'touchstart',
-    'keydown'
+    'keydown',
+    'wheel'
   ];
 
 
@@ -314,6 +446,37 @@
   }
 
 
+  /*
+    Touch scrolling will normally trigger touchstart before
+    movement begins.
+
+    The window scroll listener provides an additional wake
+    attempt for scrolling initiated through other input
+    mechanisms.
+
+    Browsers may reject audio playback from scroll itself.
+    If so, the remaining interaction listeners stay active.
+  */
+
+  window.addEventListener(
+    'scroll',
+    start,
+    {
+      passive: true
+    }
+  );
+
+
+  function removeScrollListener() {
+
+    window.removeEventListener(
+      'scroll',
+      start
+    );
+
+  }
+
+
   /* ========================================================
      PAGE VISIBILITY
   ======================================================== */
@@ -337,7 +500,21 @@
 
 
       audio.play()
-        .then(fadeIn)
+        .then(() => {
+
+          /*
+            Resume at whichever state is currently active.
+
+            If foreground audio is still active, remain
+            ducked. Otherwise restore normal ambience.
+          */
+
+          fadeTo(
+            getCurrentTargetVolume(),
+            CONFIG.restoreDuration
+          );
+
+        })
         .catch(() => {});
 
     }
@@ -354,13 +531,9 @@
   /* ========================================================
      PUBLIC API
 
-     Exposed now so other GGG components can communicate
-     with the ambient layer later without owning it.
-
-     Future use:
-     • insignia audio ducking
-     • mute controls
-     • page transitions
+     Other GGG systems communicate with the ambient layer
+     through this interface rather than manipulating the
+     underlying audio element directly.
   ======================================================== */
 
   window.GGG_AMBIENT_AUDIO_PLAYER = {
@@ -378,6 +551,22 @@
       cancelFade();
 
       audio.pause();
+
+    },
+
+    duck,
+
+    restore,
+
+    get started() {
+
+      return hasStarted;
+
+    },
+
+    get ducked() {
+
+      return isDucked;
 
     }
 
