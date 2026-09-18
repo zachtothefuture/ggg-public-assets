@@ -3,7 +3,7 @@
    COMPONENT — INSIGNIA AUDIO PLAYER
 
    VERSION
-   v2.7 — Physical Press + Audio Cue State
+   v2.8 — Ambient Audio Ducking
 
    PURPOSE
    Turns the Guild insignia into a discreet audio control.
@@ -29,6 +29,12 @@
      as a suppression state
    • pause / end removes the global playback state
    • normal flashlight / character reveal behavior resumes
+
+   AMBIENT AUDIO
+   • foreground playback requests ambient ducking
+   • pause / end restores normal ambient level
+   • insignia player never manipulates ambient volume directly
+   • pages without ambient audio continue working normally
 
    DISTURBANCE SYSTEM
    • echo
@@ -674,6 +680,65 @@
             ),
             max
           );
+
+        }
+
+
+        /* ====================================================
+           AMBIENT AUDIO
+
+           The foreground player communicates only through
+           the ambient player's public API.
+
+           It does not know or control ambient volume values.
+        ==================================================== */
+
+        function getAmbientAudioPlayer() {
+
+          return (
+            window.GGG_AMBIENT_AUDIO_PLAYER ||
+            null
+          );
+
+        }
+
+
+        function duckAmbientAudio() {
+
+          const ambient =
+            getAmbientAudioPlayer();
+
+
+          if (
+            !ambient ||
+            typeof ambient.duck !==
+              'function'
+          ) {
+            return;
+          }
+
+
+          ambient.duck();
+
+        }
+
+
+        function restoreAmbientAudio() {
+
+          const ambient =
+            getAmbientAudioPlayer();
+
+
+          if (
+            !ambient ||
+            typeof ambient.restore !==
+              'function'
+          ) {
+            return;
+          }
+
+
+          ambient.restore();
 
         }
 
@@ -2325,6 +2390,15 @@
                   stopDisturbances();
 
 
+                  /*
+                    Playback never successfully began, so
+                    ensure ambient audio remains/restores at
+                    its normal level.
+                  */
+
+                  restoreAmbientAudio();
+
+
                   console.warn(
                     '[GGG] Unable to play teaser audio:',
                     error
@@ -2396,6 +2470,17 @@
           'play',
           function () {
 
+            /*
+              Foreground playback has actually begun.
+
+              Request attenuation from the shared ambient
+              system rather than manipulating its audio
+              element directly.
+            */
+
+            duckAmbientAudio();
+
+
             showRing();
 
 
@@ -2424,6 +2509,13 @@
         audio.addEventListener(
           'pause',
           function () {
+
+            /*
+              Foreground playback is no longer active.
+            */
+
+            restoreAmbientAudio();
+
 
             setPlayingState(
               false
@@ -2461,6 +2553,15 @@
         audio.addEventListener(
           'ended',
           function () {
+
+            /*
+              The pause event normally fires as playback
+              finishes, but restore here as well so the
+              final state is explicit and resilient.
+            */
+
+            restoreAmbientAudio();
+
 
             setPlayingState(
               false
