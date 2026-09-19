@@ -4,7 +4,7 @@
    COMPONENT — AMBIENT AUDIO
 
    VERSION
-   v1.1 — Interaction Wake + Ducking API
+   v1.2 — Mobile-Safe Duck State
 
    PURPOSE
 
@@ -29,6 +29,8 @@
    DUCKING MODEL
 
    • foreground components may request duck()
+   • duck state may be established before ambient playback
+   • startup always honors the latest duck state
    • ambient audio fades to a reduced level
    • restore() returns to the configured ambient volume
    • foreground components do not directly manipulate audio
@@ -324,9 +326,19 @@
       removeScrollListener();
 
 
+      /*
+        Important on mobile:
+
+        Duck state may have been established while play()
+        was still resolving. Read the CURRENT state now,
+        rather than assuming normal ambient volume.
+      */
+
       fadeTo(
         getCurrentTargetVolume(),
-        CONFIG.fadeInDuration
+        isDucked
+          ? CONFIG.duckDuration
+          : CONFIG.fadeInDuration
       );
 
     } catch (error) {
@@ -354,18 +366,17 @@
 
   function duck() {
 
+    /*
+      Establish state immediately.
+
+      This is intentionally useful before ambient playback
+      has started or while its first play() request is still
+      resolving on mobile browsers.
+    */
+
     isDucked =
       true;
 
-
-    /*
-      Duck state can be established before ambient playback
-      begins.
-
-      This allows a foreground audio source to begin first
-      without causing the ambient layer to later enter at
-      full volume.
-    */
 
     if (!hasStarted) return;
 
@@ -530,10 +541,6 @@
 
   /* ========================================================
      PUBLIC API
-
-     Other GGG systems communicate with the ambient layer
-     through this interface rather than manipulating the
-     underlying audio element directly.
   ======================================================== */
 
   window.GGG_AMBIENT_AUDIO_PLAYER = {
