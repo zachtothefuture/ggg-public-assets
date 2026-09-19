@@ -2016,64 +2016,111 @@
     getMaterialRect(
       material
     ) {
-
+   
+      /*
+         Transform-tracked materials must be measured from
+         their current rendered geometry.
+   
+         getBoundingClientRect() includes CSS transforms such as
+         translation and scale, allowing generated lighting
+         overlays to remain registered with animated objects.
+      */
+   
+      if (
+        material.trackTransform
+      ) {
+   
+        const rect =
+          material.element
+            .getBoundingClientRect();
+   
+   
+        const frameRect =
+          material.frameRect;
+   
+   
+        frameRect.left =
+          rect.left;
+   
+   
+        frameRect.top =
+          rect.top;
+   
+   
+        frameRect.width =
+          rect.width;
+   
+   
+        frameRect.height =
+          rect.height;
+   
+   
+        return frameRect;
+   
+      }
+   
+   
+      /*
+         Standard materials retain the existing cached geometry
+         system for performance.
+      */
+   
       if (
         material.dynamicPosition ||
         material.geometryDirty
       ) {
-
+   
         this.measureMaterial(
           material
         );
-
+   
       }
-
-
+   
+   
       const geometry =
         material.geometry;
-
-
+   
+   
       const frameRect =
         material.frameRect;
-
-
+   
+   
       if (
         material.dynamicPosition
       ) {
-
+   
         frameRect.left =
           geometry.viewportLeft;
-
-
+   
+   
         frameRect.top =
           geometry.viewportTop;
-
+   
       } else {
-
+   
         frameRect.left =
           geometry.docLeft -
           this.scrollX;
-
-
+   
+   
         frameRect.top =
           geometry.docTop -
           this.scrollY;
-
+   
       }
-
-
+   
+   
       frameRect.width =
         geometry.width;
-
-
+   
+   
       frameRect.height =
         geometry.height;
-
-
+   
+   
       return frameRect;
-
+   
     }
-
 
     /* ======================================================
        MATERIAL PROFILE HELPERS
@@ -2255,6 +2302,11 @@
         dynamicPosition:
           position === 'fixed' ||
           position === 'sticky',
+
+        trackTransform:
+          element.hasAttribute(
+            'data-ggg-light-track-transform'
+          ),
 
 
         geometryDirty:
