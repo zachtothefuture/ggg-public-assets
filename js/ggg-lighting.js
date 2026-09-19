@@ -1,8 +1,8 @@
 /* ==========================================================
 GGG LIGHTING SYSTEM
-v1.4.0
+v1.5.0
 PERFORMANCE PASS 03
-+ METAL OVERLAY SCROLL REGISTRATION
++ INTEGRATED METAL RESPONSE — NO BODY OVERLAYS
 + ARCHIVE INDEX PROFILE CONSOLIDATION
 + HIDDEN CHARACTER REVEAL
 + TEXT ENTRY LIGHTING SUSPENSION
@@ -13,7 +13,7 @@ Preserves the approved GGG flashlight system:
 • optical cone movement
 • atmospheric dust
 • battery flicker
-• metal bloom + bevel response
+• integrated metal highlight + dimensional response
 • photo sheen on full-material pages
 • header / footer exposure behavior
 • hidden character reveals
@@ -1429,14 +1429,6 @@ vars:
 Object.create(
 null
 ),
-bloomVars:
-Object.create(
-null
-),
-bevelVars:
-Object.create(
-null
-),
 sheenVars:
 Object.create(
 null
@@ -1447,10 +1439,6 @@ bevelStrength:
 0,
 hovered:
 false,
-bloom:
-null,
-bevel:
-null,
 sheen:
 null
 };
@@ -1482,15 +1470,6 @@ this.resizeObserver
 ) {
 this.resizeObserver.observe(
 element
-);
-}
-if (
-type ===
-'metal' &&
-respondsToLight
-) {
-this.prepareMetal(
-material
 );
 }
 if (
@@ -1577,26 +1556,41 @@ material,
 '--ggg-light-from-bottom',
 '0'
 );
-if (
-material.bloom
-) {
-this.setVar(
-material.bloom,
-material.bloomVars,
-'--ggg-metal-opacity',
+this.setMaterialVar(
+material,
+'--ggg-metal-response',
 '0'
 );
-}
-if (
-material.bevel
-) {
-this.setVar(
-material.bevel,
-material.bevelVars,
-'--ggg-metal-bevel-opacity',
+this.setMaterialVar(
+material,
+'--ggg-metal-brightness',
+'1'
+);
+this.setMaterialVar(
+material,
+'--ggg-metal-contrast',
+'1'
+);
+this.setMaterialVar(
+material,
+'--ggg-metal-glow-opacity',
 '0'
 );
-}
+this.setMaterialVar(
+material,
+'--ggg-metal-bevel-strength',
+'0'
+);
+this.setMaterialVar(
+material,
+'--ggg-metal-highlight-x',
+'0px'
+);
+this.setMaterialVar(
+material,
+'--ggg-metal-highlight-y',
+'0px'
+);
 if (
 material.sheen
 ) {
@@ -2106,100 +2100,6 @@ reveal.state =
 }
 }
 );
-}
-/* ======================================================
-METAL PREPARATION
-====================================================== */
-prepareMetal(
-material
-) {
-material.bloom =
-document.createElement(
-'div'
-);
-material.bloom.className =
-'ggg-metal-bloom';
-document.body.appendChild(
-material.bloom
-);
-material.bevel =
-document.createElement(
-'div'
-);
-material.bevel.className =
-'ggg-metal-bevel';
-document.body.appendChild(
-material.bevel
-);
-const applyMask = () => {
-const element =
-material.element;
-const image =
-element.matches(
-'img'
-)
-? element
-: element.querySelector(
-'img'
-);
-if (
-!image
-) {
-return;
-}
-const url =
-image.currentSrc ||
-image.src;
-if (
-!url
-) {
-return;
-}
-const mask =
-'url("' +
-url +
-'")';
-this.setVar(
-material.bloom,
-material.bloomVars,
-'--ggg-metal-mask',
-mask
-);
-this.setVar(
-material.bevel,
-material.bevelVars,
-'--ggg-metal-mask',
-mask
-);
-};
-applyMask();
-const image =
-material.element.matches(
-'img'
-)
-? material.element
-: material.element.querySelector(
-'img'
-);
-if (
-image &&
-!image.complete
-) {
-image.addEventListener(
-'load',
-() => {
-applyMask();
-material.geometryDirty =
-true;
-this.footerGeometryDirty =
-true;
-},
-{
-once:
-true
-}
-);
-}
 }
 /* ======================================================
 PHOTO PREPARATION
@@ -2992,18 +2892,17 @@ distance
 }
 /* ======================================================
 METAL RESPONSE
+
+Integrated directly into the metal material. No generated
+body-level bloom or bevel elements are created. This keeps
+the response in the same rendering / scroll context as the
+physical object and avoids Safari overscroll detachment.
 ====================================================== */
 updateMetal(
 material,
 rect,
 distance
 ) {
-if (
-!material.bloom ||
-!material.bevel
-) {
-return;
-}
 const centerX =
 rect.left +
 rect.width /
@@ -3056,125 +2955,6 @@ target -
 material.strength
 ) *
 .16;
-const localX =
-this.clamp(
-(
-this.lightX -
-rect.left
-) /
-rect.width,
-0,
-1
-);
-const localY =
-this.clamp(
-(
-this.lightY -
-rect.top
-) /
-rect.height,
-0,
-1
-);
-/*
-The generated metal overlays are position: fixed, so their
-coordinates must remain in viewport space.
-
-getBoundingClientRect() already returns viewport-relative
-coordinates. Adding scrollX / scrollY converts them to document
-coordinates and causes the overlays to remain behind visually as
-the page scrolls, most noticeably in Safari.
-*/
-const leftValue =
-rect.left.toFixed(2) +
-'px';
-const topValue =
-rect.top.toFixed(2) +
-'px';
-const widthValue =
-rect.width.toFixed(2) +
-'px';
-const heightValue =
-rect.height.toFixed(2) +
-'px';
-this.setVar(
-material.bloom,
-material.bloomVars,
-'--ggg-metal-left',
-leftValue
-);
-this.setVar(
-material.bloom,
-material.bloomVars,
-'--ggg-metal-top',
-topValue
-);
-this.setVar(
-material.bloom,
-material.bloomVars,
-'--ggg-metal-width',
-widthValue
-);
-this.setVar(
-material.bloom,
-material.bloomVars,
-'--ggg-metal-height',
-heightValue
-);
-this.setVar(
-material.bevel,
-material.bevelVars,
-'--ggg-metal-left',
-leftValue
-);
-this.setVar(
-material.bevel,
-material.bevelVars,
-'--ggg-metal-top',
-topValue
-);
-this.setVar(
-material.bevel,
-material.bevelVars,
-'--ggg-metal-width',
-widthValue
-);
-this.setVar(
-material.bevel,
-material.bevelVars,
-'--ggg-metal-height',
-heightValue
-);
-this.setVar(
-material.bloom,
-material.bloomVars,
-'--ggg-metal-x',
-(
-20 +
-localX *
-60
-).toFixed(2) +
-'%'
-);
-this.setVar(
-material.bloom,
-material.bloomVars,
-'--ggg-metal-y',
-(
-20 +
-localY *
-60
-).toFixed(2) +
-'%'
-);
-this.setVar(
-material.bloom,
-material.bloomVars,
-'--ggg-metal-opacity',
-material.strength.toFixed(
-3
-)
-);
 let bevelTarget =
 this.clamp(
 1 -
@@ -3214,35 +2994,63 @@ bevelTarget -
 material.bevelStrength
 ) *
 .18;
-this.setVar(
-material.bevel,
-material.bevelVars,
-'--ggg-metal-bevel-x',
-(
-50 -
-directionX *
-78
-).toFixed(2) +
-'%'
+this.setMaterialVar(
+material,
+'--ggg-metal-response',
+material.strength.toFixed(
+3
+)
 );
-this.setVar(
-material.bevel,
-material.bevelVars,
-'--ggg-metal-bevel-y',
+this.setMaterialVar(
+material,
+'--ggg-metal-brightness',
 (
-50 -
-directionY *
-78
-).toFixed(2) +
-'%'
+1 +
+material.strength *
+.16
+).toFixed(3)
 );
-this.setVar(
-material.bevel,
-material.bevelVars,
-'--ggg-metal-bevel-opacity',
+this.setMaterialVar(
+material,
+'--ggg-metal-contrast',
+(
+1 +
+material.bevelStrength *
+.08
+).toFixed(3)
+);
+this.setMaterialVar(
+material,
+'--ggg-metal-glow-opacity',
+(
+material.strength *
+.22
+).toFixed(3)
+);
+this.setMaterialVar(
+material,
+'--ggg-metal-bevel-strength',
 material.bevelStrength.toFixed(
 3
 )
+);
+this.setMaterialVar(
+material,
+'--ggg-metal-highlight-x',
+(
+directionX *
+2.4
+).toFixed(2) +
+'px'
+);
+this.setMaterialVar(
+material,
+'--ggg-metal-highlight-y',
+(
+directionY *
+2.4
+).toFixed(2) +
+'px'
 );
 }
 /* ======================================================
