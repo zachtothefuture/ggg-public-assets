@@ -1,8 +1,9 @@
 /* ==========================================================
    GGG LIGHTING SYSTEM
-   v1.3.0
+   v1.4.0
 
    PERFORMANCE PASS 03
+   + METAL OVERLAY SCROLL REGISTRATION
    + ARCHIVE INDEX PROFILE CONSOLIDATION
    + HIDDEN CHARACTER REVEAL
    + TEXT ENTRY LIGHTING SUSPENSION
@@ -2017,6 +2018,47 @@
       material
     ) {
 
+      /*
+        Elements explicitly marked for transform tracking can
+        move independently of document scroll/layout geometry.
+        Read their live viewport rect every frame so effects
+        remain registered to animated artwork.
+      */
+
+      if (
+        material.trackTransform
+      ) {
+
+        const rect =
+          material.element
+            .getBoundingClientRect();
+
+
+        const frameRect =
+          material.frameRect;
+
+
+        frameRect.left =
+          rect.left;
+
+
+        frameRect.top =
+          rect.top;
+
+
+        frameRect.width =
+          rect.width;
+
+
+        frameRect.height =
+          rect.height;
+
+
+        return frameRect;
+
+      }
+
+
       if (
         material.dynamicPosition ||
         material.geometryDirty
@@ -2073,7 +2115,6 @@
       return frameRect;
 
     }
-
 
     /* ======================================================
        MATERIAL PROFILE HELPERS
@@ -2255,6 +2296,12 @@
         dynamicPosition:
           position === 'fixed' ||
           position === 'sticky',
+
+
+        trackTransform:
+          element.hasAttribute(
+            'data-ggg-light-track-transform'
+          ),
 
 
         geometryDirty:
@@ -4821,12 +4868,18 @@
 
 
       const leftValue =
-        rect.left.toFixed(2) +
+        (
+          rect.left +
+          this.scrollX
+        ).toFixed(2) +
         'px';
 
 
       const topValue =
-        rect.top.toFixed(2) +
+        (
+          rect.top +
+          this.scrollY
+        ).toFixed(2) +
         'px';
 
 
@@ -6365,21 +6418,26 @@
          RESPONSIVE MATERIALS ONLY
       ==================================================== */
 
-      if (
-        this.shouldUpdateMaterials()
-      ) {
+      const updateAllMaterials =
+        this.shouldUpdateMaterials();
 
-        this.activeMaterials.forEach(
-          material => {
+
+      this.activeMaterials.forEach(
+        material => {
+
+          if (
+            updateAllMaterials ||
+            material.trackTransform
+          ) {
 
             this.updateMaterialBase(
               material
             );
 
           }
-        );
 
-      }
+        }
+      );
 
 
       /* ====================================================
