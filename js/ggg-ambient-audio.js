@@ -4,7 +4,7 @@
    COMPONENT — AMBIENT AUDIO
 
    VERSION
-   v1.2 — Mobile-Safe Duck State
+   v1.3 — iOS Pause Ducking
 
    PURPOSE
 
@@ -31,8 +31,9 @@
    • foreground components may request duck()
    • duck state may be established before ambient playback
    • startup always honors the latest duck state
-   • ambient audio fades to a reduced level
-   • restore() returns to the configured ambient volume
+   • desktop fades ambient audio to a reduced level
+   • iOS / iPadOS pauses ambient audio while foreground plays
+   • restore() resumes / restores the configured ambient state
    • foreground components do not directly manipulate audio
 
    PAGE CONFIGURATION
@@ -96,6 +97,27 @@
 
 
   /* ========================================================
+     PLATFORM
+
+     iOS / iPadOS WebKit does not provide a dependable
+     per-element volume ducking path across supported devices.
+
+     On those devices, ducking uses pause / resume instead.
+  ======================================================== */
+
+  const IS_IOS_FAMILY =
+    /iPad|iPhone|iPod/.test(
+      navigator.userAgent
+    ) ||
+    (
+      navigator.platform ===
+        'MacIntel' &&
+      navigator.maxTouchPoints >
+        1
+    );
+
+
+  /* ========================================================
      VALIDATE
   ======================================================== */
 
@@ -146,6 +168,10 @@
 
 
   let isDucked =
+    false;
+
+
+  let wasPlayingBeforeDuck =
     false;
 
 
@@ -334,6 +360,26 @@
         rather than assuming normal ambient volume.
       */
 
+      if (
+        IS_IOS_FAMILY &&
+        isDucked
+      ) {
+
+        /*
+          Foreground audio claimed the mix while ambient
+          playback was still unlocking.
+
+          Pause immediately rather than attempting a volume
+          transition that iOS may ignore.
+        */
+
+        audio.pause();
+
+        return;
+
+      }
+
+
       fadeTo(
         getCurrentTargetVolume(),
         isDucked
@@ -381,6 +427,27 @@
     if (!hasStarted) return;
 
 
+    if (IS_IOS_FAMILY) {
+
+      cancelFade();
+
+
+      wasPlayingBeforeDuck =
+        !audio.paused;
+
+
+      if (wasPlayingBeforeDuck) {
+
+        audio.pause();
+
+      }
+
+
+      return;
+
+    }
+
+
     fadeTo(
       CONFIG.duckVolume,
       CONFIG.duckDuration
@@ -400,6 +467,44 @@
 
 
     if (!hasStarted) return;
+
+
+    if (IS_IOS_FAMILY) {
+
+      cancelFade();
+
+
+      const shouldResume =
+        wasPlayingBeforeDuck;
+
+
+      wasPlayingBeforeDuck =
+        false;
+
+
+      if (
+        !shouldResume ||
+        document.hidden
+      ) {
+        return;
+      }
+
+
+      audio.play()
+        .catch(() => {
+
+          /*
+            If a particular mobile browser rejects the
+            automatic resume, leave ambience paused rather
+            than interfering with foreground playback.
+          */
+
+        });
+
+
+      return;
+
+    }
 
 
     fadeTo(
@@ -510,15 +615,33 @@
       }
 
 
+      /*
+        If foreground audio is active on iOS, ambient must
+        remain paused until restore() is requested.
+      */
+
+      if (
+        IS_IOS_FAMILY &&
+        isDucked
+      ) {
+        return;
+      }
+
+
       audio.play()
         .then(() => {
 
           /*
             Resume at whichever state is currently active.
 
-            If foreground audio is still active, remain
-            ducked. Otherwise restore normal ambience.
+            Desktop restores through the normal fade path.
+            iOS / iPadOS simply resumes the paused ambience.
           */
+
+          if (IS_IOS_FAMILY) {
+            return;
+          }
+
 
           fadeTo(
             getCurrentTargetVolume(),
@@ -574,6 +697,12 @@
     get ducked() {
 
       return isDucked;
+
+    },
+
+    get usesPauseDucking() {
+
+      return IS_IOS_FAMILY;
 
     }
 
