@@ -1,17 +1,10 @@
 /* ==========================================================
-
    GGG LIGHTING SYSTEM
+   v1.3.0
 
-   v1.4.0
-
-   TRANSFORM-TRACKED MATERIALS
-
-   + PERFORMANCE PASS 03
-
+   PERFORMANCE PASS 03
    + ARCHIVE INDEX PROFILE CONSOLIDATION
-
    + HIDDEN CHARACTER REVEAL
-
    + TEXT ENTRY LIGHTING SUSPENSION
 
    VISUAL BEHAVIOR
@@ -19,172 +12,95 @@
    Preserves the approved GGG flashlight system:
 
    • cursor-following desktop examination light
-
    • fixed mobile examination light
-
    • optical cone movement
-
    • atmospheric dust
-
    • battery flicker
-
    • metal bloom + bevel response
-
    • photo sheen on full-material pages
-
    • header / footer exposure behavior
-
    • hidden character reveals
-
    • automatic suspension while entering text
 
-   TRANSFORM-TRACKED MATERIALS
-
-   Materials that move or scale through CSS transforms can opt
-
-   into live rendered-geometry tracking:
-
-   data-ggg-light-track-transform
-
-   While a transform-tracked material is visible:
-
-   • getBoundingClientRect() is read from its rendered state
-
-   • translation is tracked
-
-   • scale is tracked
-
-   • generated metal bloom remains registered
-
-   • generated metal bevel remains registered
-
-   • photo sheen remains registered if used
-
-   • material updates continue even when the flashlight itself
-
-     is stationary
-
-   Standard materials continue to use cached geometry.
 
    TEXT ENTRY BEHAVIOR
 
    While a text-entry control has focus:
 
    • flashlight temporarily disappears
-
    • animation loop pauses
-
    • battery flicker pauses
-
    • material effects reset
-
    • dust pauses
-
    • mobile keyboard viewport changes are tracked
 
    When text entry ends:
 
    • mobile browser viewport is allowed to settle
-
    • visual viewport dimensions are remeasured
-
    • material geometry is invalidated
-
    • mobile light returns to its canonical resting position
-
    • flashlight resumes without changing user preference
+
 
    PERFORMANCE ARCHITECTURE
 
    General pages:
-
    • full material response
-
    • metal, paper, photo, glass, print and ink
-
    • photo sheen enabled
 
    Archive index:
-
    • full global flashlight preserved
-
    • full metal response preserved
-
    • paper is visually static
-
    • photo is visually static
-
    • glass is visually static
-
    • print is visually static
-
    • ink is visually static
-
    • photo sheen is not created
-
    • static material types receive no per-frame variables
-
    • reduced material observer margin
-
    • reduced dust count
+
 
    PERFORMANCE FEATURES
 
    • Cached material geometry
-
-   • Optional live transform geometry
-
    • Active responsive-material Set
-
    • WeakMap material lookup
-
    • Cached viewport / scroll state
-
    • Cached footer geometry
-
    • Deduplicated CSS variable writes
-
    • Single bound animation callback
-
    • Animation pauses when disabled
-
    • Animation pauses in hidden tabs
-
    • Animation pauses during text entry
-
    • ResizeObserver-driven geometry invalidation
-
    • VisualViewport keyboard handling
-
    • Font/load geometry refresh
-
    • Material-update motion threshold
-
    • Hidden reveals skip non-visible materials
-
    • Archive-index runtime material filtering
-
    • Explicit static-lighting subtree opt-out
+
 
    ENABLE PER PAGE
 
    Standard page:
 
    window.GGG_LIGHTING_PAGE = {
-
      enabled: true
-
    };
+
 
    Archive landing page:
 
    window.GGG_LIGHTING_PAGE = {
-
      enabled: true,
-
      performance: 'archive-index'
-
    };
+
 
    MATERIAL DISCOVERY
 
@@ -192,32 +108,25 @@
 
    or canonical GGG material classes.
 
-   TRANSFORM TRACKING
-
-   Add this attribute to a material that translates or scales:
-
-   data-ggg-light-track-transform
 
    STATIC SUBTREE OPT-OUT
 
    data-ggg-light-static
 
    Any material inside an element carrying this attribute
-
    is ignored entirely by the runtime material engine.
+
 
    CHARACTER REVEAL
 
    class="ggg-light-reveal ggg-light-reveal--characters"
 
+
    RUNTIME CONTROL
 
    window.dispatchEvent(
-
      new CustomEvent('ggg:lighting-toggle')
-
    );
-
 ========================================================== */
 
 (function () {
@@ -2107,111 +2016,64 @@
     getMaterialRect(
       material
     ) {
-   
-      /*
-         Transform-tracked materials must be measured from
-         their current rendered geometry.
-   
-         getBoundingClientRect() includes CSS transforms such as
-         translation and scale, allowing generated lighting
-         overlays to remain registered with animated objects.
-      */
-   
-      if (
-        material.trackTransform
-      ) {
-   
-        const rect =
-          material.element
-            .getBoundingClientRect();
-   
-   
-        const frameRect =
-          material.frameRect;
-   
-   
-        frameRect.left =
-          rect.left;
-   
-   
-        frameRect.top =
-          rect.top;
-   
-   
-        frameRect.width =
-          rect.width;
-   
-   
-        frameRect.height =
-          rect.height;
-   
-   
-        return frameRect;
-   
-      }
-   
-   
-      /*
-         Standard materials retain the existing cached geometry
-         system for performance.
-      */
-   
+
       if (
         material.dynamicPosition ||
         material.geometryDirty
       ) {
-   
+
         this.measureMaterial(
           material
         );
-   
+
       }
-   
-   
+
+
       const geometry =
         material.geometry;
-   
-   
+
+
       const frameRect =
         material.frameRect;
-   
-   
+
+
       if (
         material.dynamicPosition
       ) {
-   
+
         frameRect.left =
           geometry.viewportLeft;
-   
-   
+
+
         frameRect.top =
           geometry.viewportTop;
-   
+
       } else {
-   
+
         frameRect.left =
           geometry.docLeft -
           this.scrollX;
-   
-   
+
+
         frameRect.top =
           geometry.docTop -
           this.scrollY;
-   
+
       }
-   
-   
+
+
       frameRect.width =
         geometry.width;
-   
-   
+
+
       frameRect.height =
         geometry.height;
-   
-   
+
+
       return frameRect;
-   
+
     }
+
 
     /* ======================================================
        MATERIAL PROFILE HELPERS
@@ -2393,11 +2255,6 @@
         dynamicPosition:
           position === 'fixed' ||
           position === 'sticky',
-
-        trackTransform:
-          element.hasAttribute(
-            'data-ggg-light-track-transform'
-          ),
 
 
         geometryDirty:
@@ -4413,36 +4270,11 @@
       if (
         !this.activeMaterials.size
       ) {
-   
+
         return false;
-   
+
       }
-   
-   
-      /*
-         A transform-tracked material can move independently
-         from the flashlight.
-   
-         Its generated lighting overlays therefore require a
-         material update even when the light itself is still.
-      */
-   
-      const hasTransformTrackedMaterial =
-        Array.from(
-          this.activeMaterials
-        ).some(
-          material =>
-            material.trackTransform
-        );
-   
-   
-      if (
-        hasTransformTrackedMaterial
-      ) {
-   
-        return true;
-   
-      }
+
 
       const positionChanged =
         !Number.isFinite(
