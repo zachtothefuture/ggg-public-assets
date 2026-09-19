@@ -1,7 +1,7 @@
 /* ==========================================================
 GGG LIGHTING SYSTEM
-v1.3.2
-LOCAL TRANSFORM-TRACKED METAL OVERLAYS
+v1.3.3
+LIVE FIXED-OVERLAY GEOMETRY
 PERFORMANCE PASS 03
 + ARCHIVE INDEX PROFILE CONSOLIDATION
 + HIDDEN CHARACTER REVEAL
@@ -67,8 +67,8 @@ PERFORMANCE FEATURES
 • Hidden reveals skip non-visible materials
 • Archive-index runtime material filtering
 • Explicit static-lighting subtree opt-out
-• Insignia metal retains material response without generated bloom /
-bevel overlays
+• Detached metal / photo overlays use live viewport geometry
+• Visible detached overlays refresh every animation frame
 ENABLE PER PAGE
 Standard page:
 window.GGG_LIGHTING_PAGE = {
@@ -1221,8 +1221,17 @@ rect
 getMaterialRect(
 material
 ) {
+/*
+   Detached fixed overlays must use the browser's live viewport
+   geometry directly. Reconstructing viewport position from cached
+   document coordinates can drift during composited scrolling.
+
+   Metal and photo generate position: fixed effect layers, so they
+   always take this path while responsive. This also naturally
+   follows transforms on the teaser pin.
+*/
 if (
-material.trackTransform
+material.liveOverlayGeometry
 ) {
 const rect =
 material.element
@@ -1386,29 +1395,9 @@ profile:
 PROFILES[type],
 respondsToLight,
 needsRevealTracking,
-trackTransform:
-element.hasAttribute(
-'data-ggg-light-track-transform'
-) ||
-Boolean(
-element.closest(
-'.ggg-insignia-audio'
-)
-),
-localMetal:
-type === 'metal' &&
-(
-element.hasAttribute(
-'data-ggg-light-track-transform'
-) ||
-Boolean(
-element.closest(
-'.ggg-insignia-audio'
-)
-)
-),
-localMetalHost:
-null,
+liveOverlayGeometry:
+type === 'metal' ||
+type === 'photo',
 visible:
 !this.intersectionObserver,
 dynamicPosition:
@@ -2128,6 +2117,25 @@ METAL PREPARATION
 prepareMetal(
 material
 ) {
+material.bloom =
+document.createElement(
+'div'
+);
+material.bloom.className =
+'ggg-metal-bloom';
+document.body.appendChild(
+material.bloom
+);
+material.bevel =
+document.createElement(
+'div'
+);
+material.bevel.className =
+'ggg-metal-bevel';
+document.body.appendChild(
+material.bevel
+);
+const applyMask = () => {
 const element =
 material.element;
 const image =
@@ -2138,69 +2146,6 @@ element.matches(
 : element.querySelector(
 'img'
 );
-material.bloom =
-document.createElement(
-'div'
-);
-material.bloom.className =
-'ggg-metal-bloom';
-material.bevel =
-document.createElement(
-'div'
-);
-material.bevel.className =
-'ggg-metal-bevel';
-if (
-material.localMetal &&
-image &&
-image.parentElement
-) {
-const host =
-image.parentElement;
-material.localMetalHost =
-host;
-if (
-window.getComputedStyle(
-host
-).position === 'static'
-) {
-host.style.position =
-'relative';
-}
-[
-material.bloom,
-material.bevel
-].forEach(
-overlay => {
-host.appendChild(
-overlay
-);
-overlay.style.position =
-'absolute';
-overlay.style.pointerEvents =
-'none';
-overlay.style.margin =
-'0';
-overlay.style.inset =
-'auto';
-overlay.style.zIndex =
-'2';
-overlay.style.transformOrigin =
-'50% 50%';
-}
-);
-this.syncLocalMetalOverlay(
-material
-);
-} else {
-document.body.appendChild(
-material.bloom
-);
-document.body.appendChild(
-material.bevel
-);
-}
-const applyMask = () => {
 if (
 !image
 ) {
@@ -2232,6 +2177,14 @@ mask
 );
 };
 applyMask();
+const image =
+material.element.matches(
+'img'
+)
+? material.element
+: material.element.querySelector(
+'img'
+);
 if (
 image &&
 !image.complete
@@ -2244,13 +2197,6 @@ material.geometryDirty =
 true;
 this.footerGeometryDirty =
 true;
-if (
-material.localMetal
-) {
-this.syncLocalMetalOverlay(
-material
-);
-}
 },
 {
 once:
@@ -2259,76 +2205,6 @@ true
 );
 }
 }
-
-syncLocalMetalOverlay(
-material
-) {
-if (
-!material.localMetal ||
-!material.bloom ||
-!material.bevel
-) {
-return;
-}
-const element =
-material.element;
-const image =
-element.matches(
-'img'
-)
-? element
-: element.querySelector(
-'img'
-);
-if (
-!image
-) {
-return;
-}
-const style =
-window.getComputedStyle(
-image
-);
-const left =
-image.offsetLeft.toFixed(2) +
-'px';
-const top =
-image.offsetTop.toFixed(2) +
-'px';
-const width =
-image.offsetWidth.toFixed(2) +
-'px';
-const height =
-image.offsetHeight.toFixed(2) +
-'px';
-const transform =
-style.transform === 'none'
-? 'none'
-: style.transform;
-const transformOrigin =
-style.transformOrigin ||
-'50% 50%';
-[
-material.bloom,
-material.bevel
-].forEach(
-overlay => {
-overlay.style.left =
-left;
-overlay.style.top =
-top;
-overlay.style.width =
-width;
-overlay.style.height =
-height;
-overlay.style.transform =
-transform;
-overlay.style.transformOrigin =
-transformOrigin;
-}
-);
-}
-
 /* ======================================================
 PHOTO PREPARATION
 ====================================================== */
@@ -3132,13 +3008,6 @@ if (
 ) {
 return;
 }
-if (
-material.localMetal
-) {
-this.syncLocalMetalOverlay(
-material
-);
-}
 const centerX =
 rect.left +
 rect.width /
@@ -3211,9 +3080,6 @@ rect.height,
 0,
 1
 );
-if (
-!material.localMetal
-) {
 const leftValue =
 rect.left.toFixed(2) +
 'px';
@@ -3274,7 +3140,6 @@ material.bevelVars,
 '--ggg-metal-height',
 heightValue
 );
-}
 this.setVar(
 material.bloom,
 material.bloomVars,
@@ -4290,9 +4155,15 @@ const updateAllMaterials =
 this.shouldUpdateMaterials();
 this.activeMaterials.forEach(
 material => {
+/*
+   Metal / photo effects live in detached fixed layers. Keep those
+   synchronized with the source element every frame, including
+   Safari composited scrolling. Other materials retain the existing
+   motion-threshold performance gate.
+*/
 if (
 updateAllMaterials ||
-material.trackTransform
+material.liveOverlayGeometry
 ) {
 this.updateMaterialBase(
 material
