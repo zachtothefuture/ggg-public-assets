@@ -4322,11 +4322,36 @@
       if (
         !this.activeMaterials.size
       ) {
-
+   
         return false;
-
+   
       }
-
+   
+   
+      /*
+         A transform-tracked material can move independently
+         from the flashlight.
+   
+         Its generated lighting overlays therefore require a
+         material update even when the light itself is still.
+      */
+   
+      const hasTransformTrackedMaterial =
+        Array.from(
+          this.activeMaterials
+        ).some(
+          material =>
+            material.trackTransform
+        );
+   
+   
+      if (
+        hasTransformTrackedMaterial
+      ) {
+   
+        return true;
+   
+      }
 
       const positionChanged =
         !Number.isFinite(
