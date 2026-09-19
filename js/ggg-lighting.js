@@ -1,7 +1,7 @@
 /* ==========================================================
 GGG LIGHTING SYSTEM
-v1.3.1
-INSIGNIA METAL OVERLAY EXCLUSION
+v1.3.2
+LOCAL TRANSFORM-TRACKED METAL OVERLAYS
 PERFORMANCE PASS 03
 + ARCHIVE INDEX PROFILE CONSOLIDATION
 + HIDDEN CHARACTER REVEAL
@@ -1222,6 +1222,24 @@ getMaterialRect(
 material
 ) {
 if (
+material.trackTransform
+) {
+const rect =
+material.element
+.getBoundingClientRect();
+const frameRect =
+material.frameRect;
+frameRect.left =
+rect.left;
+frameRect.top =
+rect.top;
+frameRect.width =
+rect.width;
+frameRect.height =
+rect.height;
+return frameRect;
+}
+if (
 material.dynamicPosition ||
 material.geometryDirty
 ) {
@@ -1368,6 +1386,29 @@ profile:
 PROFILES[type],
 respondsToLight,
 needsRevealTracking,
+trackTransform:
+element.hasAttribute(
+'data-ggg-light-track-transform'
+) ||
+Boolean(
+element.closest(
+'.ggg-insignia-audio'
+)
+),
+localMetal:
+type === 'metal' &&
+(
+element.hasAttribute(
+'data-ggg-light-track-transform'
+) ||
+Boolean(
+element.closest(
+'.ggg-insignia-audio'
+)
+)
+),
+localMetalHost:
+null,
 visible:
 !this.intersectionObserver,
 dynamicPosition:
@@ -1461,10 +1502,7 @@ element
 if (
 type ===
 'metal' &&
-respondsToLight &&
-!element.closest(
-'.ggg-insignia-audio'
-)
+respondsToLight
 ) {
 this.prepareMetal(
 material
@@ -2090,25 +2128,6 @@ METAL PREPARATION
 prepareMetal(
 material
 ) {
-material.bloom =
-document.createElement(
-'div'
-);
-material.bloom.className =
-'ggg-metal-bloom';
-document.body.appendChild(
-material.bloom
-);
-material.bevel =
-document.createElement(
-'div'
-);
-material.bevel.className =
-'ggg-metal-bevel';
-document.body.appendChild(
-material.bevel
-);
-const applyMask = () => {
 const element =
 material.element;
 const image =
@@ -2119,6 +2138,69 @@ element.matches(
 : element.querySelector(
 'img'
 );
+material.bloom =
+document.createElement(
+'div'
+);
+material.bloom.className =
+'ggg-metal-bloom';
+material.bevel =
+document.createElement(
+'div'
+);
+material.bevel.className =
+'ggg-metal-bevel';
+if (
+material.localMetal &&
+image &&
+image.parentElement
+) {
+const host =
+image.parentElement;
+material.localMetalHost =
+host;
+if (
+window.getComputedStyle(
+host
+).position === 'static'
+) {
+host.style.position =
+'relative';
+}
+[
+material.bloom,
+material.bevel
+].forEach(
+overlay => {
+host.appendChild(
+overlay
+);
+overlay.style.position =
+'absolute';
+overlay.style.pointerEvents =
+'none';
+overlay.style.margin =
+'0';
+overlay.style.inset =
+'auto';
+overlay.style.zIndex =
+'2';
+overlay.style.transformOrigin =
+'50% 50%';
+}
+);
+this.syncLocalMetalOverlay(
+material
+);
+} else {
+document.body.appendChild(
+material.bloom
+);
+document.body.appendChild(
+material.bevel
+);
+}
+const applyMask = () => {
 if (
 !image
 ) {
@@ -2150,14 +2232,6 @@ mask
 );
 };
 applyMask();
-const image =
-material.element.matches(
-'img'
-)
-? material.element
-: material.element.querySelector(
-'img'
-);
 if (
 image &&
 !image.complete
@@ -2170,6 +2244,13 @@ material.geometryDirty =
 true;
 this.footerGeometryDirty =
 true;
+if (
+material.localMetal
+) {
+this.syncLocalMetalOverlay(
+material
+);
+}
 },
 {
 once:
@@ -2178,6 +2259,76 @@ true
 );
 }
 }
+
+syncLocalMetalOverlay(
+material
+) {
+if (
+!material.localMetal ||
+!material.bloom ||
+!material.bevel
+) {
+return;
+}
+const element =
+material.element;
+const image =
+element.matches(
+'img'
+)
+? element
+: element.querySelector(
+'img'
+);
+if (
+!image
+) {
+return;
+}
+const style =
+window.getComputedStyle(
+image
+);
+const left =
+image.offsetLeft.toFixed(2) +
+'px';
+const top =
+image.offsetTop.toFixed(2) +
+'px';
+const width =
+image.offsetWidth.toFixed(2) +
+'px';
+const height =
+image.offsetHeight.toFixed(2) +
+'px';
+const transform =
+style.transform === 'none'
+? 'none'
+: style.transform;
+const transformOrigin =
+style.transformOrigin ||
+'50% 50%';
+[
+material.bloom,
+material.bevel
+].forEach(
+overlay => {
+overlay.style.left =
+left;
+overlay.style.top =
+top;
+overlay.style.width =
+width;
+overlay.style.height =
+height;
+overlay.style.transform =
+transform;
+overlay.style.transformOrigin =
+transformOrigin;
+}
+);
+}
+
 /* ======================================================
 PHOTO PREPARATION
 ====================================================== */
@@ -2981,6 +3132,13 @@ if (
 ) {
 return;
 }
+if (
+material.localMetal
+) {
+this.syncLocalMetalOverlay(
+material
+);
+}
 const centerX =
 rect.left +
 rect.width /
@@ -3053,6 +3211,9 @@ rect.height,
 0,
 1
 );
+if (
+!material.localMetal
+) {
 const leftValue =
 rect.left.toFixed(2) +
 'px';
@@ -3113,6 +3274,7 @@ material.bevelVars,
 '--ggg-metal-height',
 heightValue
 );
+}
 this.setVar(
 material.bloom,
 material.bloomVars,
@@ -4124,17 +4286,20 @@ this.exposureReveal.toFixed(
 /* ====================================================
 RESPONSIVE MATERIALS ONLY
 ==================================================== */
-if (
-this.shouldUpdateMaterials()
-) {
+const updateAllMaterials =
+this.shouldUpdateMaterials();
 this.activeMaterials.forEach(
 material => {
+if (
+updateAllMaterials ||
+material.trackTransform
+) {
 this.updateMaterialBase(
 material
 );
 }
-);
 }
+);
 /* ====================================================
 HIDDEN LIGHT REVEALS
 ==================================================== */
